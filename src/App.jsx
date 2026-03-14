@@ -14,6 +14,12 @@ const SYMPTOMS = [
   { icon: "😰", name: "Anxiety" },
   { icon: "⚖️", name: "Weight change" },
   { icon: "❤️", name: "Low libido" },
+  { icon: "💓", name: "Palpitations" },
+  { icon: "🫧", name: "Bloating" },
+  { icon: "💇", name: "Hair thinning" },
+  { icon: "🔥", name: "Irritability" },
+  { icon: "🧊", name: "Chills" },
+  { icon: "💭", name: "Memory lapse" },
 ];
 
 const QUESTIONS = [
@@ -27,12 +33,17 @@ const QUESTIONS = [
     ],
   },
   {
-    text: "Which symptoms bother you most right now?",
+    text: "Which symptoms bother you most?",
+    multi: true,
     opts: [
       "Hot flashes & night sweats",
       "Sleep problems",
       "Mood changes & anxiety",
       "Brain fog & fatigue",
+      "Joint pain & body aches",
+      "Weight changes & bloating",
+      "Low libido & dryness",
+      "Heart palpitations",
     ],
   },
   {
@@ -720,14 +731,24 @@ function OnboardingScreen({ onComplete }) {
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [selected, setSelected] = useState(null);
+  const [multiSelected, setMultiSelected] = useState([]);
 
   const q = QUESTIONS[qIndex];
   const progress = ((qIndex + 1) / QUESTIONS.length) * 100;
   const isLast = qIndex === QUESTIONS.length - 1;
+  const isMulti = !!q.multi;
 
   function handleSelect(i) {
-    setSelected(i);
-    setAnswers((prev) => ({ ...prev, [qIndex]: i }));
+    if (isMulti) {
+      setMultiSelected((prev) => {
+        const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
+        setAnswers((a) => ({ ...a, [qIndex]: next }));
+        return next;
+      });
+    } else {
+      setSelected(i);
+      setAnswers((prev) => ({ ...prev, [qIndex]: i }));
+    }
   }
 
   function handleNext() {
@@ -735,9 +756,18 @@ function OnboardingScreen({ onComplete }) {
       onComplete(answers);
     } else {
       setQIndex((i) => i + 1);
-      setSelected(answers[qIndex + 1] ?? null);
+      const nextQ = QUESTIONS[qIndex + 1];
+      if (nextQ.multi) {
+        setMultiSelected(answers[qIndex + 1] ?? []);
+        setSelected(null);
+      } else {
+        setSelected(answers[qIndex + 1] ?? null);
+        setMultiSelected([]);
+      }
     }
   }
+
+  const canContinue = isMulti ? multiSelected.length > 0 : selected !== null;
 
   return (
     <div className="screen active">
@@ -755,25 +785,30 @@ function OnboardingScreen({ onComplete }) {
       <div className="q-card">
         <div className="q-step">
           Question {qIndex + 1} of {QUESTIONS.length}
+          {isMulti && <span style={{ marginLeft: 8, fontStyle: "italic", textTransform: "none", letterSpacing: 0 }}>select all that apply</span>}
         </div>
         <div className="q-text">{q.text}</div>
         <div className="q-options">
-          {q.opts.map((opt, i) => (
-            <button
-              key={i}
-              className={`q-opt${selected === i ? " selected" : ""}`}
-              onClick={() => handleSelect(i)}
-            >
-              {opt}
-            </button>
-          ))}
+          {q.opts.map((opt, i) => {
+            const isSelected = isMulti ? multiSelected.includes(i) : selected === i;
+            return (
+              <button
+                key={i}
+                className={`q-opt${isSelected ? " selected" : ""}`}
+                onClick={() => handleSelect(i)}
+              >
+                {isMulti && <span style={{ marginRight: 8 }}>{isSelected ? "✓" : "○"}</span>}
+                {opt}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <button
         className="onboard-btn"
         onClick={handleNext}
-        disabled={selected === null}
+        disabled={!canContinue}
       >
         {isLast ? "Start my journey →" : "Continue"}
       </button>
@@ -797,7 +832,7 @@ function TrackerScreen({ onLog, logs, profile }) {
   const streak = getStreak(logs);
   const journeyStage = profile ? getJourneyLabel(profile[0]) : null;
 
-  // Rotating evidence-based tips based on onboarding symptom concern
+  // Rotating evidence-based tips based on onboarding symptom concerns (multi-select)
   const tipSets = {
     0: [
       "Hot flashes and night sweats are the most common perimenopausal symptoms. Tracking their frequency helps identify triggers.",
@@ -827,10 +862,34 @@ function TrackerScreen({ onLog, logs, profile }) {
       "Fatigue during perimenopause may be compounded by iron deficiency. If persistent, share your logs with your doctor.",
       "Cognitive function typically returns to baseline after the menopausal transition. Your tracking data captures the journey.",
     ],
+    4: [
+      "Joint pain affects up to 50% of women during menopause. Tracking severity helps identify what aggravates or relieves it.",
+      "Estrogen has anti-inflammatory properties — declining levels can increase joint stiffness and pain during perimenopause.",
+      "Low-impact exercise like swimming and yoga can reduce menopausal joint pain. Log activity alongside symptoms to see what helps.",
+    ],
+    5: [
+      "Hormonal shifts can slow metabolism and increase abdominal bloating. Tracking helps distinguish patterns from daily variation.",
+      "Many women gain 5-8 lbs during the menopausal transition. Strength training helps maintain muscle mass and metabolism.",
+      "Bloating often correlates with dietary triggers. Note what you ate to identify connections in your logs.",
+    ],
+    6: [
+      "Vaginal dryness affects over 50% of postmenopausal women. Tracking helps you discuss treatment options with your doctor.",
+      "Declining estrogen affects libido through both physical and neurological pathways. Your logs capture the full picture.",
+      "Many effective treatments exist for menopausal intimate symptoms. Consistent tracking strengthens conversations with your provider.",
+    ],
+    7: [
+      "Heart palpitations during perimenopause are usually caused by hormonal fluctuations, not heart disease. Tracking patterns helps reassure.",
+      "Palpitations often coincide with hot flashes or anxiety. Your combined logs reveal these connections for your doctor.",
+      "If palpitations are frequent or prolonged, share your log data with your doctor to rule out other causes.",
+    ],
   };
   const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-  const tips = profile ? tipSets[profile[1]] || tipSets[0] : null;
-  const tipText = tips ? tips[dayOfYear % tips.length] : null;
+  // Gather all tips from user's selected concerns (profile[1] is now an array)
+  const concerns = profile ? (Array.isArray(profile[1]) ? profile[1] : [profile[1]]) : [];
+  const allTips = concerns.length > 0
+    ? concerns.flatMap((c) => tipSets[c] || [])
+    : tipSets[0];
+  const tipText = allTips.length > 0 ? allTips[dayOfYear % allTips.length] : null;
 
   function toggleSymptom(name) {
     setActiveSymptoms((prev) => {
@@ -1350,8 +1409,9 @@ function generateDoctorReport(logs, profile) {
     const stages = ["Regular cycles", "Perimenopause", "Postmenopause", "Surgical menopause"];
     doc.text(`Hormonal stage: ${stages[profile[0]] || "Not specified"}`, margin, y);
     y += 6;
-    const concerns = ["Hot flashes & night sweats", "Sleep problems", "Mood changes & anxiety", "Brain fog & fatigue"];
-    doc.text(`Primary concern: ${concerns[profile[1]] || "Not specified"}`, margin, y);
+    const concernLabels = ["Hot flashes & night sweats", "Sleep problems", "Mood changes & anxiety", "Brain fog & fatigue", "Joint pain & body aches", "Weight changes & bloating", "Low libido & dryness", "Heart palpitations"];
+    const selectedConcerns = Array.isArray(profile[1]) ? profile[1].map((i) => concernLabels[i]).join(", ") : concernLabels[profile[1]] || "Not specified";
+    doc.text(`Primary concerns: ${selectedConcerns}`, margin, y);
     y += 12;
   }
 
