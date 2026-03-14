@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { jsPDF } from "jspdf";
 
 const SYMPTOMS = [
   { icon: "🌡", name: "Hot flash" },
@@ -9,6 +10,10 @@ const SYMPTOMS = [
   { icon: "⚡", name: "Fatigue" },
   { icon: "💧", name: "Dryness" },
   { icon: "💊", name: "Headache" },
+  { icon: "🦴", name: "Joint pain" },
+  { icon: "😰", name: "Anxiety" },
+  { icon: "⚖️", name: "Weight change" },
+  { icon: "❤️", name: "Low libido" },
 ];
 
 const QUESTIONS = [
@@ -288,7 +293,7 @@ const css = `
   }
 
   .symptoms-section { margin: 14px 16px 0; }
-  .symptom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .symptom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .symptom-tile {
     background: white;
     border-radius: var(--radius-sm);
@@ -792,14 +797,40 @@ function TrackerScreen({ onLog, logs, profile }) {
   const streak = getStreak(logs);
   const journeyStage = profile ? getJourneyLabel(profile[0]) : null;
 
-  // Personalized tip based on onboarding answers
-  const tips = {
-    0: "Hot flashes and night sweats are the most common perimenopausal symptoms. Tracking their frequency helps identify triggers.",
-    1: "Sleep disruption affects up to 60% of women during the menopausal transition. Consistent logging reveals patterns your doctor can act on.",
-    2: "Mood changes during perimenopause are linked to fluctuating estrogen. Tracking helps distinguish hormonal shifts from other factors.",
-    3: "Brain fog and fatigue often correlate with sleep quality. Your logs can reveal these connections over time.",
+  // Rotating evidence-based tips based on onboarding symptom concern
+  const tipSets = {
+    0: [
+      "Hot flashes and night sweats are the most common perimenopausal symptoms. Tracking their frequency helps identify triggers.",
+      "Many women find hot flashes worsen with caffeine, alcohol, or spicy food. Your logs can help spot these patterns.",
+      "Hot flashes typically peak 1-2 years after your last period and gradually ease. Tracking duration helps monitor progress.",
+      "Deep breathing when a hot flash starts can reduce its intensity. Log severity to see if coping strategies help.",
+      "Layered clothing and keeping your bedroom cool (65°F/18°C) are evidence-backed strategies for managing night sweats.",
+    ],
+    1: [
+      "Sleep disruption affects up to 60% of women during the menopausal transition. Consistent logging reveals patterns your doctor can act on.",
+      "Poor sleep during menopause is often linked to night sweats. Tracking both helps your doctor see the connection.",
+      "Maintaining a consistent wake time — even on weekends — is one of the strongest evidence-based sleep strategies.",
+      "Screen time before bed suppresses melatonin production. Note your evening habits to find what helps you sleep better.",
+      "Sleep quality often improves as you move through the menopausal transition. Your logs will show this progress over time.",
+    ],
+    2: [
+      "Mood changes during perimenopause are linked to fluctuating estrogen. Tracking helps distinguish hormonal shifts from other factors.",
+      "Anxiety is more common than depression during perimenopause. Logging mood alongside symptoms helps paint the full picture.",
+      "Regular exercise has been shown to reduce perimenopausal mood symptoms as effectively as some medications.",
+      "Mood shifts often correlate with sleep quality. Your combined logs help your doctor see these connections.",
+      "Many women find their mood stabilizes as they move from perimenopause into postmenopause. Tracking shows your trajectory.",
+    ],
+    3: [
+      "Brain fog and fatigue often correlate with sleep quality. Your logs can reveal these connections over time.",
+      "Perimenopausal brain fog is real — estrogen affects neurotransmitters involved in memory and concentration.",
+      "Staying hydrated and maintaining stable blood sugar can help reduce brain fog episodes. Track what works for you.",
+      "Fatigue during perimenopause may be compounded by iron deficiency. If persistent, share your logs with your doctor.",
+      "Cognitive function typically returns to baseline after the menopausal transition. Your tracking data captures the journey.",
+    ],
   };
-  const tipText = profile ? tips[profile[1]] : null;
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  const tips = profile ? tipSets[profile[1]] || tipSets[0] : null;
+  const tipText = tips ? tips[dayOfYear % tips.length] : null;
 
   function toggleSymptom(name) {
     setActiveSymptoms((prev) => {
@@ -989,7 +1020,7 @@ function HistoryScreen({ logs }) {
 
 // ─── Insights Screen ──────────────────────────────────────────────────────────
 
-function InsightsScreen({ logs, isPremium, onShowPaywall }) {
+function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const DAY_NAMES = ["S", "M", "T", "W", "T", "F", "S"];
 
   // Get logs from the last 7 days
@@ -1177,7 +1208,23 @@ function InsightsScreen({ logs, isPremium, onShowPaywall }) {
         </>
       )}
 
-      {!isPremium && (
+      {isPremium ? (
+        <div style={{ margin: "14px 16px 0" }}>
+          <button
+            className="log-btn"
+            onClick={() => generateDoctorReport(logs, profile)}
+            style={{ margin: 0 }}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            Generate doctor report (PDF)
+          </button>
+        </div>
+      ) : (
         <div className="unlock-card">
           <div className="unlock-tag">Premium</div>
           <div className="unlock-title">Doctor-ready reports</div>
@@ -1249,6 +1296,242 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   );
 }
 
+// ─── PDF Report Generator ────────────────────────────────────────────────────
+
+function generateDoctorReport(logs, profile) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
+  let y = 20;
+
+  function addPage() {
+    doc.addPage();
+    y = 20;
+  }
+
+  function checkPage(needed) {
+    if (y + needed > 270) addPage();
+  }
+
+  // Header
+  doc.setFontSize(22);
+  doc.setTextColor(140, 78, 50); // clay-dark
+  doc.text("Vela Symptom Report", margin, y);
+  y += 10;
+
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  const now = new Date();
+  const thirtyAgo = new Date(now);
+  thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  doc.text(
+    `Report period: ${thirtyAgo.toLocaleDateString()} – ${now.toLocaleDateString()}`,
+    margin, y
+  );
+  y += 5;
+  doc.text("Generated by Vela — velahealth.app", margin, y);
+  y += 10;
+
+  // Line
+  doc.setDrawColor(200);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 10;
+
+  // Patient profile
+  if (profile) {
+    doc.setFontSize(14);
+    doc.setTextColor(44, 31, 23); // ink
+    doc.text("Patient Profile", margin, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setTextColor(80);
+    const stages = ["Regular cycles", "Perimenopause", "Postmenopause", "Surgical menopause"];
+    doc.text(`Hormonal stage: ${stages[profile[0]] || "Not specified"}`, margin, y);
+    y += 6;
+    const concerns = ["Hot flashes & night sweats", "Sleep problems", "Mood changes & anxiety", "Brain fog & fatigue"];
+    doc.text(`Primary concern: ${concerns[profile[1]] || "Not specified"}`, margin, y);
+    y += 12;
+  }
+
+  // Filter to last 30 days
+  const recentLogs = logs.filter((l) => new Date(l.date) >= thirtyAgo);
+
+  if (recentLogs.length === 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text("No entries logged in the last 30 days.", margin, y);
+    doc.save("Vela-Symptom-Report.pdf");
+    return;
+  }
+
+  // Summary stats
+  doc.setFontSize(14);
+  doc.setTextColor(44, 31, 23);
+  doc.text("30-Day Summary", margin, y);
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setTextColor(80);
+  doc.text(`Total entries logged: ${recentLogs.length}`, margin, y);
+  y += 6;
+
+  // Symptom frequency
+  const symptomCount = {};
+  recentLogs.forEach((l) => {
+    Object.keys(l.symptoms || {}).forEach((s) => {
+      symptomCount[s] = (symptomCount[s] || 0) + 1;
+    });
+  });
+  const sortedSymptoms = Object.entries(symptomCount).sort((a, b) => b[1] - a[1]);
+
+  if (sortedSymptoms.length > 0) {
+    doc.text("Symptom frequency (days reported):", margin, y);
+    y += 6;
+    sortedSymptoms.forEach(([name, count]) => {
+      checkPage(6);
+      doc.text(`  • ${name}: ${count} of ${recentLogs.length} entries`, margin, y);
+      y += 5;
+    });
+    y += 4;
+  }
+
+  // Average severity
+  const sevTotals = {};
+  const sevCounts = {};
+  recentLogs.forEach((l) => {
+    Object.entries(l.severities || {}).forEach(([s, v]) => {
+      if (v > 0) {
+        sevTotals[s] = (sevTotals[s] || 0) + v;
+        sevCounts[s] = (sevCounts[s] || 0) + 1;
+      }
+    });
+  });
+  const sevAvgs = Object.entries(sevTotals).map(([name, total]) => ({
+    name, avg: (total / sevCounts[name]).toFixed(1),
+  })).sort((a, b) => b.avg - a.avg);
+
+  if (sevAvgs.length > 0) {
+    checkPage(10 + sevAvgs.length * 5);
+    doc.setFontSize(10);
+    doc.text("Average severity (1-3 scale):", margin, y);
+    y += 6;
+    sevAvgs.forEach(({ name, avg }) => {
+      doc.text(`  • ${name}: ${avg}/3`, margin, y);
+      y += 5;
+    });
+    y += 4;
+  }
+
+  // Mood overview
+  const moodEntries = recentLogs.filter((l) => l.mood !== null && l.mood !== undefined);
+  if (moodEntries.length > 0) {
+    checkPage(12);
+    const avgMood = (moodEntries.reduce((s, l) => s + l.mood, 0) / moodEntries.length).toFixed(1);
+    const moodLabels = ["Very low", "Low", "Neutral", "Good", "Very good"];
+    const moodLabel = moodLabels[Math.round(avgMood)] || "Neutral";
+    doc.text(`Average mood: ${avgMood}/4 (${moodLabel})`, margin, y);
+    y += 10;
+  }
+
+  // Daily log detail
+  checkPage(15);
+  doc.setFontSize(14);
+  doc.setTextColor(44, 31, 23);
+  doc.text("Daily Log Detail", margin, y);
+  y += 8;
+
+  const moodEmojis = ["Very low", "Low", "Neutral", "Good", "Very good"];
+  const sortedLogs = [...recentLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  sortedLogs.forEach((log) => {
+    const dateStr = new Date(log.date).toLocaleDateString("en-US", {
+      weekday: "short", month: "short", day: "numeric",
+    });
+    const time = new Date(log.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const symptoms = Object.keys(log.symptoms || {});
+    const neededHeight = 12 + (symptoms.length > 0 ? 6 : 0) + (log.notes ? 6 : 0);
+    checkPage(neededHeight);
+
+    doc.setFontSize(10);
+    doc.setTextColor(44, 31, 23);
+    doc.text(`${dateStr} at ${time}`, margin, y);
+    if (log.mood !== null && log.mood !== undefined) {
+      doc.setTextColor(100);
+      doc.text(`Mood: ${moodEmojis[log.mood]}`, margin + 80, y);
+    }
+    y += 5;
+
+    if (symptoms.length > 0) {
+      doc.setTextColor(100);
+      const symText = symptoms.map((s) => {
+        const sev = log.severities?.[s];
+        return sev ? `${s} (${sev}/3)` : s;
+      }).join(", ");
+      const lines = doc.splitTextToSize(`Symptoms: ${symText}`, contentWidth);
+      lines.forEach((line) => {
+        checkPage(5);
+        doc.text(line, margin, y);
+        y += 5;
+      });
+    }
+
+    if (log.notes) {
+      doc.setTextColor(120);
+      const noteLines = doc.splitTextToSize(`Note: "${log.notes}"`, contentWidth);
+      noteLines.forEach((line) => {
+        checkPage(5);
+        doc.text(line, margin, y);
+        y += 5;
+      });
+    }
+    y += 3;
+  });
+
+  // Footer disclaimer
+  checkPage(20);
+  y += 5;
+  doc.setDrawColor(200);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text("This report is generated from self-reported data and is intended to support", margin, y);
+  y += 4;
+  doc.text("conversations with your healthcare provider. It does not constitute medical advice.", margin, y);
+  y += 4;
+  doc.text("All data is stored locally on the user's device and is not transmitted to any server.", margin, y);
+
+  doc.save("Vela-Symptom-Report.pdf");
+}
+
+// ─── CSV Export ──────────────────────────────────────────────────────────────
+
+function exportCSV(logs) {
+  const header = "Date,Time,Mood,Symptoms,Severities,Notes";
+  const moodLabels = ["Very low", "Low", "Neutral", "Good", "Very good"];
+  const rows = logs.map((log) => {
+    const d = new Date(log.date);
+    const date = d.toLocaleDateString("en-US");
+    const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const mood = log.mood !== null && log.mood !== undefined ? moodLabels[log.mood] : "";
+    const symptoms = Object.keys(log.symptoms || {}).join("; ");
+    const sevs = Object.entries(log.severities || {}).map(([s, v]) => `${s}:${v}/3`).join("; ");
+    const notes = (log.notes || "").replace(/"/g, '""');
+    return `${date},${time},${mood},"${symptoms}","${sevs}","${notes}"`;
+  });
+
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Vela-Symptom-Log.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Edit Single Question Screen ─────────────────────────────────────────────
 
 function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
@@ -1302,7 +1585,7 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
 
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
-function SettingsScreen({ profile, isPremium, onShowPaywall, onEditQuestion, onClearData }) {
+function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData }) {
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
   const goalLabels = [
     "Understand my body",
@@ -1374,6 +1657,32 @@ function SettingsScreen({ profile, isPremium, onShowPaywall, onEditQuestion, onC
               <span className="sr-label">Data storage</span>
             </div>
             <span className="sr-value">On-device only</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-label">Export</div>
+        <div className="settings-card">
+          <div className="settings-row" onClick={() => {
+            if (!isPremium) { onShowPaywall(); return; }
+            generateDoctorReport(logs, profile);
+          }}>
+            <div className="sr-left">
+              <span className="sr-icon">📋</span>
+              <span className="sr-label">Doctor report (PDF)</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {!isPremium && <span className="sr-value" style={{ color: "var(--gold)" }}>Premium</span>}
+              <span className="sr-arrow">›</span>
+            </div>
+          </div>
+          <div className="settings-row" onClick={() => exportCSV(logs)}>
+            <div className="sr-left">
+              <span className="sr-icon">📊</span>
+              <span className="sr-label">Export data (CSV)</span>
+            </div>
+            <span className="sr-arrow">›</span>
           </div>
         </div>
       </div>
@@ -1551,6 +1860,7 @@ export default function App() {
       {onboarded && screen === "insights" && (
         <InsightsScreen
           logs={logs}
+          profile={profile}
           isPremium={isPremium}
           onShowPaywall={() => setShowPaywall(true)}
         />
@@ -1558,6 +1868,7 @@ export default function App() {
       {onboarded && screen === "settings" && (
         <SettingsScreen
           profile={profile}
+          logs={logs}
           isPremium={isPremium}
           onShowPaywall={() => setShowPaywall(true)}
           onEditQuestion={handleEditQuestion}
