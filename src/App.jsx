@@ -711,7 +711,7 @@ const css = `
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
 
-function OnboardingScreen({ onComplete }) {
+function OnboardingScreen({ onComplete, onBack }) {
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [selected, setSelected] = useState(null);
@@ -736,13 +736,25 @@ function OnboardingScreen({ onComplete }) {
 
   return (
     <div className="screen active">
+      {onBack && (
+        <div style={{ padding: "8px 16px 0" }}>
+          <button
+            onClick={onBack}
+            style={{
+              background: "none", border: "none", fontSize: 14,
+              color: "var(--clay-dark)", cursor: "pointer", padding: "4px 0",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            ← Back to Settings
+          </button>
+        </div>
+      )}
       <div className="onboard-hero">
         <h1>
-          Your body,
-          <br />
-          <em>finally understood.</em>
+          {onBack ? <>Update your<br /><em>profile</em></> : <>Your body,<br /><em>finally understood.</em></>}
         </h1>
-        <p>A few quick questions to personalize your experience.</p>
+        <p>{onBack ? "Update your answers to personalize your experience." : "A few quick questions to personalize your experience."}</p>
       </div>
 
       <div className="progress-bar">
@@ -1394,12 +1406,22 @@ export default function App() {
     localStorage.setItem("vela_profile", JSON.stringify(answers));
     setProfile(answers);
     setOnboarded(true);
-    setScreen("tracker");
+    setScreen(isEditingProfile ? "settings" : "tracker");
+    setIsEditingProfile(false);
   }
 
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
   function handleResetOnboarding() {
+    setIsEditingProfile(true);
     setOnboarded(false);
     setScreen("onboard");
+  }
+
+  function handleBackFromOnboarding() {
+    setIsEditingProfile(false);
+    setOnboarded(true);
+    setScreen("settings");
   }
 
   function handleClearData() {
@@ -1480,7 +1502,10 @@ export default function App() {
 
       {/* Screens */}
       {!onboarded && (
-        <OnboardingScreen onComplete={handleOnboardComplete} />
+        <OnboardingScreen
+          onComplete={handleOnboardComplete}
+          onBack={isEditingProfile ? handleBackFromOnboarding : null}
+        />
       )}
       {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} />}
       {onboarded && screen === "history" && <HistoryScreen logs={logs} />}
