@@ -711,7 +711,7 @@ const css = `
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
 
-function OnboardingScreen({ onComplete, onBack }) {
+function OnboardingScreen({ onComplete }) {
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [selected, setSelected] = useState(null);
@@ -736,25 +736,11 @@ function OnboardingScreen({ onComplete, onBack }) {
 
   return (
     <div className="screen active">
-      {onBack && (
-        <div style={{ padding: "8px 16px 0" }}>
-          <button
-            onClick={onBack}
-            style={{
-              background: "none", border: "none", fontSize: 14,
-              color: "var(--clay-dark)", cursor: "pointer", padding: "4px 0",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
-            ← Back to Settings
-          </button>
-        </div>
-      )}
       <div className="onboard-hero">
         <h1>
-          {onBack ? <>Update your<br /><em>profile</em></> : <>Your body,<br /><em>finally understood.</em></>}
+          Your body,<br /><em>finally understood.</em>
         </h1>
-        <p>{onBack ? "Update your answers to personalize your experience." : "A few quick questions to personalize your experience."}</p>
+        <p>A few quick questions to personalize your experience.</p>
       </div>
 
       <div className="progress-bar">
@@ -1263,9 +1249,60 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   );
 }
 
+// ─── Edit Single Question Screen ─────────────────────────────────────────────
+
+function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
+  const q = QUESTIONS[questionIndex];
+  const [selected, setSelected] = useState(profile ? profile[questionIndex] : null);
+
+  function handleSave() {
+    onSave(questionIndex, selected);
+  }
+
+  return (
+    <div className="screen active">
+      <div style={{ padding: "8px 16px 0" }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: "none", border: "none", fontSize: 14,
+            color: "var(--clay-dark)", cursor: "pointer", padding: "4px 0",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          ← Back to Settings
+        </button>
+      </div>
+
+      <div className="q-card">
+        <div className="q-text">{q.text}</div>
+        <div className="q-options">
+          {q.opts.map((opt, i) => (
+            <button
+              key={i}
+              className={`q-opt${selected === i ? " selected" : ""}`}
+              onClick={() => setSelected(i)}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        className="onboard-btn"
+        onClick={handleSave}
+        disabled={selected === null}
+      >
+        Save
+      </button>
+    </div>
+  );
+}
+
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
-function SettingsScreen({ profile, isPremium, onShowPaywall, onResetOnboarding, onClearData }) {
+function SettingsScreen({ profile, isPremium, onShowPaywall, onEditQuestion, onClearData }) {
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
   const goalLabels = [
     "Understand my body",
@@ -1285,7 +1322,7 @@ function SettingsScreen({ profile, isPremium, onShowPaywall, onResetOnboarding, 
       <div className="settings-section">
         <div className="settings-section-label">Profile</div>
         <div className="settings-card">
-          <div className="settings-row" onClick={onResetOnboarding}>
+          <div className="settings-row" onClick={() => onEditQuestion(0)}>
             <div className="sr-left">
               <span className="sr-icon">🌸</span>
               <span className="sr-label">Hormonal stage</span>
@@ -1295,7 +1332,7 @@ function SettingsScreen({ profile, isPremium, onShowPaywall, onResetOnboarding, 
               <span className="sr-arrow">›</span>
             </div>
           </div>
-          <div className="settings-row" onClick={onResetOnboarding}>
+          <div className="settings-row" onClick={() => onEditQuestion(2)}>
             <div className="sr-left">
               <span className="sr-icon">🎯</span>
               <span className="sr-label">Primary goal</span>
@@ -1406,21 +1443,26 @@ export default function App() {
     localStorage.setItem("vela_profile", JSON.stringify(answers));
     setProfile(answers);
     setOnboarded(true);
-    setScreen(isEditingProfile ? "settings" : "tracker");
-    setIsEditingProfile(false);
+    setScreen("tracker");
   }
 
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
-  function handleResetOnboarding() {
-    setIsEditingProfile(true);
-    setOnboarded(false);
-    setScreen("onboard");
+  function handleEditQuestion(qIndex) {
+    setEditingQuestion(qIndex);
+    setScreen("edit-question");
   }
 
-  function handleBackFromOnboarding() {
-    setIsEditingProfile(false);
-    setOnboarded(true);
+  function handleSaveQuestion(qIndex, answer) {
+    const updated = { ...profile, [qIndex]: answer };
+    localStorage.setItem("vela_profile", JSON.stringify(updated));
+    setProfile(updated);
+    setEditingQuestion(null);
+    setScreen("settings");
+  }
+
+  function handleBackFromEdit() {
+    setEditingQuestion(null);
     setScreen("settings");
   }
 
@@ -1502,10 +1544,7 @@ export default function App() {
 
       {/* Screens */}
       {!onboarded && (
-        <OnboardingScreen
-          onComplete={handleOnboardComplete}
-          onBack={isEditingProfile ? handleBackFromOnboarding : null}
-        />
+        <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
       {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} />}
       {onboarded && screen === "history" && <HistoryScreen logs={logs} />}
@@ -1521,8 +1560,16 @@ export default function App() {
           profile={profile}
           isPremium={isPremium}
           onShowPaywall={() => setShowPaywall(true)}
-          onResetOnboarding={handleResetOnboarding}
+          onEditQuestion={handleEditQuestion}
           onClearData={handleClearData}
+        />
+      )}
+      {onboarded && screen === "edit-question" && editingQuestion !== null && (
+        <EditQuestionScreen
+          questionIndex={editingQuestion}
+          profile={profile}
+          onSave={handleSaveQuestion}
+          onBack={handleBackFromEdit}
         />
       )}
 
