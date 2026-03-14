@@ -101,6 +101,200 @@ function getJourneyLabel(profileIndex) {
   return labels[profileIndex] || null;
 }
 
+function analyzePatterns(logs) {
+  if (logs.length < 7) return [];
+  const patterns = [];
+  const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const byDate = {};
+  logs.forEach((l) => {
+    const d = l.date.slice(0, 10);
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(l);
+  });
+  const dates = Object.keys(byDate).sort();
+  const symptomNames = [...new Set(logs.flatMap((l) => Object.keys(l.symptoms || {})))];
+
+  // Pattern 1: Symptom follows another symptom
+  const followPatterns = [];
+  symptomNames.forEach((target) => {
+    symptomNames.forEach((trigger) => {
+      if (target === trigger) return;
+      let afterTrigger = 0, afterTriggerTotal = 0, noTrigger = 0, noTriggerTotal = 0;
+      for (let i = 1; i < dates.length; i++) {
+        const prevSyms = byDate[dates[i - 1]].flatMap((l) => Object.keys(l.symptoms || {}));
+        const todaySyms = byDate[dates[i]].flatMap((l) => Object.keys(l.symptoms || {}));
+        if (prevSyms.includes(trigger)) { afterTriggerTotal++; if (todaySyms.includes(target)) afterTrigger++; }
+        else { noTriggerTotal++; if (todaySyms.includes(target)) noTrigger++; }
+      }
+      if (afterTriggerTotal >= 3 && afterTrigger / afterTriggerTotal > 0.6) {
+        const ratio = (afterTrigger / afterTriggerTotal) / ((noTrigger / Math.max(noTriggerTotal, 1)) || 0.1);
+        if (ratio >= 2) followPatterns.push({ ratio, text: `You logged ${target.toLowerCase()} ${Math.round(ratio)}x more on days after ${trigger.toLowerCase()}` });
+      }
+    });
+  });
+  followPatterns.sort((a, b) => b.ratio - a.ratio);
+  if (followPatterns[0]) patterns.push(followPatterns[0].text);
+
+  // Pattern 2: Symptom peaks on a weekday
+  const weekdayCounts = {};
+  const weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
+  dates.forEach((d) => {
+    const dow = new Date(d + "T12:00:00").getDay();
+    weekdayTotals[dow]++;
+    const syms = [...new Set(byDate[d].flatMap((l) => Object.keys(l.symptoms || {})))];
+    syms.forEach((s) => {
+      if (!weekdayCounts[s]) weekdayCounts[s] = [0, 0, 0, 0, 0, 0, 0];
+      weekdayCounts[s][dow]++;
+    });
+  });
+  let bestWeekday = null;
+  Object.entries(weekdayCounts).forEach(([symptom, counts]) => {
+    const total = counts.reduce((a, b) => a + b, 0);
+    if (total < 3) return;
+    counts.forEach((c, dow) => {
+      if (weekdayTotals[dow] < 2) return;
+      const rate = c / weekdayTotals[dow];
+      const avgRate = total / dates.length;
+      if (rate > avgRate * 1.5 && c >= 2) {
+        const score = rate / Math.max(avgRate, 0.1);
+        if (!bestWeekday || score > bestWeekday.score) bestWeekday = { score, text: `${symptom} tends to peak on ${DAY_NAMES[dow]}s` };
+      }
+    });
+  });
+  if (bestWeekday) patterns.push(bestWeekday.text);
+
+  // Pattern 3: Mood vs symptom count
+  const moodDays = dates.filter((d) => byDate[d].some((l) => l.mood !== null && l.mood !== undefined));
+  if (moodDays.length >= 5) {
+    let highSymLow = 0, lowSymHigh = 0, total = 0;
+    const avgSym = moodDays.reduce((s, d) => s + byDate[d].reduce((ss, l) => ss + Object.keys(l.symptoms || {}).length, 0), 0) / moodDays.length;
+    moodDays.forEach((d) => {
+      const symCount = byDate[d].reduce((s, l) => s + Object.keys(l.symptoms || {}).length, 0);
+      const avgMood = byDate[d].filter((l) => l.mood !== null).reduce((s, l) => s + l.mood, 0) / byDate[d].filter((l) => l.mood !== null).length;
+      if (symCount > avgSym && avgMood < 2) highSymLow++;
+      if (symCount < avgSym && avgMood >= 3) lowSymHigh++;
+      total++;
+    });
+    if ((highSymLow + lowSymHigh) / total > 0.4) patterns.push("Your mood averages higher on days you log fewer symptoms");
+  }
+
+  // Pattern 4: Co-occurring symptoms
+  const coOccur = {};
+  dates.forEach((d) => {
+    const syms = [...new Set(byDate[d].flatMap((l) => Object.keys(l.symptoms || {})))];
+    for (let i = 0; i < syms.length; i++) {
+      for (let j = i + 1; j < syms.length; j++) {
+        const key = [syms[i], syms[j]].sort().join("|");
+        coOccur[key] = (coOccur[key] || 0) + 1;
+      }
+    }
+  });
+  const topCo = Object.entries(coOccur).sort((a, b) => b[1] - a[1])[0];
+  if (topCo && topCo[1] >= 3 && patterns.length < 3) {
+    const [a, b] = topCo[0].split("|");
+    patterns.push(`${a} and ${b} appeared together on ${topCo[1]} days`);
+  }
+  return patterns.slice(0, 3);
+}
+
+function predictSymptoms(logs) {
+  if (logs.length < 14) return [];
+  const today = new Date();
+  const todayDow = today.getDay();
+  const byDate = {};
+  logs.forEach((l) => {
+    const d = l.date.slice(0, 10);
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(l);
+  });
+  const dates = Object.keys(byDate).sort();
+  const weekdaySymptoms = {};
+  let weekdayDayCount = 0;
+  dates.forEach((d) => {
+    if (new Date(d + "T12:00:00").getDay() !== todayDow) return;
+    weekdayDayCount++;
+    const syms = [...new Set(byDate[d].flatMap((l) => Object.keys(l.symptoms || {})))];
+    syms.forEach((s) => { weekdaySymptoms[s] = (weekdaySymptoms[s] || 0) + 1; });
+  });
+  if (weekdayDayCount < 2) return [];
+  return Object.entries(weekdaySymptoms)
+    .filter(([, c]) => c / weekdayDayCount >= 0.5 && c >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([name]) => name);
+}
+
+function monthlyComparison(logs) {
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+  const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+  const lastYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+  const thisML = logs.filter((l) => { const d = new Date(l.date); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
+  const lastML = logs.filter((l) => { const d = new Date(l.date); return d.getMonth() === lastMonth && d.getFullYear() === lastYear; });
+  if (lastML.length === 0) return null;
+  const avgMood = (arr) => { const m = arr.filter((l) => l.mood !== null && l.mood !== undefined); return m.length ? m.reduce((s, l) => s + l.mood, 0) / m.length : null; };
+  const symCounts = (arr) => { const c = {}; arr.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { c[s] = (c[s] || 0) + 1; })); return c; };
+  const thisMood = avgMood(thisML), lastMood = avgMood(lastML);
+  const thisSym = symCounts(thisML), lastSym = symCounts(lastML);
+  let mostImproved = null, mostWorsened = null, bestDelta = 0, worstDelta = 0;
+  [...new Set([...Object.keys(thisSym), ...Object.keys(lastSym)])].forEach((s) => {
+    const delta = (thisSym[s] || 0) - (lastSym[s] || 0);
+    if (delta < bestDelta) { bestDelta = delta; mostImproved = s; }
+    if (delta > worstDelta) { worstDelta = delta; mostWorsened = s; }
+  });
+  return {
+    thisEntries: thisML.length, lastEntries: lastML.length,
+    moodDelta: thisMood !== null && lastMood !== null ? thisMood - lastMood : null,
+    mostImproved, mostWorsened,
+    newSymptoms: Object.keys(thisSym).filter((s) => !lastSym[s]),
+  };
+}
+
+function generateTalkingPoints(logs, profile) {
+  if (logs.length < 3) return null;
+  const thirtyAgo = new Date(); thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  const recent = logs.filter((l) => new Date(l.date) >= thirtyAgo);
+  if (recent.length === 0) return null;
+  const points = [];
+  const symCounts = {};
+  recent.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { symCounts[s] = (symCounts[s] || 0) + 1; }));
+  const top3 = Object.entries(symCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (top3.length) points.push(`Most frequent symptoms (30 days): ${top3.map(([n, c]) => `${n} (${c}x)`).join(", ")}`);
+
+  // Worsening trends
+  const fifteenAgo = new Date(); fifteenAgo.setDate(fifteenAgo.getDate() - 15);
+  const first = recent.filter((l) => new Date(l.date) < fifteenAgo);
+  const second = recent.filter((l) => new Date(l.date) >= fifteenAgo);
+  if (first.length > 0 && second.length > 0) {
+    const cnt = (arr) => { const c = {}; arr.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { c[s] = (c[s] || 0) + 1; })); return c; };
+    const f = cnt(first), s2 = cnt(second);
+    const worsening = Object.keys(s2).filter((s) => (s2[s] || 0) > (f[s] || 0) * 1.5 && s2[s] >= 3).slice(0, 2);
+    if (worsening.length) points.push(`Worsening recently: ${worsening.join(", ")}`);
+  }
+
+  // Mood trajectory
+  const moods = recent.filter((l) => l.mood !== null && l.mood !== undefined).sort((a, b) => a.date.localeCompare(b.date));
+  if (moods.length >= 4) {
+    const half = Math.floor(moods.length / 2);
+    const firstAvg = moods.slice(0, half).reduce((s, l) => s + l.mood, 0) / half;
+    const secondAvg = moods.slice(half).reduce((s, l) => s + l.mood, 0) / (moods.length - half);
+    const delta = secondAvg - firstAvg;
+    points.push(`Mood trend: ${Math.abs(delta) > 0.3 ? (delta > 0 ? "improving" : "declining") : "stable"} over the past 30 days`);
+  }
+
+  // Suggested questions
+  const questions = [];
+  const topNames = top3.map(([n]) => n.toLowerCase());
+  if (topNames.some((n) => n.includes("hot flash") || n.includes("night sweat"))) questions.push("Should I consider hormone therapy for vasomotor symptoms?");
+  if (topNames.some((n) => n.includes("sleep") || n.includes("fatigue"))) questions.push("Could my sleep issues be related to hormonal changes?");
+  if (topNames.some((n) => n.includes("anxiety") || n.includes("mood"))) questions.push("Are these mood changes hormonal, and when might they stabilize?");
+  if (topNames.some((n) => n.includes("joint"))) questions.push("Could my joint pain be estrogen-related?");
+  if (topNames.some((n) => n.includes("brain fog") || n.includes("memory"))) questions.push("Is cognitive change during menopause typically temporary?");
+  if (questions.length === 0) questions.push("Based on my symptom patterns, what treatment options would you recommend?");
+  return { points, questions: questions.slice(0, 3) };
+}
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const css = `
@@ -723,6 +917,95 @@ const css = `
     z-index: 100;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── HISTORY LOCKED ── */
+  .history-locked {
+    margin: 20px 16px;
+    text-align: center;
+    padding: 24px 16px;
+    background: var(--ink);
+    border-radius: var(--radius);
+    color: white;
+  }
+  .history-locked-icon { font-size: 28px; margin-bottom: 8px; }
+  .history-locked-text { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 14px; }
+  .history-locked .unlock-btn {
+    background: var(--gold); color: var(--ink); border: none;
+    padding: 10px 24px; border-radius: 20px; font-size: 13px;
+    font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ── PREDICTION CARD ── */
+  .prediction-card {
+    margin: 10px 16px 0;
+    background: rgba(122, 158, 135, 0.1);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    border: 1px solid rgba(122, 158, 135, 0.2);
+  }
+  .pred-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--sage); margin-bottom: 4px;
+  }
+  .pred-text { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+  .pred-text strong { color: var(--ink); }
+
+  /* ── PATTERNS CARD ── */
+  .patterns-card {
+    margin: 14px 16px 0;
+    background: white;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  .patterns-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); }
+  .patterns-subtitle { font-size: 12px; color: var(--ink-light); margin-bottom: 12px; }
+  .pattern-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 0; border-top: 1px solid var(--border);
+  }
+  .pattern-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .pattern-text { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+
+  /* ── COMPARISON CARD ── */
+  .comparison-card {
+    margin: 14px 16px 0;
+    background: white;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  .comp-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); margin-bottom: 14px; }
+  .comp-grid { display: flex; gap: 16px; margin-bottom: 14px; }
+  .comp-stat { flex: 1; text-align: center; }
+  .comp-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); }
+  .comp-label { font-size: 12px; color: var(--ink-light); }
+  .comp-delta { font-size: 11px; font-weight: 500; margin-top: 2px; }
+  .comp-delta.up { color: var(--sage); }
+  .comp-delta.down { color: var(--clay); }
+  .comp-row {
+    display: flex; gap: 8px; align-items: center;
+    padding: 8px 0; border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--ink-mid);
+  }
+  .comp-row strong { color: var(--ink); }
+  .comp-row-icon { flex-shrink: 0; }
+
+  /* ── DOCTOR PREP CARD ── */
+  .doctor-prep {
+    margin: 14px 16px 0;
+    background: white;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  .dp-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); margin-bottom: 12px; }
+  .dp-section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--clay); margin-bottom: 6px; }
+  .dp-point { display: flex; gap: 8px; padding: 4px 0; font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+  .dp-point.question { color: var(--sage); }
+  .dp-bullet { font-weight: 700; color: var(--clay); flex-shrink: 0; width: 14px; }
+  .dp-point.question .dp-bullet { color: var(--sage); }
+  .dp-empty { font-size: 13px; color: var(--ink-light); }
 `;
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
@@ -818,7 +1101,7 @@ function OnboardingScreen({ onComplete }) {
 
 // ─── Tracker Screen ───────────────────────────────────────────────────────────
 
-function TrackerScreen({ onLog, logs, profile }) {
+function TrackerScreen({ onLog, logs, profile, isPremium }) {
   const [mood, setMood] = useState(null);
   const [activeSymptoms, setActiveSymptoms] = useState({});
   const [severities, setSeverities] = useState({});
@@ -927,6 +1210,20 @@ function TrackerScreen({ onLog, logs, profile }) {
         </div>
       )}
 
+      {isPremium && (() => {
+        const predicted = predictSymptoms(logs);
+        if (predicted.length === 0) return null;
+        return (
+          <div className="prediction-card">
+            <div className="pred-label">Based on your patterns</div>
+            <div className="pred-text">
+              On {new Date().toLocaleDateString("en-US", { weekday: "long" })}s, you often log{" "}
+              <strong>{predicted.join(" and ").toLowerCase()}</strong>. Keep tracking to refine predictions.
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="wellbeing-card">
         <div className="wb-label">How are you feeling overall?</div>
         <div className="wb-faces">
@@ -999,7 +1296,7 @@ function TrackerScreen({ onLog, logs, profile }) {
 
 // ─── History Screen ──────────────────────────────────────────────────────────
 
-function HistoryScreen({ logs }) {
+function HistoryScreen({ logs, isPremium, onShowPaywall }) {
   if (logs.length === 0) {
     return (
       <div className="screen active">
@@ -1025,6 +1322,12 @@ function HistoryScreen({ logs }) {
 
   const sortedDays = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const cutoff = sevenDaysAgo.toISOString().slice(0, 10);
+  const visibleDays = isPremium ? sortedDays : sortedDays.filter((d) => d >= cutoff);
+  const lockedDays = isPremium ? [] : sortedDays.filter((d) => d < cutoff);
+
   return (
     <div className="screen active">
       <div className="history-header">
@@ -1032,7 +1335,7 @@ function HistoryScreen({ logs }) {
         <p>{logs.length} entr{logs.length === 1 ? "y" : "ies"} total</p>
       </div>
 
-      {sortedDays.map((dayStr) => {
+      {visibleDays.map((dayStr) => {
         const dayDate = new Date(dayStr + "T12:00:00");
         const label = dayDate.toLocaleDateString("en-US", {
           weekday: "long",
@@ -1073,6 +1376,18 @@ function HistoryScreen({ logs }) {
           </div>
         );
       })}
+
+      {lockedDays.length > 0 && (
+        <div className="history-locked">
+          <div className="history-locked-icon">🔒</div>
+          <div className="history-locked-text">
+            {lockedDays.length} more day{lockedDays.length !== 1 ? "s" : ""} of history
+          </div>
+          <button className="unlock-btn" onClick={onShowPaywall}>
+            Unlock full history
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1243,6 +1558,72 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   ))}
                 </div>
               )}
+
+              {(() => {
+                const patterns = analyzePatterns(logs);
+                if (patterns.length === 0) return null;
+                return (
+                  <div className="patterns-card">
+                    <div className="patterns-title">Your patterns</div>
+                    <div className="patterns-subtitle">Based on your tracking history</div>
+                    {patterns.map((p, i) => (
+                      <div key={i} className="pattern-item">
+                        <span className="pattern-icon">💡</span>
+                        <span className="pattern-text">{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const comp = monthlyComparison(logs);
+                if (!comp) return null;
+                const monthName = new Date().toLocaleDateString("en-US", { month: "long" });
+                const lastDate = new Date(); lastDate.setMonth(lastDate.getMonth() - 1);
+                const lastMonthName = lastDate.toLocaleDateString("en-US", { month: "long" });
+                return (
+                  <div className="comparison-card">
+                    <div className="comp-title">{monthName} vs {lastMonthName}</div>
+                    <div className="comp-grid">
+                      <div className="comp-stat">
+                        <div className="comp-value">{comp.thisEntries}</div>
+                        <div className="comp-label">entries</div>
+                        <div className={`comp-delta ${comp.thisEntries >= comp.lastEntries ? "up" : "down"}`}>
+                          {comp.thisEntries >= comp.lastEntries ? "↑" : "↓"} vs {comp.lastEntries}
+                        </div>
+                      </div>
+                      {comp.moodDelta !== null && (
+                        <div className="comp-stat">
+                          <div className="comp-value">{comp.moodDelta > 0 ? "↑" : comp.moodDelta < 0 ? "↓" : "→"}</div>
+                          <div className="comp-label">mood</div>
+                          <div className={`comp-delta ${comp.moodDelta >= 0 ? "up" : "down"}`}>
+                            {comp.moodDelta >= 0 ? "Improving" : "Lower"}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {comp.mostImproved && (
+                      <div className="comp-row">
+                        <span className="comp-row-icon">📉</span>
+                        <span><strong>{comp.mostImproved}</strong> improved this month</span>
+                      </div>
+                    )}
+                    {comp.mostWorsened && (
+                      <div className="comp-row">
+                        <span className="comp-row-icon">📈</span>
+                        <span><strong>{comp.mostWorsened}</strong> increased this month</span>
+                      </div>
+                    )}
+                    {comp.newSymptoms.length > 0 && (
+                      <div className="comp-row">
+                        <span className="comp-row-icon">🆕</span>
+                        <span>New: {comp.newSymptoms.join(", ")}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           ) : (
             <div style={{ margin: "12px 16px 0", position: "relative" }}>
@@ -1268,11 +1649,34 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       )}
 
       {isPremium ? (
-        <div style={{ margin: "14px 16px 0" }}>
+        <div className="doctor-prep">
+          <div className="dp-title">Doctor visit prep</div>
+          {(() => {
+            const tp = generateTalkingPoints(logs, profile);
+            if (!tp) return <div className="dp-empty">Log a few more entries to generate talking points.</div>;
+            return (
+              <>
+                <div className="dp-section-label">Key talking points</div>
+                {tp.points.map((p, i) => (
+                  <div key={i} className="dp-point">
+                    <span className="dp-bullet">•</span>
+                    <span>{p}</span>
+                  </div>
+                ))}
+                <div className="dp-section-label" style={{ marginTop: 12 }}>Questions to ask your provider</div>
+                {tp.questions.map((q, i) => (
+                  <div key={i} className="dp-point question">
+                    <span className="dp-bullet">?</span>
+                    <span>{q}</span>
+                  </div>
+                ))}
+              </>
+            );
+          })()}
           <button
             className="log-btn"
             onClick={() => generateDoctorReport(logs, profile)}
-            style={{ margin: 0 }}
+            style={{ margin: "14px 0 0" }}
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -1286,10 +1690,9 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       ) : (
         <div className="unlock-card">
           <div className="unlock-tag">Premium</div>
-          <div className="unlock-title">Doctor-ready reports</div>
+          <div className="unlock-title">Unlock the full picture</div>
           <div className="unlock-body">
-            Export clinician-informed 30-day symptom reports as a PDF. Built to
-            help you have better conversations with your provider.
+            Trend charts, pattern detection, symptom predictions, doctor visit prep, and unlimited history.
           </div>
           <button className="unlock-btn" onClick={onShowPaywall}>Unlock for $14.99/mo</button>
         </div>
@@ -1302,9 +1705,10 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
 
 function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const features = [
-    { icon: "📊", title: "Evidence-based trend charts", desc: "Clinician-informed symptom tracking over time" },
-    { icon: "📋", title: "Doctor-ready reports", desc: "PDF exports designed for your OB/GYN visit" },
-    { icon: "🔮", title: "Personalized insights", desc: "AI-powered pattern detection tailored to you" },
+    { icon: "📊", title: "Trends & monthly comparisons", desc: "Symptom intensity charts with month-over-month insights" },
+    { icon: "📋", title: "Doctor visit prep & reports", desc: "Auto-generated talking points and PDF exports for your provider" },
+    { icon: "🔮", title: "Pattern detection & predictions", desc: "Discover symptom correlations and weekly predictions" },
+    { icon: "📆", title: "Unlimited history", desc: "Access your complete tracking history, not just the last 7 days" },
     { icon: "🔒", title: "100% private, on-device", desc: "Your health data never leaves your phone" },
   ];
 
@@ -1915,8 +2319,8 @@ export default function App() {
       {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} />}
-      {onboarded && screen === "history" && <HistoryScreen logs={logs} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} />}
+      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => setShowPaywall(true)} />}
       {onboarded && screen === "insights" && (
         <InsightsScreen
           logs={logs}
