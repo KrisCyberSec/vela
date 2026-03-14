@@ -52,6 +52,39 @@ const QUESTIONS = [
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😊"];
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function getStreak(logs) {
+  if (logs.length === 0) return 0;
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i <= 90; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toISOString().slice(0, 10);
+    const hasLog = logs.some((l) => l.date.slice(0, 10) === dayStr);
+    if (hasLog) streak++;
+    else if (i > 0) break; // allow today to be missing
+    else break;
+  }
+  return streak;
+}
+
+function getJourneyLabel(profileIndex) {
+  const labels = [
+    "regular cycles",
+    "perimenopause",
+    "postmenopause",
+    "surgical menopause",
+  ];
+  return labels[profileIndex] || null;
+}
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const css = `
@@ -587,6 +620,74 @@ const css = `
     padding: 16px 24px 0;
   }
 
+  /* ── SETTINGS ── */
+  .settings-header { padding: 16px 24px 0; }
+  .settings-header h2 { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--ink); }
+  .settings-header p { font-size: 13px; color: var(--ink-light); margin-top: 2px; }
+
+  .settings-section { margin: 14px 16px 0; }
+  .settings-section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-light); margin-bottom: 8px;
+  }
+  .settings-card {
+    background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden;
+  }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row:hover { background: var(--cream); }
+  .sr-left { display: flex; align-items: center; gap: 10px; }
+  .sr-icon { font-size: 18px; }
+  .sr-label { font-size: 14px; color: var(--ink); }
+  .sr-value { font-size: 13px; color: var(--ink-light); }
+  .sr-arrow { font-size: 14px; color: var(--ink-light); }
+
+  .settings-danger-btn {
+    margin: 20px 16px 0; padding: 13px; background: white; border: 1.5px solid #E8C0B0;
+    border-radius: var(--radius-sm); font-size: 14px; color: var(--clay-dark);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; width: calc(100% - 32px);
+    text-align: center;
+  }
+  .settings-danger-btn:hover { background: #FDF0EB; }
+
+  .settings-footer {
+    text-align: center; padding: 20px 24px 0; font-size: 12px; color: var(--ink-light);
+  }
+  .settings-footer a { color: var(--clay); text-decoration: underline; }
+
+  /* ── STREAK BADGE ── */
+  .streak-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--sage-light); color: var(--sage-dark);
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 500; margin-top: 6px;
+  }
+
+  /* ── WEEKLY SUMMARY ── */
+  .weekly-summary {
+    margin: 14px 16px 0; background: white; border-radius: var(--radius);
+    padding: 16px 18px; border: 1px solid var(--border);
+  }
+  .ws-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
+  .ws-stats { display: flex; gap: 12px; }
+  .ws-stat { flex: 1; text-align: center; }
+  .ws-stat-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); }
+  .ws-stat-label { font-size: 11px; color: var(--ink-light); margin-top: 2px; }
+
+  /* ── PERSONALIZED TIP ── */
+  .tip-card {
+    margin: 12px 16px 0; background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
+    border-radius: var(--radius); padding: 16px 18px; color: white;
+  }
+  .tip-label {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; opacity: 0.8; margin-bottom: 6px;
+  }
+  .tip-text { font-size: 13px; line-height: 1.5; }
+
   /* ── TOAST ── */
   .toast {
     position: fixed;
@@ -679,7 +780,7 @@ function OnboardingScreen({ onComplete }) {
 
 // ─── Tracker Screen ───────────────────────────────────────────────────────────
 
-function TrackerScreen({ onLog }) {
+function TrackerScreen({ onLog, logs, profile }) {
   const [mood, setMood] = useState(null);
   const [activeSymptoms, setActiveSymptoms] = useState({});
   const [severities, setSeverities] = useState({});
@@ -690,6 +791,17 @@ function TrackerScreen({ onLog }) {
     month: "long",
     day: "numeric",
   });
+  const streak = getStreak(logs);
+  const journeyStage = profile ? getJourneyLabel(profile[0]) : null;
+
+  // Personalized tip based on onboarding answers
+  const tips = {
+    0: "Hot flashes and night sweats are the most common perimenopausal symptoms. Tracking their frequency helps identify triggers.",
+    1: "Sleep disruption affects up to 60% of women during the menopausal transition. Consistent logging reveals patterns your doctor can act on.",
+    2: "Mood changes during perimenopause are linked to fluctuating estrogen. Tracking helps distinguish hormonal shifts from other factors.",
+    3: "Brain fog and fatigue often correlate with sleep quality. Your logs can reveal these connections over time.",
+  };
+  const tipText = profile ? tips[profile[1]] : null;
 
   function toggleSymptom(name) {
     setActiveSymptoms((prev) => {
@@ -715,9 +827,17 @@ function TrackerScreen({ onLog }) {
   return (
     <div className="screen active">
       <div className="tracker-header">
-        <h2>Good morning</h2>
-        <p>{today}</p>
+        <h2>{getGreeting()}</h2>
+        <p>{today}{journeyStage ? ` · ${journeyStage}` : ""}</p>
+        {streak > 1 && <div className="streak-badge">🔥 {streak}-day streak</div>}
       </div>
+
+      {tipText && (
+        <div className="tip-card">
+          <div className="tip-label">Evidence-based tip</div>
+          <div className="tip-text">{tipText}</div>
+        </div>
+      )}
 
       <div className="wellbeing-card">
         <div className="wb-label">How are you feeling overall?</div>
@@ -784,6 +904,7 @@ function TrackerScreen({ onLog }) {
       </button>
 
       <div className="disclaimer">Vela is not medical advice. Always consult your healthcare provider.</div>
+      <div className="disclaimer" style={{ marginTop: 4 }}>🔒 Your data stays on your device. Always.</div>
     </div>
   );
 }
@@ -949,6 +1070,25 @@ function InsightsScreen({ logs, isPremium, onShowPaywall }) {
         </div>
       ) : (
         <>
+          {/* Weekly summary — free tier */}
+          <div className="weekly-summary">
+            <div className="ws-title">This week at a glance</div>
+            <div className="ws-stats">
+              <div className="ws-stat">
+                <div className="ws-stat-value">{recentLogs.length}</div>
+                <div className="ws-stat-label">entries</div>
+              </div>
+              <div className="ws-stat">
+                <div className="ws-stat-value">{Object.keys(symptomDays).length}</div>
+                <div className="ws-stat-label">symptoms</div>
+              </div>
+              <div className="ws-stat">
+                <div className="ws-stat-value">{getStreak(logs)}</div>
+                <div className="ws-stat-label">day streak</div>
+              </div>
+            </div>
+          </div>
+
           {topSymptom && (
             <div className="insight-callout">
               <div className="ic-label">Top pattern</div>
@@ -1042,12 +1182,12 @@ function InsightsScreen({ logs, isPremium, onShowPaywall }) {
       {!isPremium && (
         <div className="unlock-card">
           <div className="unlock-tag">Premium</div>
-          <div className="unlock-title">Doctor-ready report</div>
+          <div className="unlock-title">Doctor-ready reports</div>
           <div className="unlock-body">
-            Export your 30-day symptom trends as a PDF to share with your OB/GYN
-            at your next visit.
+            Export clinician-informed 30-day symptom reports as a PDF. Built to
+            help you have better conversations with your provider.
           </div>
-          <button className="unlock-btn" onClick={onShowPaywall}>Unlock for $9.99/mo</button>
+          <button className="unlock-btn" onClick={onShowPaywall}>Unlock for $14.99/mo</button>
         </div>
       )}
     </div>
@@ -1058,10 +1198,10 @@ function InsightsScreen({ logs, isPremium, onShowPaywall }) {
 
 function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const features = [
-    { icon: "📊", title: "Detailed trend charts", desc: "See symptom patterns over time" },
-    { icon: "🏆", title: "Top symptoms ranking", desc: "Know what affects you most" },
-    { icon: "📋", title: "Doctor-ready reports", desc: "PDF exports for your provider" },
-    { icon: "🔮", title: "AI-powered insights", desc: "Personalized pattern detection" },
+    { icon: "📊", title: "Evidence-based trend charts", desc: "Clinician-informed symptom tracking over time" },
+    { icon: "📋", title: "Doctor-ready reports", desc: "PDF exports designed for your OB/GYN visit" },
+    { icon: "🔮", title: "Personalized insights", desc: "AI-powered pattern detection tailored to you" },
+    { icon: "🔒", title: "100% private, on-device", desc: "Your health data never leaves your phone" },
   ];
 
   return (
@@ -1080,10 +1220,10 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
 
       <div className="paywall">
         <div className="paywall-hero">
-          <h2>Unlock your full picture</h2>
+          <h2>Your menopause journey, understood</h2>
           <p>
-            See the patterns behind your symptoms and take control of your
-            menopause journey.
+            Evidence-based tracking built for perimenopause and menopause.
+            Your data stays on your device — always.
           </p>
         </div>
 
@@ -1100,12 +1240,107 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
         </div>
 
         <button className="paywall-cta" onClick={onSubscribe}>
-          Start Premium — $9.99/month
+          Start Premium — $14.99/month
         </button>
-        <div className="paywall-price">Cancel anytime. No commitment.</div>
+        <div className="paywall-price">Cancel anytime. No commitment. 7-day free trial.</div>
         <button className="paywall-restore" onClick={onRestore}>
           Restore previous purchase
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings Screen ──────────────────────────────────────────────────────────
+
+function SettingsScreen({ profile, isPremium, onShowPaywall, onResetOnboarding, onClearData }) {
+  const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
+  const goalLabels = [
+    "Understand my body",
+    "Track for my doctor",
+    "Find relief strategies",
+    "Connect with others",
+  ];
+  const goal = profile ? goalLabels[profile[2]] : "Not set";
+
+  return (
+    <div className="screen active">
+      <div className="settings-header">
+        <h2>Settings</h2>
+        <p>Manage your profile and preferences</p>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-label">Profile</div>
+        <div className="settings-card">
+          <div className="settings-row" onClick={onResetOnboarding}>
+            <div className="sr-left">
+              <span className="sr-icon">🌸</span>
+              <span className="sr-label">Hormonal stage</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="sr-value">{journeyStage || "Not set"}</span>
+              <span className="sr-arrow">›</span>
+            </div>
+          </div>
+          <div className="settings-row" onClick={onResetOnboarding}>
+            <div className="sr-left">
+              <span className="sr-icon">🎯</span>
+              <span className="sr-label">Primary goal</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="sr-value">{goal}</span>
+              <span className="sr-arrow">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-label">Subscription</div>
+        <div className="settings-card">
+          <div className="settings-row" onClick={isPremium ? undefined : onShowPaywall}>
+            <div className="sr-left">
+              <span className="sr-icon">{isPremium ? "✅" : "⭐"}</span>
+              <span className="sr-label">{isPremium ? "Premium active" : "Upgrade to Premium"}</span>
+            </div>
+            {!isPremium && <span className="sr-arrow">›</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-label">Privacy & Data</div>
+        <div className="settings-card">
+          <div className="settings-row" onClick={() => window.open("/privacy.html", "_blank")}>
+            <div className="sr-left">
+              <span className="sr-icon">🔒</span>
+              <span className="sr-label">Privacy policy</span>
+            </div>
+            <span className="sr-arrow">›</span>
+          </div>
+          <div className="settings-row">
+            <div className="sr-left">
+              <span className="sr-icon">📱</span>
+              <span className="sr-label">Data storage</span>
+            </div>
+            <span className="sr-value">On-device only</span>
+          </div>
+        </div>
+      </div>
+
+      <button className="settings-danger-btn" onClick={onClearData}>
+        Reset all data
+      </button>
+
+      <div className="settings-footer">
+        <p>Vela v1.0.0</p>
+        <p style={{ marginTop: 4 }}>
+          Questions? <a href="mailto:support@velahealth.app">support@velahealth.app</a>
+        </p>
+        <p style={{ marginTop: 8, fontSize: 11 }}>
+          Vela is not medical advice. Always consult your healthcare provider.
+        </p>
       </div>
     </div>
   );
@@ -1122,6 +1357,9 @@ export default function App() {
   });
   const [logs, setLogs] = useState(() => {
     return JSON.parse(localStorage.getItem("vela_logs") || "[]");
+  });
+  const [profile, setProfile] = useState(() => {
+    return JSON.parse(localStorage.getItem("vela_profile") || "null");
   });
   const [toast, setToast] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
@@ -1154,8 +1392,26 @@ export default function App() {
 
   function handleOnboardComplete(answers) {
     localStorage.setItem("vela_profile", JSON.stringify(answers));
+    setProfile(answers);
     setOnboarded(true);
     setScreen("tracker");
+  }
+
+  function handleResetOnboarding() {
+    setOnboarded(false);
+    setScreen("onboard");
+  }
+
+  function handleClearData() {
+    if (window.confirm("This will delete all your logs and profile data. This cannot be undone.")) {
+      localStorage.removeItem("vela_logs");
+      localStorage.removeItem("vela_profile");
+      localStorage.removeItem("vela_onboarded");
+      setLogs([]);
+      setProfile(null);
+      setOnboarded(false);
+      setScreen("onboard");
+    }
   }
 
   function handleSubscribe() {
@@ -1175,6 +1431,7 @@ export default function App() {
     { id: "tracker", label: "Today" },
     { id: "history", label: "History" },
     { id: "insights", label: "Insights" },
+    { id: "settings", label: "Settings" },
   ];
 
   // Show paywall overlay
@@ -1225,13 +1482,22 @@ export default function App() {
       {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} />}
       {onboarded && screen === "history" && <HistoryScreen logs={logs} />}
       {onboarded && screen === "insights" && (
         <InsightsScreen
           logs={logs}
           isPremium={isPremium}
           onShowPaywall={() => setShowPaywall(true)}
+        />
+      )}
+      {onboarded && screen === "settings" && (
+        <SettingsScreen
+          profile={profile}
+          isPremium={isPremium}
+          onShowPaywall={() => setShowPaywall(true)}
+          onResetOnboarding={handleResetOnboarding}
+          onClearData={handleClearData}
         />
       )}
 
