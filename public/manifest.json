@@ -1,0 +1,18 @@
+{
+  "short_name": "Vela",
+  "name": "Vela — Menopause Companion",
+  "description": "Your perimenopause & menopause companion. Track symptoms, mood, and find relief.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF6F1",
+  "theme_color": "#C97B5C",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
