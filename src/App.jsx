@@ -50,22 +50,7 @@ const QUESTIONS = [
   },
 ];
 
-const WEEK_DATA = [
-  { day: "M", height: 30 },
-  { day: "T", height: 55 },
-  { day: "W", height: 40 },
-  { day: "T", height: 70 },
-  { day: "F", height: 85 },
-  { day: "S", height: 45 },
-  { day: "S", height: 60 },
-];
-
-const TOP_SYMPTOMS = [
-  { name: "Hot flashes", days: 5, pct: 90 },
-  { name: "Poor sleep", days: 4, pct: 72 },
-  { name: "Fatigue", days: 3, pct: 54 },
-  { name: "Mood shifts", days: 2, pct: 36 },
-];
+const MOODS = ["😔", "😕", "😐", "🙂", "😊"];
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -92,12 +77,8 @@ const css = `
   }
 
   body {
-    background: #F0EAE3;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    background: var(--cream);
     min-height: 100vh;
-    padding: 24px 0;
     font-family: 'DM Sans', sans-serif;
   }
 
@@ -106,10 +87,11 @@ const css = `
     width: 100%;
     max-width: 420px;
     min-height: 100vh;
-    border-radius: 24px;
+    margin: 0 auto;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 8px 40px rgba(44,31,23,0.12);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* ── NAV ── */
@@ -117,7 +99,7 @@ const css = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px 12px;
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 24px 12px;
   }
   .nav-logo {
     font-family: 'DM Serif Display', serif;
@@ -445,10 +427,170 @@ const css = `
   }
   .unlock-btn:hover { background: #BF9440; }
 
+  /* ── HISTORY ── */
+  .history-header { padding: 16px 24px 0; }
+  .history-header h2 { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--ink); }
+  .history-header p { font-size: 13px; color: var(--ink-light); margin-top: 2px; }
+
+  .history-empty {
+    margin: 40px 16px;
+    text-align: center;
+    color: var(--ink-light);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .history-empty span { font-size: 32px; display: block; margin-bottom: 8px; }
+
+  .history-day { margin: 14px 16px 0; }
+  .history-day-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-light);
+    margin-bottom: 8px;
+  }
+  .history-entry {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .he-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .he-mood { font-size: 20px; }
+  .he-time { font-size: 12px; color: var(--ink-light); }
+  .he-symptoms { display: flex; flex-wrap: wrap; gap: 6px; }
+  .he-pill {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--clay-light);
+    color: var(--clay-dark);
+    font-weight: 500;
+  }
+  .he-notes {
+    font-size: 13px;
+    color: var(--ink-mid);
+    margin-top: 8px;
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* ── MOOD TREND ── */
+  .mood-trend {
+    margin: 12px 16px 0;
+    background: white;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+  }
+  .mood-trend-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 10px; }
+  .mood-trend-row { display: flex; justify-content: space-between; }
+  .mood-trend-day { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .mood-trend-emoji { font-size: 20px; height: 28px; display: flex; align-items: center; }
+  .mood-trend-label { font-size: 10px; color: var(--ink-light); }
+
+  /* ── PAYWALL ── */
+  .paywall { padding: 0 16px; }
+  .paywall-hero { text-align: center; padding: 20px 0 16px; }
+  .paywall-hero h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .paywall-hero p { font-size: 14px; color: var(--ink-mid); line-height: 1.5; }
+
+  .paywall-features { margin-bottom: 20px; }
+  .pw-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .pw-feature:last-child { border-bottom: none; }
+  .pw-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .pw-text strong { display: block; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+  .pw-text span { font-size: 13px; color: var(--ink-mid); }
+
+  .paywall-cta {
+    width: 100%;
+    padding: 16px;
+    background: var(--clay);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    margin-bottom: 10px;
+  }
+  .paywall-cta:hover { background: var(--clay-dark); }
+
+  .paywall-restore {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    color: var(--ink-light);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: underline;
+  }
+
+  .paywall-price {
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-light);
+    margin-bottom: 16px;
+  }
+
+  /* ── PREMIUM LOCK ── */
+  .premium-locked {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+  .premium-locked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(250,246,241,0) 0%, rgba(250,246,241,0.95) 60%);
+    pointer-events: none;
+  }
+  .premium-lock-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    background: var(--clay);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ── DISCLAIMER ── */
+  .disclaimer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--ink-light);
+    padding: 16px 24px 0;
+  }
+
   /* ── TOAST ── */
   .toast {
     position: fixed;
-    bottom: 36px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 36px);
     left: 50%;
     transform: translateX(-50%) translateY(20px);
     background: var(--sage-dark);
@@ -570,8 +712,6 @@ function TrackerScreen({ onLog }) {
     setNotes("");
   }
 
-  const moods = ["😔", "😕", "😐", "🙂", "😊"];
-
   return (
     <div className="screen active">
       <div className="tracker-header">
@@ -582,7 +722,7 @@ function TrackerScreen({ onLog }) {
       <div className="wellbeing-card">
         <div className="wb-label">How are you feeling overall?</div>
         <div className="wb-faces">
-          {moods.map((emoji, i) => (
+          {MOODS.map((emoji, i) => (
             <div
               key={i}
               className={`wb-face${mood === i ? " selected" : ""}`}
@@ -642,13 +782,95 @@ function TrackerScreen({ onLog }) {
         </svg>
         Log today's entry
       </button>
+
+      <div className="disclaimer">Vela is not medical advice. Always consult your healthcare provider.</div>
+    </div>
+  );
+}
+
+// ─── History Screen ──────────────────────────────────────────────────────────
+
+function HistoryScreen({ logs }) {
+  if (logs.length === 0) {
+    return (
+      <div className="screen active">
+        <div className="history-header">
+          <h2>History</h2>
+          <p>Your logged entries</p>
+        </div>
+        <div className="history-empty">
+          <span>📝</span>
+          No entries yet. Log your first day on the Today tab.
+        </div>
+      </div>
+    );
+  }
+
+  // Group logs by date
+  const grouped = {};
+  logs.forEach((log) => {
+    const dayStr = log.date.slice(0, 10);
+    if (!grouped[dayStr]) grouped[dayStr] = [];
+    grouped[dayStr].push(log);
+  });
+
+  const sortedDays = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+  return (
+    <div className="screen active">
+      <div className="history-header">
+        <h2>History</h2>
+        <p>{logs.length} entr{logs.length === 1 ? "y" : "ies"} total</p>
+      </div>
+
+      {sortedDays.map((dayStr) => {
+        const dayDate = new Date(dayStr + "T12:00:00");
+        const label = dayDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        });
+        return (
+          <div key={dayStr} className="history-day">
+            <div className="history-day-label">{label}</div>
+            {grouped[dayStr].map((log, i) => {
+              const time = new Date(log.date).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              });
+              const symptoms = Object.keys(log.symptoms || {});
+              return (
+                <div key={i} className="history-entry">
+                  <div className="he-top">
+                    {log.mood !== null && log.mood !== undefined && (
+                      <span className="he-mood">{MOODS[log.mood]}</span>
+                    )}
+                    <span className="he-time">{time}</span>
+                  </div>
+                  {symptoms.length > 0 && (
+                    <div className="he-symptoms">
+                      {symptoms.map((s) => (
+                        <span key={s} className="he-pill">
+                          {s}
+                          {log.severities?.[s] ? ` · ${log.severities[s]}/3` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {log.notes && <div className="he-notes">"{log.notes}"</div>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 // ─── Insights Screen ──────────────────────────────────────────────────────────
 
-function InsightsScreen({ logs }) {
+function InsightsScreen({ logs, isPremium, onShowPaywall }) {
   const DAY_NAMES = ["S", "M", "T", "W", "T", "F", "S"];
 
   // Get logs from the last 7 days
@@ -695,6 +917,19 @@ function InsightsScreen({ logs }) {
   // Find most common symptom for the insight callout
   const topSymptom = topSymptoms[0];
 
+  // Mood trend for the last 7 days
+  const moodData = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toISOString().slice(0, 10);
+    const dayMoods = recentLogs
+      .filter((l) => l.date.slice(0, 10) === dayStr && l.mood !== null && l.mood !== undefined)
+      .map((l) => l.mood);
+    const avg = dayMoods.length > 0 ? Math.round(dayMoods.reduce((a, b) => a + b, 0) / dayMoods.length) : null;
+    moodData.push({ day: DAY_NAMES[d.getDay()], mood: avg });
+  }
+
   return (
     <div className="screen active">
       <div className="insights-header">
@@ -725,54 +960,152 @@ function InsightsScreen({ logs }) {
             </div>
           )}
 
-          <div className="trend-card">
-            <div className="trend-title">Symptom intensity this week</div>
-            <div className="chart-bars">
-              {weekData.map(({ day, count }, i) => {
-                const height = Math.round((count / maxCount) * 100);
-                return (
-                  <div key={i} className="bar-wrap">
-                    <div
-                      className={`bar${height >= 70 ? " high" : ""}`}
-                      style={{ height: `${Math.max(height, 4)}%` }}
-                    />
-                    <div className="bar-day">{day}</div>
+          {moodData.some((d) => d.mood !== null) && (
+            <div className="mood-trend">
+              <div className="mood-trend-title">Mood this week</div>
+              <div className="mood-trend-row">
+                {moodData.map((d, i) => (
+                  <div key={i} className="mood-trend-day">
+                    <div className="mood-trend-emoji">
+                      {d.mood !== null ? MOODS[d.mood] : "·"}
+                    </div>
+                    <div className="mood-trend-label">{d.day}</div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {topSymptoms.length > 0 && (
-            <div className="symptom-list">
-              <div className="section-label" style={{ padding: "12px 0 2px" }}>
-                Top symptoms
+                ))}
               </div>
-              {topSymptoms.map((s, i) => (
-                <div key={i} className="sym-row">
-                  <div className="sym-rank">{i + 1}</div>
-                  <div className="sym-info">
-                    <div className="sym-info-name">{s.name}</div>
-                    <div className="sym-info-days">{s.days} of 7 days</div>
+            </div>
+          )}
+
+          {isPremium ? (
+            <>
+              <div className="trend-card">
+                <div className="trend-title">Symptom intensity this week</div>
+                <div className="chart-bars">
+                  {weekData.map(({ day, count }, i) => {
+                    const height = Math.round((count / maxCount) * 100);
+                    return (
+                      <div key={i} className="bar-wrap">
+                        <div
+                          className={`bar${height >= 70 ? " high" : ""}`}
+                          style={{ height: `${Math.max(height, 4)}%` }}
+                        />
+                        <div className="bar-day">{day}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {topSymptoms.length > 0 && (
+                <div className="symptom-list">
+                  <div className="section-label" style={{ padding: "12px 0 2px" }}>
+                    Top symptoms
                   </div>
-                  <div style={{ width: 80 }}>
-                    <div className="sym-mini-bar" style={{ width: `${s.pct}%` }} />
+                  {topSymptoms.map((s, i) => (
+                    <div key={i} className="sym-row">
+                      <div className="sym-rank">{i + 1}</div>
+                      <div className="sym-info">
+                        <div className="sym-info-name">{s.name}</div>
+                        <div className="sym-info-days">{s.days} of 7 days</div>
+                      </div>
+                      <div style={{ width: 80 }}>
+                        <div className="sym-mini-bar" style={{ width: `${s.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ margin: "12px 16px 0", position: "relative" }}>
+              <div className="premium-locked">
+                <div className="trend-card" style={{ marginLeft: 0, marginRight: 0 }}>
+                  <div className="trend-title">Symptom intensity this week</div>
+                  <div className="chart-bars">
+                    {weekData.map(({ day }, i) => (
+                      <div key={i} className="bar-wrap">
+                        <div className="bar" style={{ height: `${30 + (i * 10) % 50}%` }} />
+                        <div className="bar-day">{day}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+                <button className="premium-lock-badge" onClick={onShowPaywall}>
+                  Unlock with Premium
+                </button>
+              </div>
             </div>
           )}
         </>
       )}
 
-      <div className="unlock-card">
-        <div className="unlock-tag">Premium</div>
-        <div className="unlock-title">Doctor-ready report</div>
-        <div className="unlock-body">
-          Export your 30-day symptom trends as a PDF to share with your OB/GYN
-          at your next visit.
+      {!isPremium && (
+        <div className="unlock-card">
+          <div className="unlock-tag">Premium</div>
+          <div className="unlock-title">Doctor-ready report</div>
+          <div className="unlock-body">
+            Export your 30-day symptom trends as a PDF to share with your OB/GYN
+            at your next visit.
+          </div>
+          <button className="unlock-btn" onClick={onShowPaywall}>Unlock for $9.99/mo</button>
         </div>
-        <button className="unlock-btn">Unlock for $14.99/mo</button>
+      )}
+    </div>
+  );
+}
+
+// ─── Paywall Screen ──────────────────────────────────────────────────────────
+
+function PaywallScreen({ onClose, onSubscribe, onRestore }) {
+  const features = [
+    { icon: "📊", title: "Detailed trend charts", desc: "See symptom patterns over time" },
+    { icon: "🏆", title: "Top symptoms ranking", desc: "Know what affects you most" },
+    { icon: "📋", title: "Doctor-ready reports", desc: "PDF exports for your provider" },
+    { icon: "🔮", title: "AI-powered insights", desc: "Personalized pattern detection" },
+  ];
+
+  return (
+    <div className="screen active">
+      <div style={{ padding: "8px 16px 0", textAlign: "right" }}>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none", border: "none", fontSize: 22,
+            color: "var(--ink-light)", cursor: "pointer", padding: 8,
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="paywall">
+        <div className="paywall-hero">
+          <h2>Unlock your full picture</h2>
+          <p>
+            See the patterns behind your symptoms and take control of your
+            menopause journey.
+          </p>
+        </div>
+
+        <div className="paywall-features">
+          {features.map((f, i) => (
+            <div key={i} className="pw-feature">
+              <div className="pw-icon">{f.icon}</div>
+              <div className="pw-text">
+                <strong>{f.title}</strong>
+                <span>{f.desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button className="paywall-cta" onClick={onSubscribe}>
+          Start Premium — $9.99/month
+        </button>
+        <div className="paywall-price">Cancel anytime. No commitment.</div>
+        <button className="paywall-restore" onClick={onRestore}>
+          Restore previous purchase
+        </button>
       </div>
     </div>
   );
@@ -781,14 +1114,18 @@ function InsightsScreen({ logs }) {
 // ─── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState("tracker");
   const [onboarded, setOnboarded] = useState(() => {
     return JSON.parse(localStorage.getItem("vela_onboarded") || "false");
+  });
+  const [screen, setScreen] = useState(() => {
+    return JSON.parse(localStorage.getItem("vela_onboarded") || "false") ? "tracker" : "onboard";
   });
   const [logs, setLogs] = useState(() => {
     return JSON.parse(localStorage.getItem("vela_logs") || "[]");
   });
   const [toast, setToast] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Inject global styles
   useEffect(() => {
@@ -815,43 +1152,88 @@ export default function App() {
     setTimeout(() => setToast(false), 2500);
   }
 
-  function handleOnboardComplete() {
+  function handleOnboardComplete(answers) {
+    localStorage.setItem("vela_profile", JSON.stringify(answers));
     setOnboarded(true);
     setScreen("tracker");
   }
 
+  function handleSubscribe() {
+    // TODO: Wire to RevenueCat purchasePackage() once configured
+    // For now, simulate premium unlock for testing
+    setIsPremium(true);
+    setShowPaywall(false);
+  }
+
+  function handleRestore() {
+    // TODO: Wire to RevenueCat restorePurchases() once configured
+    setIsPremium(true);
+    setShowPaywall(false);
+  }
+
   const tabs = [
-    { id: "onboard", label: "Journey" },
     { id: "tracker", label: "Today" },
+    { id: "history", label: "History" },
     { id: "insights", label: "Insights" },
   ];
 
+  // Show paywall overlay
+  if (showPaywall) {
+    return (
+      <div className="app">
+        <PaywallScreen
+          onClose={() => setShowPaywall(false)}
+          onSubscribe={handleSubscribe}
+          onRestore={handleRestore}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
-      {/* Nav */}
-      <div className="nav">
-        <div className="nav-logo">
-          Ve<em>la</em>
+      {/* Nav — hidden during onboarding */}
+      {onboarded && (
+        <div className="nav">
+          <div className="nav-logo">
+            Ve<em>la</em>
+          </div>
+          <div className="nav-tabs">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                className={`nav-tab${screen === t.id ? " active" : ""}`}
+                onClick={() => setScreen(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="nav-tabs">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              className={`nav-tab${screen === t.id ? " active" : ""}`}
-              onClick={() => setScreen(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
+      )}
+
+      {/* Onboarding (shown when not onboarded) */}
+      {!onboarded && (
+        <div className="nav">
+          <div className="nav-logo">
+            Ve<em>la</em>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Screens */}
-      {screen === "onboard" && (
+      {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {screen === "tracker" && <TrackerScreen onLog={handleLog} />}
-      {screen === "insights" && <InsightsScreen logs={logs} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} />}
+      {onboarded && screen === "history" && <HistoryScreen logs={logs} />}
+      {onboarded && screen === "insights" && (
+        <InsightsScreen
+          logs={logs}
+          isPremium={isPremium}
+          onShowPaywall={() => setShowPaywall(true)}
+        />
+      )}
 
       {/* Toast */}
       <div className={`toast${toast ? " show" : ""}`}>
