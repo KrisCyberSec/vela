@@ -224,6 +224,77 @@ function predictSymptoms(logs) {
     .map(([name]) => name);
 }
 
+function analyzeCorrelations(logs) {
+  const contextLogs = logs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null));
+  if (contextLogs.length < 14) return [];
+  const byDate = {};
+  contextLogs.forEach((l) => {
+    const d = l.date.slice(0, 10);
+    if (!byDate[d]) byDate[d] = { context: { ...l.context }, symptoms: {}, mood: null };
+    Object.keys(l.symptoms || {}).forEach((s) => { byDate[d].symptoms[s] = true; });
+    if (l.mood !== null && l.mood !== undefined) byDate[d].mood = l.mood;
+    if (l.context) Object.entries(l.context).forEach(([k, v]) => { if (v !== null && byDate[d].context[k] === null) byDate[d].context[k] = v; });
+  });
+  const days = Object.values(byDate);
+  const allSymptoms = [...new Set(days.flatMap((d) => Object.keys(d.symptoms)))];
+  const insights = [];
+
+  // Boolean triggers
+  ["caffeine", "alcohol", "exercise"].forEach((trigger) => {
+    const withT = days.filter((d) => d.context[trigger] === true);
+    const withoutT = days.filter((d) => d.context[trigger] !== true);
+    if (withT.length < 5 || withoutT.length < 5) return;
+    allSymptoms.forEach((symptom) => {
+      const rateW = withT.filter((d) => d.symptoms[symptom]).length / withT.length;
+      const rateWO = withoutT.filter((d) => d.symptoms[symptom]).length / withoutT.length;
+      if (rateWO > 0.05 && rateW / rateWO >= 2.0) {
+        insights.push({ score: rateW / rateWO, text: `${symptom} is ${(rateW / rateWO).toFixed(1)}x more likely on days you ${trigger === "exercise" ? "exercise" : `have ${trigger}`}`, icon: trigger === "caffeine" ? "☕" : trigger === "alcohol" ? "🍷" : "🏃" });
+      }
+      if (trigger === "exercise" && rateWO > 0.1 && rateW < rateWO * 0.5) {
+        insights.push({ score: rateWO / Math.max(rateW, 0.05), text: `${symptom} is ${(rateWO / Math.max(rateW, 0.05)).toFixed(1)}x less frequent on days you exercise`, icon: "🏃" });
+      }
+    });
+    const moodW = withT.filter((d) => d.mood !== null);
+    const moodWO = withoutT.filter((d) => d.mood !== null);
+    if (moodW.length >= 5 && moodWO.length >= 5) {
+      const avgW = moodW.reduce((s, d) => s + d.mood, 0) / moodW.length;
+      const avgWO = moodWO.reduce((s, d) => s + d.mood, 0) / moodWO.length;
+      const delta = avgW - avgWO;
+      if (Math.abs(delta) >= 0.5) {
+        insights.push({ score: Math.abs(delta), text: `Your mood averages ${Math.abs(delta).toFixed(1)} points ${delta > 0 ? "higher" : "lower"} on days you ${trigger === "exercise" ? "exercise" : `have ${trigger}`}`, icon: trigger === "caffeine" ? "☕" : trigger === "alcohol" ? "🍷" : "🏃" });
+      }
+    }
+  });
+
+  // Sleep < 6 hours
+  const sleepLow = days.filter((d) => d.context.sleepHours !== null && d.context.sleepHours < 6);
+  const sleepOk = days.filter((d) => d.context.sleepHours !== null && d.context.sleepHours >= 6);
+  if (sleepLow.length >= 5 && sleepOk.length >= 5) {
+    allSymptoms.forEach((symptom) => {
+      const rL = sleepLow.filter((d) => d.symptoms[symptom]).length / sleepLow.length;
+      const rO = sleepOk.filter((d) => d.symptoms[symptom]).length / sleepOk.length;
+      if (rO > 0.05 && rL / rO >= 2.0) {
+        insights.push({ score: rL / rO, text: `${symptom} appears ${(rL / rO).toFixed(1)}x more after nights with less than 6 hours of sleep`, icon: "🛏️" });
+      }
+    });
+  }
+
+  // Stress >= 4
+  const stressHi = days.filter((d) => d.context.stress !== null && d.context.stress >= 4);
+  const stressLo = days.filter((d) => d.context.stress !== null && d.context.stress < 4);
+  if (stressHi.length >= 5 && stressLo.length >= 5) {
+    allSymptoms.forEach((symptom) => {
+      const rH = stressHi.filter((d) => d.symptoms[symptom]).length / stressHi.length;
+      const rL = stressLo.filter((d) => d.symptoms[symptom]).length / stressLo.length;
+      if (rL > 0.05 && rH / rL >= 2.0) {
+        insights.push({ score: rH / rL, text: `${symptom} is ${(rH / rL).toFixed(1)}x more common on high-stress days`, icon: "😤" });
+      }
+    });
+  }
+
+  return insights.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
 function monthlyComparison(logs) {
   const now = new Date();
   const thisMonth = now.getMonth();
@@ -292,6 +363,8 @@ function generateTalkingPoints(logs, profile) {
   if (topNames.some((n) => n.includes("joint"))) questions.push("Could my joint pain be estrogen-related?");
   if (topNames.some((n) => n.includes("brain fog") || n.includes("memory"))) questions.push("Is cognitive change during menopause typically temporary?");
   if (questions.length === 0) questions.push("Based on my symptom patterns, what treatment options would you recommend?");
+  const correlations = analyzeCorrelations(logs);
+  if (correlations.length > 0) points.push(`Notable triggers: ${correlations.slice(0, 2).map((c) => c.text).join("; ")}`);
   return { points, questions: questions.slice(0, 3) };
 }
 
@@ -524,6 +597,42 @@ const css = `
     transition: background 0.15s;
   }
   .sev-dot.on { background: var(--clay); }
+
+  /* ── CONTEXT SECTION ── */
+  .context-section { margin: 14px 16px 0; }
+  .ctx-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .ctx-label { font-size: 14px; color: var(--ink); font-weight: 500; }
+  .ctx-stepper { display: flex; align-items: center; gap: 12px; }
+  .ctx-step-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600; color: var(--ink);
+    cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .ctx-step-btn:hover { border-color: var(--clay); color: var(--clay); }
+  .ctx-value { font-size: 15px; font-weight: 500; color: var(--ink); min-width: 36px; text-align: center; }
+  .ctx-value.unset { color: var(--ink-light); }
+  .ctx-dots { display: flex; gap: 8px; }
+  .ctx-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; color: var(--ink-light);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .ctx-dot.active { background: var(--clay-light); border-color: var(--clay); color: var(--clay-dark); }
+  .ctx-pills { display: flex; gap: 8px; margin-top: 12px; }
+  .ctx-pill {
+    flex: 1; padding: 10px 8px; border-radius: 10px;
+    background: white; border: 1.5px solid var(--border);
+    text-align: center; font-size: 13px; font-weight: 500;
+    color: var(--ink); cursor: pointer; transition: all 0.15s;
+  }
+  .ctx-pill.on { background: rgba(122,158,135,0.12); border-color: var(--sage); color: var(--sage-dark); }
 
   .notes-area { margin: 14px 16px 0; }
   .notes-input {
@@ -1106,6 +1215,11 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   const [activeSymptoms, setActiveSymptoms] = useState({});
   const [severities, setSeverities] = useState({});
   const [notes, setNotes] = useState("");
+  const [sleepHours, setSleepHours] = useState(null);
+  const [stress, setStress] = useState(null);
+  const [caffeine, setCaffeine] = useState(null);
+  const [alcohol, setAlcohol] = useState(null);
+  const [exercise, setExercise] = useState(null);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -1191,11 +1305,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
 
   function handleLog() {
     if (!canLog) return;
-    onLog({ mood, symptoms: activeSymptoms, severities, notes });
+    onLog({ mood, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise } });
     setMood(null);
     setActiveSymptoms({});
     setSeverities({});
     setNotes("");
+    setSleepHours(null);
+    setStress(null);
+    setCaffeine(null);
+    setAlcohol(null);
+    setExercise(null);
   }
 
   return (
@@ -1271,6 +1390,47 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      <div className="context-section">
+        <div className="section-label">Today's context</div>
+        <div className="ctx-row">
+          <span className="ctx-label">🛏️ Sleep</span>
+          <div className="ctx-stepper">
+            <div className="ctx-step-btn" onClick={() => setSleepHours((h) => h === null ? 6.5 : Math.max(0, h - 0.5))}>−</div>
+            <span className={`ctx-value${sleepHours === null ? " unset" : ""}`}>
+              {sleepHours === null ? "—" : `${sleepHours}h`}
+            </span>
+            <div className="ctx-step-btn" onClick={() => setSleepHours((h) => h === null ? 7.5 : Math.min(12, h + 0.5))}>+</div>
+          </div>
+        </div>
+        <div className="ctx-row">
+          <span className="ctx-label">😤 Stress</span>
+          <div className="ctx-dots">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <div
+                key={level}
+                className={`ctx-dot${stress === level ? " active" : ""}`}
+                onClick={() => setStress(stress === level ? null : level)}
+              >{level}</div>
+            ))}
+          </div>
+        </div>
+        <div className="ctx-pills">
+          {[
+            { key: "caffeine", icon: "☕", label: "Caffeine", state: caffeine, set: setCaffeine },
+            { key: "alcohol", icon: "🍷", label: "Alcohol", state: alcohol, set: setAlcohol },
+            { key: "exercise", icon: "🏃", label: "Exercise", state: exercise, set: setExercise },
+          ].map(({ key, icon, label, state, set }) => (
+            <div
+              key={key}
+              className={`ctx-pill${state === true ? " on" : ""}`}
+              onClick={() => set((prev) => prev === true ? null : true)}
+            >
+              {icon} {label}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1574,6 +1734,23 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                       <div key={i} className="pattern-item">
                         <span className="pattern-icon">💡</span>
                         <span className="pattern-text">{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const correlations = analyzeCorrelations(logs);
+                if (correlations.length === 0) return null;
+                return (
+                  <div className="patterns-card">
+                    <div className="patterns-title">Triggers & correlations</div>
+                    <div className="patterns-subtitle">How your context affects symptoms</div>
+                    {correlations.map((c, i) => (
+                      <div key={i} className="pattern-item">
+                        <span className="pattern-icon">{c.icon}</span>
+                        <span className="pattern-text">{c.text}</span>
                       </div>
                     ))}
                   </div>
@@ -1908,6 +2085,40 @@ function generateDoctorReport(logs, profile) {
     y += 10;
   }
 
+  // Lifestyle context summary
+  const contextLogs = recentLogs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null));
+  if (contextLogs.length > 0) {
+    checkPage(20);
+    doc.setFontSize(14);
+    doc.setTextColor(44, 31, 23);
+    doc.text("Lifestyle Context Summary", margin, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    const sleepDays = contextLogs.filter((l) => l.context.sleepHours !== null);
+    if (sleepDays.length > 0) {
+      const avgSleep = (sleepDays.reduce((s, l) => s + l.context.sleepHours, 0) / sleepDays.length).toFixed(1);
+      doc.text(`Average sleep: ${avgSleep} hours (${sleepDays.length} days reported)`, margin, y); y += 5;
+    }
+    const stressDays = contextLogs.filter((l) => l.context.stress !== null);
+    if (stressDays.length > 0) {
+      const avgStress = (stressDays.reduce((s, l) => s + l.context.stress, 0) / stressDays.length).toFixed(1);
+      doc.text(`Average stress: ${avgStress}/5 (${stressDays.length} days reported)`, margin, y); y += 5;
+    }
+    ["caffeine", "alcohol", "exercise"].forEach((trigger) => {
+      const tDays = contextLogs.filter((l) => l.context[trigger] === true);
+      if (tDays.length > 0) {
+        doc.text(`${trigger.charAt(0).toUpperCase() + trigger.slice(1)}: reported on ${tDays.length} of ${contextLogs.length} days`, margin, y); y += 5;
+      }
+    });
+    const corr = analyzeCorrelations(recentLogs);
+    if (corr.length > 0) {
+      y += 3; doc.text("Detected correlations:", margin, y); y += 5;
+      corr.forEach((c) => { checkPage(5); doc.text(`  \u2022 ${c.text}`, margin, y); y += 5; });
+    }
+    y += 6;
+  }
+
   // Daily log detail
   checkPage(15);
   doc.setFontSize(14);
@@ -1950,6 +2161,20 @@ function generateDoctorReport(logs, profile) {
       });
     }
 
+    if (log.context) {
+      const parts = [];
+      if (log.context.sleepHours !== null && log.context.sleepHours !== undefined) parts.push(`Sleep: ${log.context.sleepHours}h`);
+      if (log.context.stress !== null && log.context.stress !== undefined) parts.push(`Stress: ${log.context.stress}/5`);
+      if (log.context.caffeine) parts.push("Caffeine");
+      if (log.context.alcohol) parts.push("Alcohol");
+      if (log.context.exercise) parts.push("Exercise");
+      if (parts.length > 0) {
+        doc.setTextColor(110, 110, 110);
+        checkPage(5);
+        doc.text(`Context: ${parts.join(", ")}`, margin, y);
+        y += 5;
+      }
+    }
     if (log.notes) {
       doc.setTextColor(120);
       const noteLines = doc.splitTextToSize(`Note: "${log.notes}"`, contentWidth);
@@ -1982,7 +2207,7 @@ function generateDoctorReport(logs, profile) {
 // ─── CSV Export ──────────────────────────────────────────────────────────────
 
 function exportCSV(logs) {
-  const header = "Date,Time,Mood,Symptoms,Severities,Notes";
+  const header = "Date,Time,Mood,Symptoms,Severities,Notes,Sleep Hours,Stress,Caffeine,Alcohol,Exercise";
   const moodLabels = ["Very low", "Low", "Neutral", "Good", "Very good"];
   const rows = logs.map((log) => {
     const d = new Date(log.date);
@@ -1992,7 +2217,13 @@ function exportCSV(logs) {
     const symptoms = Object.keys(log.symptoms || {}).join("; ");
     const sevs = Object.entries(log.severities || {}).map(([s, v]) => `${s}:${v}/3`).join("; ");
     const notes = (log.notes || "").replace(/"/g, '""');
-    return `${date},${time},${mood},"${symptoms}","${sevs}","${notes}"`;
+    const ctx = log.context || {};
+    const sleep = ctx.sleepHours !== null && ctx.sleepHours !== undefined ? ctx.sleepHours : "";
+    const stressVal = ctx.stress !== null && ctx.stress !== undefined ? ctx.stress : "";
+    const caff = ctx.caffeine === true ? "Yes" : "";
+    const alc = ctx.alcohol === true ? "Yes" : "";
+    const exer = ctx.exercise === true ? "Yes" : "";
+    return `${date},${time},${mood},"${symptoms}","${sevs}","${notes}",${sleep},${stressVal},${caff},${alc},${exer}`;
   });
 
   const csv = [header, ...rows].join("\n");
