@@ -1187,7 +1187,10 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
     setSeverities((prev) => ({ ...prev, [symptomName]: level }));
   }
 
+  const canLog = mood !== null || Object.keys(activeSymptoms).length > 0;
+
   function handleLog() {
+    if (!canLog) return;
     onLog({ mood, symptoms: activeSymptoms, severities, notes });
     setMood(null);
     setActiveSymptoms({});
@@ -1280,12 +1283,12 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
         />
       </div>
 
-      <button className="log-btn" onClick={handleLog}>
+      <button className="log-btn" onClick={handleLog} disabled={!canLog} style={!canLog ? { opacity: 0.5, cursor: "default" } : {}}>
         <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path d="M9 12l2 2 4-4" />
           <circle cx="12" cy="12" r="10" />
         </svg>
-        Log today's entry
+        {canLog ? "Log today's entry" : "Select mood or symptoms to log"}
       </button>
 
       <div className="disclaimer">Vela is not medical advice. Always consult your healthcare provider.</div>
@@ -1468,7 +1471,8 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           <div className="ic-label">Getting started</div>
           <div className="ic-text">
             Log your first entry on the <strong>Today</strong> tab to start
-            seeing patterns here.
+            seeing patterns here. After 7 days, Vela will surface personalized
+            insights about your symptoms.
           </div>
         </div>
       ) : (
@@ -1754,6 +1758,11 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
         <button className="paywall-restore" onClick={onRestore}>
           Restore previous purchase
         </button>
+        <div style={{ marginTop: 16, fontSize: 11, color: "var(--ink-light)", textAlign: "center" }}>
+          <a href="/terms.html" target="_blank" style={{ color: "var(--ink-light)" }}>Terms</a>
+          {" · "}
+          <a href="/privacy.html" target="_blank" style={{ color: "var(--ink-light)" }}>Privacy</a>
+        </div>
       </div>
     </div>
   );
@@ -2115,6 +2124,13 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             </div>
             <span className="sr-arrow">›</span>
           </div>
+          <div className="settings-row" onClick={() => window.open("/terms.html", "_blank")}>
+            <div className="sr-left">
+              <span className="sr-icon">📄</span>
+              <span className="sr-label">Terms of service</span>
+            </div>
+            <span className="sr-arrow">›</span>
+          </div>
           <div className="settings-row">
             <div className="sr-left">
               <span className="sr-icon">📱</span>
@@ -2297,7 +2313,7 @@ export default function App() {
               <button
                 key={t.id}
                 className={`nav-tab${screen === t.id ? " active" : ""}`}
-                onClick={() => setScreen(t.id)}
+                onClick={() => { setScreen(t.id); window.scrollTo(0, 0); }}
               >
                 {t.label}
               </button>
