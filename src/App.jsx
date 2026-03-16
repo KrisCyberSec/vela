@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
+
+function haptic(style = "Light") {
+  if (Capacitor.isNativePlatform()) {
+    Haptics.impact({ style: ImpactStyle[style] }).catch(() => {});
+  }
+}
 
 const SYMPTOMS = [
   { icon: "🌡", name: "Hot flash" },
@@ -443,6 +450,42 @@ const css = `
     --border:     #EDE0D8;
     --radius:     16px;
     --radius-sm:  10px;
+    --card-bg:    #FFFFFF;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --clay:       #D9977E;
+      --clay-light: #3A2A22;
+      --clay-dark:  #E8B59E;
+      --sage:       #8FB89B;
+      --sage-light: #1E2E24;
+      --sage-dark:  #A8D4B4;
+      --cream:      #1A1412;
+      --ink:        #F0E8E2;
+      --ink-mid:    #BDA898;
+      --ink-light:  #887568;
+      --gold:       #E0BD6D;
+      --border:     #342820;
+      --card-bg:    #241C17;
+    }
+    .nav, .nav-tabs { background: #1A1412 !important; }
+    .symptom-tile, .q-opt, .q-card, .notes-input, .ctx-step-btn, .ctx-dot, .ctx-pill,
+    .settings-card, .weekly-summary, .trend-card, .symptom-list, .patterns-card,
+    .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
+    .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card {
+      background: var(--card-bg) !important;
+    }
+    .symptom-tile.active { background: var(--clay-light) !important; }
+    .ctx-dot.active { background: var(--clay-light) !important; }
+    .ctx-pill.on { background: var(--sage-light) !important; }
+    .streak-milestone.earned { background: var(--sage) !important; }
+    .chart-toggle-btn.active { background: var(--clay) !important; }
+    .q-opt.selected { background: var(--clay) !important; color: white !important; }
+    .nav-tab.active { background: var(--clay) !important; }
+    .wb-face { background: rgba(255,255,255,0.08) !important; }
+    .wb-face.selected { background: rgba(255,255,255,0.2) !important; }
+    svg text { fill: var(--ink-light); }
   }
 
   body {
@@ -526,7 +569,10 @@ const css = `
     padding: 20px;
     border: 1px solid var(--border);
     flex: 1;
+    transition: opacity 0.2s ease, transform 0.2s ease;
   }
+  .q-fade-in { opacity: 1; transform: translateX(0); }
+  .q-fade-out { opacity: 0; transform: translateX(-16px); }
   .q-step {
     font-size: 11px;
     font-weight: 500;
@@ -1056,11 +1102,23 @@ const css = `
   .settings-footer a { color: var(--clay); text-decoration: underline; }
 
   /* ── STREAK BADGE ── */
+  .streak-row {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+  }
   .streak-badge {
     display: inline-flex; align-items: center; gap: 4px;
     background: var(--sage-light); color: var(--sage-dark);
     padding: 4px 10px; border-radius: 12px;
-    font-size: 12px; font-weight: 500; margin-top: 6px;
+    font-size: 12px; font-weight: 500;
+  }
+  .streak-badge.milestone { background: var(--sage); color: white; }
+  .streak-milestone {
+    width: 26px; height: 26px; border-radius: 50%; font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--border); color: var(--ink-light); background: white;
+  }
+  .streak-milestone.earned {
+    background: var(--sage); border-color: var(--sage); color: white; font-size: 11px;
   }
 
   /* ── WEEKLY SUMMARY ── */
@@ -1202,6 +1260,7 @@ function OnboardingScreen({ onComplete }) {
   const [answers, setAnswers] = useState({});
   const [selected, setSelected] = useState(null);
   const [multiSelected, setMultiSelected] = useState([]);
+  const [transitioning, setTransitioning] = useState(false);
 
   const q = QUESTIONS[qIndex];
   const progress = ((qIndex + 1) / QUESTIONS.length) * 100;
@@ -1225,15 +1284,19 @@ function OnboardingScreen({ onComplete }) {
     if (isLast) {
       onComplete(answers);
     } else {
-      setQIndex((i) => i + 1);
-      const nextQ = QUESTIONS[qIndex + 1];
-      if (nextQ.multi) {
-        setMultiSelected(answers[qIndex + 1] ?? []);
-        setSelected(null);
-      } else {
-        setSelected(answers[qIndex + 1] ?? null);
-        setMultiSelected([]);
-      }
+      setTransitioning(true);
+      setTimeout(() => {
+        setQIndex((i) => i + 1);
+        const nextQ = QUESTIONS[qIndex + 1];
+        if (nextQ.multi) {
+          setMultiSelected(answers[qIndex + 1] ?? []);
+          setSelected(null);
+        } else {
+          setSelected(answers[qIndex + 1] ?? null);
+          setMultiSelected([]);
+        }
+        setTransitioning(false);
+      }, 200);
     }
   }
 
@@ -1252,7 +1315,7 @@ function OnboardingScreen({ onComplete }) {
         <div className="progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="q-card">
+      <div className={`q-card${transitioning ? " q-fade-out" : " q-fade-in"}`}>
         <div className="q-step">
           Question {qIndex + 1} of {QUESTIONS.length}
           {isMulti && <span style={{ marginLeft: 8, fontStyle: "italic", textTransform: "none", letterSpacing: 0 }}>select all that apply</span>}
@@ -1383,6 +1446,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
 
   function handleLog() {
     if (!canLog) return;
+    haptic("Medium");
     onLog({ mood, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise } });
     setMood(null);
     setActiveSymptoms({});
@@ -1400,7 +1464,18 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
       <div className="tracker-header">
         <h2>{getGreeting()}</h2>
         <p>{today}{journeyStage ? ` · ${journeyStage}` : ""}</p>
-        {streak > 1 && <div className="streak-badge">🔥 {streak}-day streak</div>}
+        {streak > 0 && (
+          <div className="streak-row">
+            <div className={`streak-badge${streak >= 7 ? " milestone" : ""}`}>
+              🔥 {streak}-day streak
+            </div>
+            {[7, 14, 30, 60].map((m) => (
+              <div key={m} className={`streak-milestone${streak >= m ? " earned" : ""}`}>
+                {streak >= m ? "✓" : m}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {tipText && (
@@ -1431,7 +1506,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
             <div
               key={i}
               className={`wb-face${mood === i ? " selected" : ""}`}
-              onClick={() => setMood(i)}
+              onClick={() => { haptic("Light"); setMood(i); }}
             >
               {emoji}
             </div>
@@ -1449,7 +1524,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
               <div
                 key={s.name}
                 className={`symptom-tile${isActive ? " active" : ""}`}
-                onClick={() => toggleSymptom(s.name)}
+                onClick={() => { haptic("Light"); toggleSymptom(s.name); }}
               >
                 <div className="s-icon">{s.icon}</div>
                 <span className="s-name">{s.name}</span>
@@ -1490,7 +1565,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
               <div
                 key={level}
                 className={`ctx-dot${stress === level ? " active" : ""}`}
-                onClick={() => setStress(stress === level ? null : level)}
+                onClick={() => { haptic("Light"); setStress(stress === level ? null : level); }}
               >{level}</div>
             ))}
           </div>
@@ -1504,7 +1579,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
             <div
               key={key}
               className={`ctx-pill${state === true ? " on" : ""}`}
-              onClick={() => set((prev) => prev === true ? null : true)}
+              onClick={() => { haptic("Light"); set((prev) => prev === true ? null : true); }}
             >
               {icon} {label}
             </div>
