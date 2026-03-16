@@ -474,9 +474,13 @@ const css = `
     .settings-card, .weekly-summary, .trend-card, .symptom-list, .patterns-card,
     .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
     .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card,
-    .note-chip, .symptom-filter {
+    .note-chip, .symptom-filter, .comm-reaction-btn, .comm-header-btn,
+    .comm-compose-input, .comm-compose-card {
       background: var(--card-bg) !important;
     }
+    .comm-guidelines-dismiss { background: var(--card-bg) !important; color: var(--sage-dark) !important; }
+    .comm-compose-overlay { background: rgba(0,0,0,0.6) !important; }
+    .comm-reaction-active { background: var(--sage-light) !important; }
     .symptom-tile.active { background: var(--clay-light) !important; }
     .ctx-dot.active { background: var(--clay-light) !important; }
     .ctx-pill.on { background: var(--sage-light) !important; }
@@ -1177,8 +1181,84 @@ const css = `
   .comm-post-author { font-size: 12px; font-weight: 500; color: var(--ink-mid); }
   .comm-post-time { font-size: 11px; color: var(--ink-light); }
   .comm-post-text { font-size: 14px; color: var(--ink); line-height: 1.6; }
-  .comm-post-footer { margin-top: 8px; }
-  .comm-heart { font-size: 12px; color: var(--clay); cursor: pointer; }
+  .comm-post-footer { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .comm-heart { font-size: 12px; color: var(--ink-light); cursor: pointer; transition: transform 0.2s ease, color 0.2s ease; user-select: none; }
+  .comm-heart-liked { color: var(--clay); animation: heartPop 0.3s ease; }
+  @keyframes heartPop { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+  .comm-bookmark { font-size: 14px; cursor: pointer; user-select: none; }
+  .comm-bookmark-active { animation: heartPop 0.3s ease; }
+
+  .comm-reactions { display: flex; gap: 8px; margin-top: 8px; }
+  .comm-reaction-btn {
+    font-size: 16px; background: var(--clay-light); border: none; width: 36px; height: 36px;
+    border-radius: 50%; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .comm-reaction-btn:active { transform: scale(0.9); }
+  .comm-reaction-active { background: var(--sage-light); box-shadow: 0 0 0 2px var(--sage); }
+
+  .comm-header-row { display: flex; justify-content: space-between; align-items: center; }
+  .comm-header-actions { display: flex; gap: 8px; }
+  .comm-header-btn {
+    font-size: 12px; background: var(--clay-light); border: none; padding: 6px 10px;
+    border-radius: var(--radius-sm); color: var(--clay-dark); font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .comm-header-btn:active { opacity: 0.7; }
+
+  .comm-guidelines {
+    margin: 12px 16px 0; padding: 14px 16px; background: var(--sage-light);
+    border: 1px solid var(--sage); border-radius: var(--radius); display: flex; flex-direction: column; gap: 10px;
+  }
+  .comm-guidelines-text strong { font-size: 14px; color: var(--sage-dark); }
+  .comm-guidelines-text p { font-size: 12px; color: var(--ink-mid); line-height: 1.5; margin-top: 4px; }
+  .comm-guidelines-dismiss {
+    align-self: flex-end; font-size: 12px; font-weight: 500; color: var(--sage-dark);
+    background: white; border: 1px solid var(--sage); border-radius: var(--radius-sm);
+    padding: 6px 16px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+
+  .comm-resources { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .comm-resource-row {
+    display: flex; gap: 8px; align-items: center; padding: 8px 0;
+    font-size: 13px; color: var(--ink-mid);
+  }
+
+  .comm-compose-btn {
+    display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 16px 20px;
+    padding: 14px 16px; background: var(--clay); color: white; border-radius: var(--radius);
+    font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .comm-compose-btn:active { opacity: 0.8; }
+  .comm-compose-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+    display: flex; align-items: flex-end;
+  }
+  .comm-compose-card {
+    background: var(--cream); border-radius: var(--radius) var(--radius) 0 0;
+    padding: 16px; width: 100%;
+  }
+  .comm-compose-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  }
+  .comm-compose-header button {
+    background: none; border: none; font-size: 14px; color: var(--ink-mid);
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .comm-compose-header strong { font-size: 14px; color: var(--ink); }
+  .comm-compose-submit { color: var(--clay-dark) !important; font-weight: 600; }
+  .comm-compose-submit:disabled { opacity: 0.4; }
+  .comm-compose-input {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+    resize: none; background: white; color: var(--ink); box-sizing: border-box;
+  }
+  .comm-compose-input:focus { outline: none; border-color: var(--clay); }
+  .comm-compose-counter { text-align: right; font-size: 11px; color: var(--ink-light); margin-top: 4px; }
+
+  .comm-post-topic-tag {
+    font-size: 11px; color: var(--sage-dark); background: var(--sage-light);
+    padding: 2px 8px; border-radius: 8px; display: inline-block; margin-top: 8px;
+  }
+  .comm-empty { padding: 32px 16px; text-align: center; color: var(--ink-light); font-size: 14px; line-height: 1.6; }
 
   /* ── STREAK BADGE ── */
   .streak-row {
@@ -3012,70 +3092,250 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
 
 // ─── Community Screen ─────────────────────────────────────────────────────────
 
+const COMMUNITY_REACTIONS = [
+  { type: "hug", emoji: "\u{1F917}", label: "Hug" },
+  { type: "strength", emoji: "\u{1F4AA}", label: "Strength" },
+  { type: "thanks", emoji: "\u{1F64F}", label: "Thanks" },
+];
+const COMMUNITY_POST_MAX_CHARS = 500;
+
+function relativeTime(isoString) {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 const COMMUNITY_TOPICS = [
   {
     id: "hot-flashes",
-    icon: "🌡",
+    icon: "\u{1F321}",
     title: "Hot flashes & night sweats",
     description: "Coping strategies, triggers, and what actually works",
+    resources: [
+      { label: "Cooling strategies that actually work", type: "tip" },
+      { label: "When to talk to your doctor about HRT", type: "article" },
+    ],
     posts: [
-      { author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand has been a game-changer. I also switched to cotton sheets and it made a noticeable difference.", likes: 24 },
-      { author: "Anonymous", time: "5h ago", text: "My hot flashes got so much worse with caffeine. Once I cut it after noon, the nighttime ones reduced by half.", likes: 18 },
-      { author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Deep breathing helped me get through it.", likes: 31 },
+      { id: "hf-1", author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand has been a game-changer. I also switched to cotton sheets and it made a noticeable difference.", likes: 24 },
+      { id: "hf-2", author: "Anonymous", time: "5h ago", text: "My hot flashes got so much worse with caffeine. Once I cut it after noon, the nighttime ones reduced by half.", likes: 18 },
+      { id: "hf-3", author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Deep breathing helped me get through it.", likes: 31 },
     ],
   },
   {
     id: "brain-fog",
-    icon: "🧠",
+    icon: "\u{1F9E0}",
     title: "Brain fog & memory",
-    description: "You're not losing your mind — this is real",
+    description: "You're not losing your mind \u2014 this is real",
+    resources: [
+      { label: "Techniques for managing brain fog", type: "tip" },
+      { label: "How estrogen affects cognitive function", type: "article" },
+    ],
     posts: [
-      { author: "Anonymous", time: "3h ago", text: "I started writing everything down. Lists for everything. It felt silly at first but it genuinely reduced my anxiety about forgetting things.", likes: 42 },
-      { author: "Anonymous", time: "8h ago", text: "My doctor told me brain fog during perimenopause is caused by fluctuating estrogen levels. It's temporary. That alone made me feel better.", likes: 55 },
+      { id: "bf-1", author: "Anonymous", time: "3h ago", text: "I started writing everything down. Lists for everything. It felt silly at first but it genuinely reduced my anxiety about forgetting things.", likes: 42 },
+      { id: "bf-2", author: "Anonymous", time: "8h ago", text: "My doctor told me brain fog during perimenopause is caused by fluctuating estrogen levels. It's temporary. That alone made me feel better.", likes: 55 },
     ],
   },
   {
     id: "mood-anxiety",
-    icon: "💔",
+    icon: "\u{1F494}",
     title: "Mood changes & anxiety",
     description: "The emotional rollercoaster nobody warned us about",
+    resources: [
+      { label: "Grounding exercises for anxiety spikes", type: "tip" },
+      { label: "Understanding hormonal mood shifts", type: "article" },
+    ],
     posts: [
-      { author: "Anonymous", time: "1h ago", text: "Some days I feel like a completely different person. Then I remember: hormones. It helps to name it.", likes: 38 },
-      { author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has done more for my anxiety than anything else I've tried. It's not a cure but it takes the edge off.", likes: 29 },
-      { author: "Anonymous", time: "2d ago", text: "If you're feeling rage that seems out of nowhere — that's perimenopause too. You're not broken. Your hormones are just really loud right now.", likes: 67 },
+      { id: "ma-1", author: "Anonymous", time: "1h ago", text: "Some days I feel like a completely different person. Then I remember: hormones. It helps to name it.", likes: 38 },
+      { id: "ma-2", author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has done more for my anxiety than anything else I've tried. It's not a cure but it takes the edge off.", likes: 29 },
+      { id: "ma-3", author: "Anonymous", time: "2d ago", text: "If you're feeling rage that seems out of nowhere \u2014 that's perimenopause too. You're not broken. Your hormones are just really loud right now.", likes: 67 },
     ],
   },
   {
     id: "sleep",
-    icon: "😴",
+    icon: "\u{1F634}",
     title: "Sleep struggles",
     description: "Getting rest when your body won't cooperate",
+    resources: [
+      { label: "Building a menopause-friendly sleep routine", type: "tip" },
+      { label: "Supplements that may help with sleep", type: "article" },
+    ],
     posts: [
-      { author: "Anonymous", time: "4h ago", text: "Magnesium glycinate before bed. I was skeptical but it honestly helped me stay asleep longer. Ask your doctor about it.", likes: 33 },
-      { author: "Anonymous", time: "1d ago", text: "I stopped looking at the clock when I wake up at 3am. Sounds small but it stopped the anxiety spiral of 'I only have 3 hours left'.", likes: 41 },
+      { id: "sl-1", author: "Anonymous", time: "4h ago", text: "Magnesium glycinate before bed. I was skeptical but it honestly helped me stay asleep longer. Ask your doctor about it.", likes: 33 },
+      { id: "sl-2", author: "Anonymous", time: "1d ago", text: "I stopped looking at the clock when I wake up at 3am. Sounds small but it stopped the anxiety spiral of 'I only have 3 hours left'.", likes: 41 },
     ],
   },
   {
     id: "doctor-talks",
-    icon: "👩‍⚕️",
+    icon: "\u{1F469}\u200D\u2695\uFE0F",
     title: "Talking to your doctor",
     description: "How to advocate for yourself",
+    resources: [
+      { label: "Questions to ask at your next appointment", type: "tip" },
+      { label: "How to find a menopause-informed doctor", type: "article" },
+    ],
     posts: [
-      { author: "Anonymous", time: "7h ago", text: "Bring your Vela report to your appointment. My doctor was impressed I had actual data on my symptoms. It changed the whole conversation.", likes: 52 },
-      { author: "Anonymous", time: "2d ago", text: "If your doctor dismisses your symptoms, find a new doctor. It took me 3 tries but I finally found one who listens.", likes: 71 },
+      { id: "dt-1", author: "Anonymous", time: "7h ago", text: "Bring your Vela report to your appointment. My doctor was impressed I had actual data on my symptoms. It changed the whole conversation.", likes: 52 },
+      { id: "dt-2", author: "Anonymous", time: "2d ago", text: "If your doctor dismisses your symptoms, find a new doctor. It took me 3 tries but I finally found one who listens.", likes: 71 },
     ],
   },
 ];
 
 function CommunityScreen() {
   const [activeTopic, setActiveTopic] = useState(null);
+  const [showSaved, setShowSaved] = useState(false);
+  const [showMyPosts, setShowMyPosts] = useState(false);
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeText, setComposeText] = useState("");
 
-  if (activeTopic) {
-    const topic = COMMUNITY_TOPICS.find((t) => t.id === activeTopic);
+  const [likedPosts, setLikedPosts] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_likes") || "{}")
+  );
+  const [bookmarks, setBookmarks] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_bookmarks") || "[]")
+  );
+  const [reactions, setReactions] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_reactions") || "{}")
+  );
+  const [userPosts, setUserPosts] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_posts") || "[]")
+  );
+  const [guidelinesSeen, setGuidelinesSeen] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_guidelines_seen") || "false")
+  );
+
+  useEffect(() => { localStorage.setItem("vela_community_likes", JSON.stringify(likedPosts)); }, [likedPosts]);
+  useEffect(() => { localStorage.setItem("vela_community_bookmarks", JSON.stringify(bookmarks)); }, [bookmarks]);
+  useEffect(() => { localStorage.setItem("vela_community_reactions", JSON.stringify(reactions)); }, [reactions]);
+  useEffect(() => { localStorage.setItem("vela_community_posts", JSON.stringify(userPosts)); }, [userPosts]);
+  useEffect(() => { localStorage.setItem("vela_community_guidelines_seen", JSON.stringify(guidelinesSeen)); }, [guidelinesSeen]);
+
+  function toggleLike(postId) {
+    haptic();
+    setLikedPosts((prev) => {
+      const next = { ...prev };
+      if (next[postId]) delete next[postId];
+      else next[postId] = true;
+      return next;
+    });
+  }
+
+  function toggleBookmark(postId) {
+    haptic();
+    setBookmarks((prev) => prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]);
+  }
+
+  function toggleReaction(postId, type) {
+    haptic();
+    setReactions((prev) => {
+      const current = prev[postId] || [];
+      const has = current.includes(type);
+      return { ...prev, [postId]: has ? current.filter((r) => r !== type) : [...current, type] };
+    });
+  }
+
+  function submitPost() {
+    if (!composeText.trim() || !activeTopic) return;
+    haptic("Medium");
+    setUserPosts((prev) => [{
+      id: `user-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
+      text: composeText.trim(), likes: 0, topicId: activeTopic, isUserPost: true,
+    }, ...prev]);
+    setComposeText("");
+    setShowCompose(false);
+  }
+
+  function getPostById(id) {
+    for (const topic of COMMUNITY_TOPICS) {
+      const found = topic.posts.find((p) => p.id === id);
+      if (found) return { ...found, topicId: topic.id };
+    }
+    return userPosts.find((p) => p.id === id) || null;
+  }
+
+  function renderPost(post) {
+    const postTime = post.isUserPost ? relativeTime(post.time) : post.time;
+    return (
+      <div key={post.id} className="comm-post">
+        <div className="comm-post-header">
+          <span className="comm-post-author">{post.isUserPost ? "You (anonymous)" : post.author}</span>
+          <span className="comm-post-time">{postTime}</span>
+        </div>
+        <p className="comm-post-text">{post.text}</p>
+        <div className="comm-post-footer">
+          <span className={`comm-heart${likedPosts[post.id] ? " comm-heart-liked" : ""}`} onClick={() => toggleLike(post.id)}>
+            {likedPosts[post.id] ? "\u2665" : "\u2661"} {post.likes + (likedPosts[post.id] ? 1 : 0)}
+          </span>
+          <span className={`comm-bookmark${bookmarks.includes(post.id) ? " comm-bookmark-active" : ""}`} onClick={() => toggleBookmark(post.id)}>
+            {bookmarks.includes(post.id) ? "\u{1F516}" : "\u{1F3F7}"}
+          </span>
+        </div>
+        <div className="comm-reactions">
+          {COMMUNITY_REACTIONS.map((r) => {
+            const active = (reactions[post.id] || []).includes(r.type);
+            return (
+              <button key={r.type} className={`comm-reaction-btn${active ? " comm-reaction-active" : ""}`} onClick={() => toggleReaction(post.id, r.type)} title={r.label}>
+                {r.emoji}
+              </button>
+            );
+          })}
+        </div>
+        {post.topicId && showSaved && (
+          <div className="comm-post-topic-tag">{COMMUNITY_TOPICS.find((t) => t.id === post.topicId)?.title}</div>
+        )}
+        {post.isUserPost && showMyPosts && (
+          <div className="comm-post-topic-tag">{COMMUNITY_TOPICS.find((t) => t.id === post.topicId)?.title}</div>
+        )}
+      </div>
+    );
+  }
+
+  // Saved posts view
+  if (showSaved) {
+    const savedPosts = bookmarks.map(getPostById).filter(Boolean);
     return (
       <div className="screen active">
         <div style={{ padding: "8px 16px 0" }}>
-          <button className="comm-back" onClick={() => setActiveTopic(null)}>← Back to Community</button>
+          <button className="comm-back" onClick={() => setShowSaved(false)}>{"\u2190"} Back to Community</button>
+        </div>
+        <div className="comm-header"><h2>Saved posts</h2></div>
+        <div className="comm-posts">
+          {savedPosts.length === 0 && <p className="comm-empty">Tap {"\u{1F3F7}"} on any post to save it here.</p>}
+          {savedPosts.map(renderPost)}
+        </div>
+      </div>
+    );
+  }
+
+  // My posts view
+  if (showMyPosts) {
+    return (
+      <div className="screen active">
+        <div style={{ padding: "8px 16px 0" }}>
+          <button className="comm-back" onClick={() => setShowMyPosts(false)}>{"\u2190"} Back to Community</button>
+        </div>
+        <div className="comm-header"><h2>My posts</h2></div>
+        <div className="comm-posts">
+          {userPosts.length === 0 && <p className="comm-empty">Your anonymous posts will appear here.</p>}
+          {userPosts.map(renderPost)}
+        </div>
+      </div>
+    );
+  }
+
+  // Topic detail view
+  if (activeTopic) {
+    const topic = COMMUNITY_TOPICS.find((t) => t.id === activeTopic);
+    const topicUserPosts = userPosts.filter((p) => p.topicId === activeTopic);
+    const allPosts = [...topicUserPosts, ...topic.posts];
+    return (
+      <div className="screen active">
+        <div style={{ padding: "8px 16px 0" }}>
+          <button className="comm-back" onClick={() => setActiveTopic(null)}>{"\u2190"} Back to Community</button>
         </div>
         <div className="comm-topic-header">
           <span className="comm-topic-icon">{topic.icon}</span>
@@ -3084,37 +3344,70 @@ function CommunityScreen() {
             <p className="comm-topic-desc">{topic.description}</p>
           </div>
         </div>
-        <div className="comm-posts">
-          {topic.posts.map((post, i) => (
-            <div key={i} className="comm-post">
-              <div className="comm-post-header">
-                <span className="comm-post-author">{post.author}</span>
-                <span className="comm-post-time">{post.time}</span>
+        {topic.resources && topic.resources.length > 0 && (
+          <div className="comm-resources">
+            <div className="section-label" style={{ padding: "0 0 6px" }}>Resources</div>
+            {topic.resources.map((res, i) => (
+              <div key={i} className="comm-resource-row">
+                <span>{res.type === "tip" ? "\u{1F4A1}" : res.type === "article" ? "\u{1F4D6}" : "\u{1F3A5}"}</span>
+                <span>{res.label}</span>
               </div>
-              <p className="comm-post-text">{post.text}</p>
-              <div className="comm-post-footer">
-                <span className="comm-heart">♥ {post.likes}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="comm-share-prompt">
-          <div className="comm-share-icon">💬</div>
-          <div className="comm-share-text">
-            <strong>Share your experience</strong>
-            <p>Anonymous posting coming soon. Your story could help someone else.</p>
+            ))}
           </div>
+        )}
+        <div className="comm-posts">
+          {allPosts.map(renderPost)}
         </div>
+        <div className="comm-compose-btn" onClick={() => { setShowCompose(true); haptic(); }}>
+          <span>{"\u{1F4AC}"}</span> Share your experience anonymously
+        </div>
+        {showCompose && (
+          <div className="comm-compose-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCompose(false); }}>
+            <div className="comm-compose-card">
+              <div className="comm-compose-header">
+                <button onClick={() => setShowCompose(false)}>Cancel</button>
+                <strong>Share anonymously</strong>
+                <button onClick={submitPost} disabled={!composeText.trim()} className="comm-compose-submit">Post</button>
+              </div>
+              <textarea
+                className="comm-compose-input"
+                placeholder="Share what's helped you, or just let it out..."
+                value={composeText}
+                onChange={(e) => setComposeText(e.target.value.slice(0, COMMUNITY_POST_MAX_CHARS))}
+                rows={5}
+                autoFocus
+              />
+              <div className="comm-compose-counter">{composeText.length}/{COMMUNITY_POST_MAX_CHARS}</div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
+  // Topic list view
   return (
     <div className="screen active">
       <div className="comm-header">
-        <h2>Community</h2>
+        <div className="comm-header-row">
+          <h2>Community</h2>
+          <div className="comm-header-actions">
+            <button className="comm-header-btn" onClick={() => setShowSaved(true)}>{"\u{1F516}"} Saved</button>
+            <button className="comm-header-btn" onClick={() => setShowMyPosts(true)}>{"\u{1F4DD}"} My Posts</button>
+          </div>
+        </div>
         <p>You're not alone in this. Connect with women on the same journey.</p>
       </div>
+
+      {!guidelinesSeen && (
+        <div className="comm-guidelines">
+          <div className="comm-guidelines-text">
+            <strong>Welcome to our community {"\u{1F33F}"}</strong>
+            <p>This is a safe, anonymous space. Be kind, be honest, and remember: every woman's experience is valid. No medical advice — just support.</p>
+          </div>
+          <button className="comm-guidelines-dismiss" onClick={() => { setGuidelinesSeen(true); haptic(); }}>Got it</button>
+        </div>
+      )}
 
       <div className="comm-stat-bar">
         <div className="comm-stat">
@@ -3129,24 +3422,19 @@ function CommunityScreen() {
 
       <div className="comm-topics">
         <div className="section-label" style={{ padding: "0 16px 8px" }}>Discussion topics</div>
-        {COMMUNITY_TOPICS.map((topic) => (
-          <div key={topic.id} className="comm-topic-row" onClick={() => setActiveTopic(topic.id)}>
-            <span className="comm-row-icon">{topic.icon}</span>
-            <div className="comm-row-info">
-              <div className="comm-row-title">{topic.title}</div>
-              <div className="comm-row-desc">{topic.description}</div>
+        {COMMUNITY_TOPICS.map((topic) => {
+          const topicUserPosts = userPosts.filter((p) => p.topicId === topic.id);
+          return (
+            <div key={topic.id} className="comm-topic-row" onClick={() => setActiveTopic(topic.id)}>
+              <span className="comm-row-icon">{topic.icon}</span>
+              <div className="comm-row-info">
+                <div className="comm-row-title">{topic.title}</div>
+                <div className="comm-row-desc">{topic.description}</div>
+              </div>
+              <div className="comm-row-count">{topic.posts.length + topicUserPosts.length}</div>
             </div>
-            <div className="comm-row-count">{topic.posts.length}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="comm-share-prompt">
-        <div className="comm-share-icon">🌿</div>
-        <div className="comm-share-text">
-          <strong>Your voice matters</strong>
-          <p>Anonymous sharing is coming soon. Every experience shared helps another woman feel less alone.</p>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -3252,6 +3540,11 @@ export default function App() {
       localStorage.removeItem("vela_onboarded");
       localStorage.removeItem("vela_reminders_enabled");
       localStorage.removeItem("vela_reminder_times");
+      localStorage.removeItem("vela_community_likes");
+      localStorage.removeItem("vela_community_bookmarks");
+      localStorage.removeItem("vela_community_reactions");
+      localStorage.removeItem("vela_community_posts");
+      localStorage.removeItem("vela_community_guidelines_seen");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
