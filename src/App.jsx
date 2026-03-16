@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
@@ -428,6 +428,297 @@ function generateTalkingPoints(logs, profile) {
   return { points, questions: questions.slice(0, 3) };
 }
 
+// ─── AI Analysis Functions ───────────────────────────────────────────────────
+
+function analyzeSymptomTrend(logs, symptomName) {
+  const now = new Date();
+  const recent = logs.filter((l) => {
+    const d = new Date(l.date);
+    return (now - d) / 86400000 <= 14;
+  });
+  const prev = logs.filter((l) => {
+    const d = new Date(l.date);
+    const days = (now - d) / 86400000;
+    return days > 14 && days <= 28;
+  });
+  const countIn = (arr) => arr.filter((l) => (l.symptoms || []).some((s) => s.toLowerCase().includes(symptomName.toLowerCase()))).length;
+  const sevIn = (arr) => {
+    let total = 0, count = 0;
+    arr.forEach((l) => { if ((l.symptoms || []).some((s) => s.toLowerCase().includes(symptomName.toLowerCase()))) { total += (l.severity || 5); count++; } });
+    return count > 0 ? total / count : 0;
+  };
+  const recentCount = countIn(recent);
+  const prevCount = countIn(prev);
+  const recentSev = sevIn(recent);
+  const prevSev = sevIn(prev);
+  const trend = recentCount > prevCount ? "increasing" : recentCount < prevCount ? "decreasing" : "stable";
+  return { symptomName, recentCount, prevCount, recentSev: Math.round(recentSev * 10) / 10, prevSev: Math.round(prevSev * 10) / 10, trend, recentDays: recent.length, prevDays: prev.length };
+}
+
+function analyzeTriggerImpact(logs, triggerName) {
+  const withTrigger = logs.filter((l) => (l.triggers || []).some((t) => t.toLowerCase().includes(triggerName.toLowerCase())));
+  const without = logs.filter((l) => !(l.triggers || []).some((t) => t.toLowerCase().includes(triggerName.toLowerCase())));
+  const avgSymptoms = (arr) => arr.length === 0 ? 0 : arr.reduce((s, l) => s + (l.symptoms || []).length, 0) / arr.length;
+  const avgMood = (arr) => { const m = arr.filter((l) => l.mood); return m.length === 0 ? 0 : m.reduce((s, l) => s + l.mood, 0) / m.length; };
+  return {
+    triggerName,
+    daysWithTrigger: withTrigger.length,
+    daysWithout: without.length,
+    avgSymptomsWith: Math.round(avgSymptoms(withTrigger) * 10) / 10,
+    avgSymptomsWithout: Math.round(avgSymptoms(without) * 10) / 10,
+    avgMoodWith: Math.round(avgMood(withTrigger) * 10) / 10,
+    avgMoodWithout: Math.round(avgMood(without) * 10) / 10,
+    impact: avgSymptoms(withTrigger) > avgSymptoms(without) ? "worsens" : avgSymptoms(withTrigger) < avgSymptoms(without) ? "helps" : "neutral"
+  };
+}
+
+function analyzeOverallTrend(logs) {
+  const now = new Date();
+  const recent = logs.filter((l) => (now - new Date(l.date)) / 86400000 <= 14);
+  const prev = logs.filter((l) => { const d = (now - new Date(l.date)) / 86400000; return d > 14 && d <= 28; });
+  const avg = (arr, fn) => arr.length === 0 ? 0 : arr.reduce((s, l) => s + fn(l), 0) / arr.length;
+  const recentSymptoms = avg(recent, (l) => (l.symptoms || []).length);
+  const prevSymptoms = avg(prev, (l) => (l.symptoms || []).length);
+  const recentMood = avg(recent.filter((l) => l.mood), (l) => l.mood);
+  const prevMood = avg(prev.filter((l) => l.mood), (l) => l.mood);
+  const direction = recentSymptoms < prevSymptoms && recentMood >= prevMood ? "improving" : recentSymptoms > prevSymptoms || recentMood < prevMood ? "worse" : "stable";
+  return {
+    recentSymptoms: Math.round(recentSymptoms * 10) / 10,
+    prevSymptoms: Math.round(prevSymptoms * 10) / 10,
+    recentMood: Math.round(recentMood * 10) / 10,
+    prevMood: Math.round(prevMood * 10) / 10,
+    direction,
+    recentDays: recent.length,
+    prevDays: prev.length
+  };
+}
+
+function analyzeBestWorstDays(logs) {
+  const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const buckets = DOW.map(() => ({ moods: [], symptoms: [] }));
+  logs.forEach((l) => {
+    const day = new Date(l.date).getDay();
+    if (l.mood) buckets[day].moods.push(l.mood);
+    buckets[day].symptoms.push((l.symptoms || []).length);
+  });
+  const stats = DOW.map((name, i) => ({
+    day: name,
+    avgMood: buckets[i].moods.length > 0 ? Math.round(buckets[i].moods.reduce((a, b) => a + b, 0) / buckets[i].moods.length * 10) / 10 : null,
+    avgSymptoms: buckets[i].symptoms.length > 0 ? Math.round(buckets[i].symptoms.reduce((a, b) => a + b, 0) / buckets[i].symptoms.length * 10) / 10 : null,
+    entries: buckets[i].symptoms.length
+  })).filter((s) => s.entries > 0);
+  const best = [...stats].sort((a, b) => (b.avgMood || 0) - (a.avgMood || 0))[0];
+  const worst = [...stats].sort((a, b) => (a.avgMood || 0) - (b.avgMood || 0))[0];
+  return { stats, best, worst };
+}
+
+function analyzeRecentPattern(logs) {
+  const now = new Date();
+  const week = logs.filter((l) => (now - new Date(l.date)) / 86400000 <= 7);
+  if (week.length === 0) return null;
+  const symptomCounts = {};
+  const triggerCounts = {};
+  let moodSum = 0, moodCount = 0, bestDay = null, worstDay = null;
+  week.forEach((l) => {
+    (l.symptoms || []).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; });
+    (l.triggers || []).forEach((t) => { triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
+    if (l.mood) {
+      moodSum += l.mood; moodCount++;
+      if (!bestDay || l.mood > bestDay.mood) bestDay = { date: l.date, mood: l.mood };
+      if (!worstDay || l.mood < worstDay.mood) worstDay = { date: l.date, mood: l.mood };
+    }
+  });
+  const topSymptoms = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
+  const topTriggers = Object.entries(triggerCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
+  return { daysLogged: week.length, avgMood: moodCount > 0 ? Math.round(moodSum / moodCount * 10) / 10 : null, topSymptoms, topTriggers, bestDay, worstDay };
+}
+
+function generateDoctorSummary(logs, profile) {
+  const talkingPoints = generateTalkingPoints(logs, profile);
+  const correlations = analyzeCorrelations(logs);
+  const trend = analyzeOverallTrend(logs);
+  const recent = analyzeRecentPattern(logs);
+  return {
+    ...talkingPoints,
+    correlations: correlations.slice(0, 5),
+    trend,
+    recentSnapshot: recent,
+    journeyStage: profile ? getJourneyLabel(profile.journeyIndex) : null
+  };
+}
+
+// ─── AI Question Matching & Response Generation ──────────────────────────────
+
+const SUGGESTED_QUESTIONS = [
+  "How am I doing this week?",
+  "What are my worst triggers?",
+  "Am I getting better or worse?",
+  "Which day of the week is best for me?",
+  "What should I tell my doctor?",
+  "How is my sleep affecting me?",
+  "What patterns do you see?"
+];
+
+const PERSONALIZED_TIPS = [
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "worsens" && t.triggerName.includes("caffeine")), tip: "Your data shows caffeine is linked to more symptoms. Try switching to herbal tea after noon — many women find this helps with hot flashes and sleep." },
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "worsens" && t.triggerName.includes("alcohol")), tip: "Alcohol appears to be triggering more symptoms for you. Even reducing by one drink can make a difference — your body may be more sensitive during this transition." },
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "helps" && t.triggerName.includes("exercise")), tip: "Exercise is clearly helping you! Your data shows fewer symptoms on active days. Even a 20-minute walk counts — keep it up!" },
+  { match: (d) => d.trend?.direction === "improving", tip: "You're trending in a positive direction! Whatever changes you've made recently are working. Keep up your current routine." },
+  { match: (d) => d.trend?.direction === "worse", tip: "Your symptoms have been a bit more intense lately. This is normal — menopause isn't linear. Consider tracking what changed recently and discussing with your healthcare provider." },
+  { match: (d) => d.bestDay?.avgMood >= 7, tip: `Your best days tend to be ${d => d.bestDay?.day}s. Try scheduling important tasks or self-care activities on those days when you tend to feel your best.` },
+  { match: (d) => d.avgMood < 5, tip: "Your mood has been lower than usual. Remember: hormonal changes directly affect neurotransmitters. Be gentle with yourself, and consider talking to someone if it persists." },
+  { match: () => true, tip: "Consistency in tracking helps spot patterns faster. Even on good days, a quick log helps Vela understand your full picture." }
+];
+
+function matchQuestion(input) {
+  const lower = input.toLowerCase().trim();
+  const SYMPTOM_NAMES = ["hot flash", "night sweat", "brain fog", "fatigue", "joint pain", "anxiety", "mood swing", "insomnia", "headache", "weight gain", "bloating", "heart palpitation", "dry skin", "hair", "libido", "memory", "irritability", "depression", "nausea", "dizziness"];
+  const TRIGGER_NAMES = ["caffeine", "alcohol", "exercise", "sleep", "stress", "sugar", "spicy", "smoking"];
+
+  for (const symptom of SYMPTOM_NAMES) {
+    if (lower.includes(symptom)) return { handler: "symptomTrend", param: symptom };
+  }
+  for (const trigger of TRIGGER_NAMES) {
+    if (lower.includes(trigger)) return { handler: "triggerImpact", param: trigger };
+  }
+  if (/trigger|worst|cause|why|making.*worse/.test(lower)) return { handler: "triggers" };
+  if (/better|worse|improv|progress|trend|getting/.test(lower)) return { handler: "trend" };
+  if (/doctor|appointment|visit|tell.*doc|prepare/.test(lower)) return { handler: "doctor" };
+  if (/best.*day|worst.*day|day.*week|monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(lower)) return { handler: "bestWorstDays" };
+  if (/week|how.*doing|overview|summary|recap/.test(lower)) return { handler: "recent" };
+  if (/pattern|notice|see|insight|find/.test(lower)) return { handler: "patterns" };
+  return { handler: "recent" };
+}
+
+function generateResponse(handler, logs, profile) {
+  const stage = profile ? getJourneyLabel(profile.journeyIndex) : null;
+  const stageNote = stage ? ` During ${stage}, this is quite common.` : "";
+
+  if (handler.handler === "symptomTrend") {
+    const data = analyzeSymptomTrend(logs, handler.param);
+    if (data.recentCount === 0 && data.prevCount === 0) return `I haven't seen ${handler.param} in your recent logs. That's actually great news! If it does come up, I'll be tracking it.`;
+    const trendWord = data.trend === "increasing" ? "more frequently" : data.trend === "decreasing" ? "less often — that's encouraging!" : "at about the same rate";
+    return `Looking at your ${handler.param} pattern: you've logged it ${data.recentCount} times in the last 2 weeks, compared to ${data.prevCount} the 2 weeks before. It's appearing ${trendWord}${stageNote} ${data.recentSev > 0 ? `Average severity has been around ${data.recentSev}/10.` : ""}`;
+  }
+
+  if (handler.handler === "triggerImpact") {
+    const data = analyzeTriggerImpact(logs, handler.param);
+    if (data.daysWithTrigger === 0) return `I don't have enough data on ${handler.param} yet. Try logging it when it comes up, and I'll analyze the impact!`;
+    if (data.impact === "worsens") return `Here's what I see: on days with ${handler.param}, you average ${data.avgSymptomsWith} symptoms compared to ${data.avgSymptomsWithout} without it. Your mood also tends to be ${data.avgMoodWith < data.avgMoodWithout ? "lower" : "about the same"} (${data.avgMoodWith} vs ${data.avgMoodWithout}). It might be worth reducing ${handler.param} and seeing how you feel.${stageNote}`;
+    if (data.impact === "helps") return `Good news! ${handler.param} seems to be helping you. On those days, you average ${data.avgSymptomsWith} symptoms vs ${data.avgSymptomsWithout} without it, and your mood tends to be ${data.avgMoodWith > data.avgMoodWithout ? "better" : "similar"}. Keep it up!`;
+    return `${handler.param} doesn't seem to have a strong effect either way based on your data. You average ${data.avgSymptomsWith} symptoms with it and ${data.avgSymptomsWithout} without. Keep logging and I'll watch for patterns.`;
+  }
+
+  if (handler.handler === "triggers") {
+    const triggers = ["caffeine", "alcohol", "exercise", "poor sleep", "stress"];
+    const results = triggers.map((t) => analyzeTriggerImpact(logs, t)).filter((r) => r.daysWithTrigger >= 2);
+    const worst = results.filter((r) => r.impact === "worsens").sort((a, b) => b.avgSymptomsWith - a.avgSymptomsWith);
+    const best = results.filter((r) => r.impact === "helps");
+    let msg = "";
+    if (worst.length > 0) msg += `Your biggest triggers appear to be: ${worst.map((w) => `${w.triggerName} (+${(w.avgSymptomsWith - w.avgSymptomsWithout).toFixed(1)} symptoms)`).join(", ")}. `;
+    if (best.length > 0) msg += `On the positive side, ${best.map((b) => b.triggerName).join(" and ")} seem to help reduce your symptoms. `;
+    if (msg === "") msg = "I need a bit more trigger data to give you a clear picture. Keep logging what you eat, drink, and do — I'll spot the connections!";
+    return msg + stageNote;
+  }
+
+  if (handler.handler === "trend") {
+    const data = analyzeOverallTrend(logs);
+    if (data.recentDays < 3) return "I need a few more days of data to spot a reliable trend. Keep logging!";
+    if (data.direction === "improving") return `Great news — you're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}. Whatever you're doing, it's working!`;
+    if (data.direction === "worse") return `I want to be honest with you: the last 2 weeks have been a bit tougher. Symptoms went from ${data.prevSymptoms}/day to ${data.recentSymptoms}/day${data.recentMood < data.prevMood ? `, and mood dipped from ${data.prevMood} to ${data.recentMood}` : ""}.${stageNote} Remember, this journey isn't linear. Consider checking your triggers or talking to your healthcare provider.`;
+    return `Things are holding steady — ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}. Stability is actually a good sign!${stageNote}`;
+  }
+
+  if (handler.handler === "doctor") {
+    const data = generateDoctorSummary(logs, profile);
+    let msg = "Here's what I'd suggest bringing to your doctor:\n\n";
+    if (data.points.length > 0) msg += data.points.map((p) => `• ${p}`).join("\n") + "\n\n";
+    if (data.correlations.length > 0) msg += `Key patterns: ${data.correlations.slice(0, 2).map((c) => c.text).join("; ")}\n\n`;
+    if (data.trend) msg += `Overall trend: ${data.trend.direction} (${data.trend.recentSymptoms} symptoms/day recently vs ${data.trend.prevSymptoms} before)\n\n`;
+    if (data.questions.length > 0) msg += "Questions to ask:\n" + data.questions.map((q) => `• ${q}`).join("\n");
+    return msg;
+  }
+
+  if (handler.handler === "bestWorstDays") {
+    const data = analyzeBestWorstDays(logs);
+    if (data.stats.length < 3) return "I need data from more days of the week to give you a reliable breakdown. Keep logging!";
+    let msg = "";
+    if (data.best) msg += `Your best day tends to be ${data.best.day} (avg mood: ${data.best.avgMood}, avg symptoms: ${data.best.avgSymptoms}). `;
+    if (data.worst && data.worst.day !== data.best?.day) msg += `${data.worst.day}s tend to be tougher (avg mood: ${data.worst.avgMood}, avg symptoms: ${data.worst.avgSymptoms}). `;
+    msg += "Try planning self-care or lighter schedules on your harder days.";
+    return msg;
+  }
+
+  if (handler.handler === "patterns") {
+    const patterns = analyzePatterns(logs);
+    if (patterns.length === 0) return "I haven't spotted strong patterns yet. The more consistently you log, the faster I can find connections. Even quick logs on good days help!";
+    return `Here's what I've noticed:\n\n${patterns.slice(0, 3).map((p) => `• ${p}`).join("\n")}\n\nThese patterns are based on your personal data — everyone's experience is unique.${stageNote}`;
+  }
+
+  // recent / fallback
+  const data = analyzeRecentPattern(logs);
+  if (!data) return "I don't have any data from this week yet. Log how you're feeling today and I'll start building your picture!";
+  let msg = `Here's your week so far (${data.daysLogged} days logged):\n\n`;
+  if (data.avgMood) msg += `Mood: ${data.avgMood}/10 average\n`;
+  if (data.topSymptoms.length > 0) msg += `Top symptoms: ${data.topSymptoms.map((s) => `${s.name} (${s.count}x)`).join(", ")}\n`;
+  if (data.topTriggers.length > 0) msg += `Active triggers: ${data.topTriggers.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
+  if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })} (mood: ${data.bestDay.mood})`;
+  return msg + stageNote;
+}
+
+function generateWeeklyDigest(logs, profile) {
+  const now = new Date();
+  const thisWeek = logs.filter((l) => (now - new Date(l.date)) / 86400000 <= 7);
+  const lastWeek = logs.filter((l) => { const d = (now - new Date(l.date)) / 86400000; return d > 7 && d <= 14; });
+  if (thisWeek.length < 2) return null;
+
+  const avgMood = (arr) => { const m = arr.filter((l) => l.mood); return m.length === 0 ? null : Math.round(m.reduce((s, l) => s + l.mood, 0) / m.length * 10) / 10; };
+  const thisMood = avgMood(thisWeek);
+  const lastMood = avgMood(lastWeek);
+  const moodDelta = thisMood && lastMood ? Math.round((thisMood - lastMood) * 10) / 10 : null;
+
+  const correlations = analyzeCorrelations(logs);
+  const spotlight = correlations.length > 0 ? correlations[0] : null;
+
+  const symptomCounts = {};
+  thisWeek.forEach((l) => (l.symptoms || []).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; }));
+  const prevSymptomCounts = {};
+  lastWeek.forEach((l) => (l.symptoms || []).forEach((s) => { prevSymptomCounts[s] = (prevSymptomCounts[s] || 0) + 1; }));
+  const symptomTrends = Object.entries(symptomCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => {
+      const prev = prevSymptomCounts[name] || 0;
+      const arrow = count > prev ? "↑" : count < prev ? "↓" : "→";
+      return { name, count, arrow };
+    });
+
+  const triggers = ["caffeine", "alcohol", "exercise", "poor sleep", "stress"];
+  const triggerReport = triggers.map((t) => analyzeTriggerImpact(logs, t)).filter((r) => r.daysWithTrigger >= 1);
+
+  let bestDayEntry = null;
+  thisWeek.forEach((l) => {
+    const score = (l.mood || 5) - (l.symptoms || []).length * 0.5;
+    if (!bestDayEntry || score > bestDayEntry.score) bestDayEntry = { date: l.date, mood: l.mood, symptoms: (l.symptoms || []).length, score };
+  });
+
+  const digestData = { thisMood, moodDelta, triggerReport, trend: analyzeOverallTrend(logs), bestDay: analyzeBestWorstDays(logs).best, avgMood: thisMood };
+  let tip = PERSONALIZED_TIPS.find((t) => {
+    try { return t.match(digestData); } catch { return false; }
+  });
+
+  return {
+    daysLogged: thisWeek.length,
+    avgMood: thisMood,
+    moodDelta,
+    spotlight,
+    symptomTrends,
+    triggerReport: triggerReport.filter((t) => t.daysWithTrigger >= 2),
+    bestDay: bestDayEntry,
+    tip: tip ? tip.tip : PERSONALIZED_TIPS[PERSONALIZED_TIPS.length - 1].tip
+  };
+}
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const css = `
@@ -476,9 +767,12 @@ const css = `
     .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card,
     .note-chip, .symptom-filter, .comm-reaction-btn, .comm-header-btn,
     .comm-compose-input, .comm-compose-card, .comm-emoji-opt, .comm-tag-btn,
-    .comm-sort-tab {
+    .comm-sort-tab, .chat-text, .chat-chip, .chat-input, .digest-card {
       background: var(--card-bg) !important;
     }
+    .chat-bubble.user .chat-text { background: var(--clay) !important; }
+    .digest-spotlight { background: var(--sage-light) !important; }
+    .digest-tip { background: var(--sage-light) !important; }
     .comm-guidelines-dismiss { background: var(--card-bg) !important; color: var(--sage-dark) !important; }
     .comm-compose-overlay { background: rgba(0,0,0,0.6) !important; }
     .comm-reaction-active { background: var(--sage-light) !important; }
@@ -1474,6 +1768,56 @@ const css = `
   .dp-bullet { font-weight: 700; color: var(--clay); flex-shrink: 0; width: 14px; }
   .dp-point.question .dp-bullet { color: var(--sage); }
   .dp-empty { font-size: 13px; color: var(--ink-light); }
+
+  /* ─── Ask Vela Button ─── */
+  .ask-vela-btn { display: flex; align-items: center; gap: 6px; background: var(--sage); color: white; border: none; border-radius: 20px; padding: 6px 14px 6px 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .ask-vela-btn:active { transform: scale(0.95); }
+  .ask-vela-btn.locked { background: var(--card-bg); color: var(--ink-light); border: 1px solid var(--border); }
+  .ask-vela-avatar { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-family: 'DM Serif Display', serif; font-size: 13px; }
+  .ask-vela-lock { font-size: 12px; }
+
+  /* ─── AI Companion Chat ─── */
+  .companion-container { display: flex; flex-direction: column; height: calc(100vh - 180px); margin: 0 16px; }
+  .companion-header { display: flex; align-items: center; gap: 10px; padding: 12px 0 8px; }
+  .companion-name { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--ink); }
+  .companion-sub { font-size: 11px; color: var(--ink-light); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 12px; }
+  .chat-bubble { display: flex; gap: 8px; max-width: 90%; animation: fadeInUp 0.25s ease; }
+  .chat-bubble.assistant { align-self: flex-start; }
+  .chat-bubble.user { align-self: flex-end; flex-direction: row-reverse; }
+  .chat-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--sage); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-avatar span { font-family: 'DM Serif Display', serif; font-size: 14px; color: white; }
+  .chat-text { background: var(--card-bg); border-radius: 16px; padding: 10px 14px; font-size: 13px; line-height: 1.55; color: var(--ink); border: 1px solid var(--border); }
+  .chat-bubble.user .chat-text { background: var(--clay); color: white; border-color: var(--clay); }
+  .chat-bubble.assistant .chat-text { border-radius: 16px 16px 16px 4px; }
+  .chat-bubble.user .chat-text { border-radius: 16px 16px 4px 16px; }
+  .chat-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
+  .chat-chip { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 6px 12px; font-size: 12px; color: var(--sage); font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .chat-chip:active { background: var(--sage-light); transform: scale(0.96); }
+  .chat-input-row { display: flex; gap: 8px; padding: 8px 0 12px; }
+  .chat-input { flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--ink); outline: none; }
+  .chat-input:focus { border-color: var(--sage); }
+  .chat-send { width: 40px; height: 40px; border-radius: 50%; background: var(--sage); border: none; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+  .chat-send:disabled { opacity: 0.4; }
+  .chat-send:active { transform: scale(0.9); }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── Weekly Digest Card ─── */
+  .digest-card { background: var(--card-bg); border-radius: 16px; margin: 12px 16px; padding: 16px; border: 1px solid var(--border); }
+  .digest-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .digest-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); }
+  .digest-subtitle { font-size: 11px; color: var(--sage); font-weight: 500; }
+  .digest-lock { font-size: 11px; color: var(--ink-light); }
+  .digest-section { padding: 8px 0; border-top: 1px solid var(--border); }
+  .digest-section:first-of-type { border-top: none; padding-top: 0; }
+  .digest-section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sage); margin-bottom: 4px; }
+  .digest-section-text { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+  .digest-spotlight { background: var(--sage-light); margin: 0 -16px; padding: 10px 16px; }
+  .digest-tip { background: linear-gradient(135deg, var(--sage-light), transparent); margin: 0 -16px -16px; padding: 12px 16px; border-radius: 0 0 16px 16px; }
+  .digest-delta.up { color: var(--sage); font-weight: 500; }
+  .digest-delta.down { color: var(--clay); font-weight: 500; }
+  .digest-teaser { cursor: pointer; opacity: 0.8; }
+  .digest-teaser:active { opacity: 0.6; }
 `;
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
@@ -2189,6 +2533,40 @@ function SleepSymptomScatter({ logs }) {
 // ─── Insights Screen ──────────────────────────────────────────────────────────
 
 function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
+  const [showCompanion, setShowCompanion] = useState(false);
+  const [chatMessages, setChatMessages] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vela_chat_messages")) || []; } catch { return []; }
+  });
+  const [chatInput, setChatInput] = useState("");
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatMessages.length > 0) localStorage.setItem("vela_chat_messages", JSON.stringify(chatMessages.slice(-20)));
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, showCompanion]);
+
+  const handleQuestion = (text) => {
+    if (!text.trim()) return;
+    const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
+    const updated = [...chatMessages, userMsg];
+
+    if (logs.length < 7) {
+      const velaMsg = { role: "assistant", text: "Keep logging! I need at least 7 days of data to spot meaningful patterns. You're on day " + logs.length + " — almost there!", time: new Date().toISOString() };
+      setChatMessages([...updated, velaMsg]);
+      setChatInput("");
+      return;
+    }
+
+    const matched = matchQuestion(text);
+    const response = generateResponse(matched, logs, profile);
+    const velaMsg = { role: "assistant", text: response, time: new Date().toISOString() };
+    setChatMessages([...updated, velaMsg]);
+    setChatInput("");
+  };
+
   const DAY_NAMES = ["S", "M", "T", "W", "T", "F", "S"];
 
   // Get logs from the last 7 days
@@ -2265,13 +2643,70 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   return (
     <div className="screen active">
       <div className="insights-header">
-        <h2>Your patterns</h2>
-        <p>
-          Last 7 days · {recentLogs.length} entr{recentLogs.length === 1 ? "y" : "ies"} logged
-        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h2>Your patterns</h2>
+            <p>
+              Last 7 days · {recentLogs.length} entr{recentLogs.length === 1 ? "y" : "ies"} logged
+            </p>
+          </div>
+          {isPremium ? (
+            <button className="ask-vela-btn" onClick={() => setShowCompanion(!showCompanion)}>
+              <span className="ask-vela-avatar">V</span>
+              {showCompanion ? "Back" : "Ask Vela"}
+            </button>
+          ) : (
+            <button className="ask-vela-btn locked" onClick={onShowPaywall}>
+              <span className="ask-vela-lock">🔒</span>
+              Ask Vela
+            </button>
+          )}
+        </div>
       </div>
 
-      {recentLogs.length === 0 ? (
+      {showCompanion && isPremium ? (
+        <div className="companion-container">
+          <div className="companion-header">
+            <div className="chat-avatar"><span>V</span></div>
+            <div>
+              <div className="companion-name">Vela AI Companion</div>
+              <div className="companion-sub">On-device · Your data never leaves your phone</div>
+            </div>
+          </div>
+          <div className="chat-messages">
+            {chatMessages.length === 0 && (
+              <div className="chat-bubble assistant">
+                <div className="chat-avatar"><span>V</span></div>
+                <div className="chat-text">Hi! I'm Vela, your health companion. I analyze your logged data to find patterns and insights. Ask me anything about your symptoms, triggers, or trends — or tap a question below to get started.</div>
+              </div>
+            )}
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`chat-bubble ${msg.role}`}>
+                {msg.role === "assistant" && <div className="chat-avatar"><span>V</span></div>}
+                <div className="chat-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="chat-chips">
+            {SUGGESTED_QUESTIONS.map((q, i) => (
+              <button key={i} className="chat-chip" onClick={() => handleQuestion(q)}>{q}</button>
+            ))}
+          </div>
+          <div className="chat-input-row">
+            <input
+              className="chat-input"
+              placeholder="Ask about your health patterns..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleQuestion(chatInput); }}
+            />
+            <button className="chat-send" onClick={() => handleQuestion(chatInput)} disabled={!chatInput.trim()}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      ) : recentLogs.length === 0 ? (
         <div className="insight-callout">
           <div className="ic-label">Getting started</div>
           <div className="ic-text">
@@ -2300,6 +2735,89 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
               </div>
             </div>
           </div>
+
+          {/* Smart Weekly Digest */}
+          {isPremium && (() => {
+            const digest = generateWeeklyDigest(logs, profile);
+            if (!digest) return null;
+            return (
+              <div className="digest-card">
+                <div className="digest-header">
+                  <div className="digest-title">Weekly digest</div>
+                  <div className="digest-subtitle">Powered by Vela AI</div>
+                </div>
+
+                <div className="digest-section">
+                  <div className="digest-section-label">Week in review</div>
+                  <div className="digest-section-text">
+                    {digest.daysLogged} days logged · Avg mood: {digest.avgMood || "—"}
+                    {digest.moodDelta !== null && (
+                      <span className={`digest-delta ${digest.moodDelta >= 0 ? "up" : "down"}`}>
+                        {" "}{digest.moodDelta >= 0 ? "↑" : "↓"} {Math.abs(digest.moodDelta)} vs last week
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {digest.spotlight && (
+                  <div className="digest-section digest-spotlight">
+                    <div className="digest-section-label">Pattern spotlight</div>
+                    <div className="digest-section-text">{digest.spotlight.icon} {digest.spotlight.text}</div>
+                  </div>
+                )}
+
+                {digest.symptomTrends.length > 0 && (
+                  <div className="digest-section">
+                    <div className="digest-section-label">Symptom trends</div>
+                    {digest.symptomTrends.map((s, i) => (
+                      <div key={i} className="digest-section-text">
+                        {s.arrow} <strong>{s.name}</strong> — {s.count}x this week
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {digest.triggerReport.length > 0 && (
+                  <div className="digest-section">
+                    <div className="digest-section-label">Trigger report</div>
+                    {digest.triggerReport.map((t, i) => (
+                      <div key={i} className="digest-section-text">
+                        {t.impact === "worsens" ? "⚠️" : t.impact === "helps" ? "✅" : "➖"} {t.triggerName}: {t.avgSymptomsWith} symptoms/day (vs {t.avgSymptomsWithout} without)
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {digest.bestDay && (
+                  <div className="digest-section">
+                    <div className="digest-section-label">Your best day</div>
+                    <div className="digest-section-text">
+                      {new Date(digest.bestDay.date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                      {digest.bestDay.mood && ` · Mood: ${digest.bestDay.mood}/10`}
+                      {` · ${digest.bestDay.symptoms} symptoms`}
+                    </div>
+                  </div>
+                )}
+
+                <div className="digest-section digest-tip">
+                  <div className="digest-section-label">Personalized tip</div>
+                  <div className="digest-section-text">{digest.tip}</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {!isPremium && logs.length >= 7 && (
+            <div className="digest-card digest-teaser" onClick={onShowPaywall}>
+              <div className="digest-header">
+                <div className="digest-title">Weekly digest</div>
+                <span className="digest-lock">🔒 Premium</span>
+              </div>
+              <div className="digest-section-text" style={{ opacity: 0.6 }}>
+                Get AI-powered weekly insights, trigger reports, and personalized tips based on your data.
+              </div>
+            </div>
+          )}
 
           {topSymptom && (
             <div className="insight-callout">
@@ -2547,6 +3065,8 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const features = [
     { icon: "📊", title: "Trends & monthly comparisons", desc: "Symptom intensity charts with month-over-month insights" },
     { icon: "📋", title: "Doctor visit prep & reports", desc: "Auto-generated talking points and PDF exports for your provider" },
+    { icon: "🤖", title: "Vela AI Companion", desc: "Ask questions about your health patterns and get personalized insights" },
+    { icon: "📰", title: "Smart Weekly Digest", desc: "AI-powered weekly summary with trends, triggers, and tips" },
     { icon: "🔮", title: "Pattern detection & predictions", desc: "Discover symptom correlations and weekly predictions" },
     { icon: "📆", title: "Unlimited history", desc: "Access your complete tracking history, not just the last 7 days" },
     { icon: "🔒", title: "100% private, on-device", desc: "Your health data never leaves your phone" },
@@ -3774,6 +4294,8 @@ export default function App() {
       localStorage.removeItem("vela_community_guidelines_seen");
       localStorage.removeItem("vela_community_user_topics");
       localStorage.removeItem("vela_community_replies");
+      localStorage.removeItem("vela_chat_messages");
+      localStorage.removeItem("vela_last_digest_date");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
