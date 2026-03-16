@@ -475,12 +475,15 @@ const css = `
     .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
     .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card,
     .note-chip, .symptom-filter, .comm-reaction-btn, .comm-header-btn,
-    .comm-compose-input, .comm-compose-card {
+    .comm-compose-input, .comm-compose-card, .comm-emoji-opt, .comm-tag-btn,
+    .comm-sort-tab {
       background: var(--card-bg) !important;
     }
     .comm-guidelines-dismiss { background: var(--card-bg) !important; color: var(--sage-dark) !important; }
     .comm-compose-overlay { background: rgba(0,0,0,0.6) !important; }
     .comm-reaction-active { background: var(--sage-light) !important; }
+    .comm-sort-active { background: var(--clay) !important; color: white !important; }
+    .comm-emoji-selected { background: var(--clay-light) !important; }
     .symptom-tile.active { background: var(--clay-light) !important; }
     .ctx-dot.active { background: var(--clay-light) !important; }
     .ctx-pill.on { background: var(--sage-light) !important; }
@@ -1177,16 +1180,42 @@ const css = `
   .comm-post {
     padding: 14px 0; border-bottom: 1px solid var(--border);
   }
+  .comm-post-inner { display: flex; gap: 10px; }
+  .comm-post-body { flex: 1; min-width: 0; }
   .comm-post-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
   .comm-post-author { font-size: 12px; font-weight: 500; color: var(--ink-mid); }
   .comm-post-time { font-size: 11px; color: var(--ink-light); }
   .comm-post-text { font-size: 14px; color: var(--ink); line-height: 1.6; }
-  .comm-post-footer { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
-  .comm-heart { font-size: 12px; color: var(--ink-light); cursor: pointer; transition: transform 0.2s ease, color 0.2s ease; user-select: none; }
-  .comm-heart-liked { color: var(--clay); animation: heartPop 0.3s ease; }
+  .comm-post-footer { margin-top: 8px; }
+  .comm-post-actions { display: flex; align-items: center; gap: 12px; }
   @keyframes heartPop { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
   .comm-bookmark { font-size: 14px; cursor: pointer; user-select: none; }
   .comm-bookmark-active { animation: heartPop 0.3s ease; }
+
+  .comm-vote { display: flex; flex-direction: column; align-items: center; gap: 0; padding-top: 2px; }
+  .comm-vote-btn {
+    background: none; border: none; font-size: 12px; color: var(--ink-light);
+    cursor: pointer; padding: 2px 6px; line-height: 1; transition: color 0.15s ease;
+  }
+  .comm-vote-btn:active { transform: scale(0.85); }
+  .comm-vote-active-up { color: var(--sage-dark); font-weight: 700; }
+  .comm-vote-active-down { color: var(--clay); font-weight: 700; }
+  .comm-vote-score { font-size: 13px; font-weight: 600; color: var(--ink-mid); min-width: 20px; text-align: center; }
+
+  .comm-sort-tabs { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .comm-sort-tab {
+    font-size: 12px; background: var(--clay-light); border: none; padding: 6px 12px;
+    border-radius: var(--radius-sm); color: var(--ink-mid); font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .comm-sort-tab:active { opacity: 0.7; }
+  .comm-sort-active { background: var(--clay); color: white; }
+
+  .comm-reply { margin-left: 24px; border-left: 2px solid var(--border); padding-left: 12px; }
+  .comm-reply-btn {
+    background: none; border: none; font-size: 12px; color: var(--ink-light);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 0;
+  }
+  .comm-reply-btn:active { color: var(--clay); }
 
   .comm-reactions { display: flex; gap: 8px; margin-top: 8px; }
   .comm-reaction-btn {
@@ -1258,6 +1287,41 @@ const css = `
     font-size: 11px; color: var(--sage-dark); background: var(--sage-light);
     padding: 2px 8px; border-radius: 8px; display: inline-block; margin-top: 8px;
   }
+
+  .comm-new-topic-btn {
+    font-size: 12px; font-weight: 600; background: var(--clay); color: white; border: none;
+    padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .comm-new-topic-btn:active { opacity: 0.8; }
+  .comm-pin { font-size: 11px; margin-right: 4px; }
+  .comm-topic-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .comm-topic-tag-pill {
+    font-size: 10px; padding: 1px 6px; border-radius: 6px;
+    background: var(--clay-light); color: var(--clay-dark);
+  }
+
+  .comm-topic-form { display: flex; flex-direction: column; gap: 12px; }
+  .comm-emoji-picker label { font-size: 12px; color: var(--ink-mid); margin-bottom: 4px; display: block; }
+  .comm-emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .comm-emoji-opt {
+    font-size: 22px; width: 40px; height: 40px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: white; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .comm-emoji-opt:active { transform: scale(0.9); }
+  .comm-emoji-selected { border-color: var(--clay); background: var(--clay-light); }
+
+  .comm-tag-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .comm-tag-btn {
+    font-size: 12px; padding: 4px 10px; border-radius: 12px;
+    border: 1px solid var(--border); background: white; color: var(--ink-mid);
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .comm-tag-btn:active { opacity: 0.7; }
+  .comm-tag-active { border-color: var(--sage); background: var(--sage-light); color: var(--sage-dark); }
+
+  .comm-topic-title-input { font-size: 16px; font-weight: 500; }
+
   .comm-empty { padding: 32px 16px; text-align: center; color: var(--ink-light); font-size: 14px; line-height: 1.6; }
 
   /* ── STREAK BADGE ── */
@@ -3098,6 +3162,10 @@ const COMMUNITY_REACTIONS = [
   { type: "thanks", emoji: "\u{1F64F}", label: "Thanks" },
 ];
 const COMMUNITY_POST_MAX_CHARS = 500;
+const TOPIC_EMOJI_OPTIONS = ["\u{1F4AA}","\u{1F9D8}","\u2764\uFE0F","\u{1F338}","\u{1F375}","\u{1F48A}","\u{1F3C3}","\u{1F634}","\u{1F9E0}","\u{1F33F}","\u2600\uFE0F","\u{1FAC2}","\u{1FA7A}","\u{1F4DD}","\u{1F3AF}"];
+const TOPIC_TAG_OPTIONS = ["Support", "Tips", "Questions", "Venting", "Wins"];
+const TOPIC_TITLE_MAX = 60;
+const TOPIC_DESC_MAX = 120;
 
 function relativeTime(isoString) {
   const diff = Date.now() - new Date(isoString).getTime();
@@ -3108,6 +3176,33 @@ function relativeTime(isoString) {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
+}
+
+function getPostTime(post) {
+  const d = new Date(post.time);
+  return isNaN(d.getTime()) ? Date.now() - 86400000 : d.getTime();
+}
+
+function getScore(post, votes) {
+  const base = post.upvotes ?? post.likes ?? 0;
+  const v = votes[post.id];
+  return base + (v === "up" ? 1 : v === "down" ? -1 : 0);
+}
+
+function hotScore(post, votes) {
+  const score = getScore(post, votes);
+  const ageHours = (Date.now() - getPostTime(post)) / 3600000;
+  return score / Math.pow(ageHours + 2, 1.5);
+}
+
+function sortPosts(posts, mode, votes) {
+  const sorted = [...posts];
+  switch (mode) {
+    case "hot": return sorted.sort((a, b) => hotScore(b, votes) - hotScore(a, votes));
+    case "new": return sorted.sort((a, b) => getPostTime(b) - getPostTime(a));
+    case "top": return sorted.sort((a, b) => getScore(b, votes) - getScore(a, votes));
+    default: return sorted;
+  }
 }
 
 const COMMUNITY_TOPICS = [
@@ -3191,10 +3286,22 @@ function CommunityScreen() {
   const [showMyPosts, setShowMyPosts] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
   const [composeText, setComposeText] = useState("");
+  const [sortMode, setSortMode] = useState("hot");
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showCreateTopic, setShowCreateTopic] = useState(false);
+  const [topicForm, setTopicForm] = useState({ icon: "", title: "", description: "", tags: [] });
 
-  const [likedPosts, setLikedPosts] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_likes") || "{}")
-  );
+  // Migrate old likes → votes
+  const [votes, setVotes] = useState(() => {
+    const existing = localStorage.getItem("vela_community_votes");
+    if (existing) return JSON.parse(existing);
+    const oldLikes = JSON.parse(localStorage.getItem("vela_community_likes") || "{}");
+    const migrated = {};
+    for (const id of Object.keys(oldLikes)) { if (oldLikes[id]) migrated[id] = "up"; }
+    localStorage.setItem("vela_community_votes", JSON.stringify(migrated));
+    localStorage.removeItem("vela_community_likes");
+    return migrated;
+  });
   const [bookmarks, setBookmarks] = useState(() =>
     JSON.parse(localStorage.getItem("vela_community_bookmarks") || "[]")
   );
@@ -3207,19 +3314,27 @@ function CommunityScreen() {
   const [guidelinesSeen, setGuidelinesSeen] = useState(() =>
     JSON.parse(localStorage.getItem("vela_community_guidelines_seen") || "false")
   );
+  const [userTopics, setUserTopics] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_user_topics") || "[]")
+  );
+  const [replies, setReplies] = useState(() =>
+    JSON.parse(localStorage.getItem("vela_community_replies") || "[]")
+  );
 
-  useEffect(() => { localStorage.setItem("vela_community_likes", JSON.stringify(likedPosts)); }, [likedPosts]);
+  useEffect(() => { localStorage.setItem("vela_community_votes", JSON.stringify(votes)); }, [votes]);
   useEffect(() => { localStorage.setItem("vela_community_bookmarks", JSON.stringify(bookmarks)); }, [bookmarks]);
   useEffect(() => { localStorage.setItem("vela_community_reactions", JSON.stringify(reactions)); }, [reactions]);
   useEffect(() => { localStorage.setItem("vela_community_posts", JSON.stringify(userPosts)); }, [userPosts]);
   useEffect(() => { localStorage.setItem("vela_community_guidelines_seen", JSON.stringify(guidelinesSeen)); }, [guidelinesSeen]);
+  useEffect(() => { localStorage.setItem("vela_community_user_topics", JSON.stringify(userTopics)); }, [userTopics]);
+  useEffect(() => { localStorage.setItem("vela_community_replies", JSON.stringify(replies)); }, [replies]);
 
-  function toggleLike(postId) {
+  function vote(postId, direction) {
     haptic();
-    setLikedPosts((prev) => {
+    setVotes((prev) => {
       const next = { ...prev };
-      if (next[postId]) delete next[postId];
-      else next[postId] = true;
+      if (next[postId] === direction) delete next[postId];
+      else next[postId] = direction;
       return next;
     });
   }
@@ -3243,10 +3358,43 @@ function CommunityScreen() {
     haptic("Medium");
     setUserPosts((prev) => [{
       id: `user-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
-      text: composeText.trim(), likes: 0, topicId: activeTopic, isUserPost: true,
+      text: composeText.trim(), upvotes: 0, topicId: activeTopic, isUserPost: true,
     }, ...prev]);
     setComposeText("");
     setShowCompose(false);
+    setReplyingTo(null);
+  }
+
+  function submitReply() {
+    if (!composeText.trim() || !replyingTo) return;
+    haptic("Medium");
+    setReplies((prev) => [...prev, {
+      id: `reply-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
+      text: composeText.trim(), upvotes: 0, topicId: activeTopic,
+      parentId: replyingTo, isUserPost: true,
+    }]);
+    setComposeText("");
+    setShowCompose(false);
+    setReplyingTo(null);
+  }
+
+  function submitTopic() {
+    if (!topicForm.title.trim()) return;
+    haptic("Medium");
+    const newTopic = {
+      id: `topic-${Date.now()}`, icon: topicForm.icon || "\u{1F4AC}",
+      title: topicForm.title.trim(), description: topicForm.description.trim(),
+      tags: topicForm.tags, isUserTopic: true, createdAt: new Date().toISOString(),
+      resources: [], posts: [],
+    };
+    setUserTopics((prev) => [newTopic, ...prev]);
+    setTopicForm({ icon: "", title: "", description: "", tags: [] });
+    setShowCreateTopic(false);
+    setActiveTopic(newTopic.id);
+  }
+
+  function findTopic(id) {
+    return COMMUNITY_TOPICS.find((t) => t.id === id) || userTopics.find((t) => t.id === id);
   }
 
   function getPostById(id) {
@@ -3254,42 +3402,57 @@ function CommunityScreen() {
       const found = topic.posts.find((p) => p.id === id);
       if (found) return { ...found, topicId: topic.id };
     }
-    return userPosts.find((p) => p.id === id) || null;
+    return userPosts.find((p) => p.id === id) || replies.find((p) => p.id === id) || null;
   }
 
-  function renderPost(post) {
+  function renderPost(post, isReply) {
     const postTime = post.isUserPost ? relativeTime(post.time) : post.time;
+    const score = getScore(post, votes);
+    const postReplies = isReply ? [] : replies.filter((r) => r.parentId === post.id);
     return (
-      <div key={post.id} className="comm-post">
-        <div className="comm-post-header">
-          <span className="comm-post-author">{post.isUserPost ? "You (anonymous)" : post.author}</span>
-          <span className="comm-post-time">{postTime}</span>
+      <div key={post.id}>
+        <div className={`comm-post${isReply ? " comm-reply" : ""}`}>
+          <div className="comm-post-inner">
+            <div className="comm-vote">
+              <button className={`comm-vote-btn${votes[post.id] === "up" ? " comm-vote-active-up" : ""}`} onClick={() => vote(post.id, "up")}>{"\u25B2"}</button>
+              <span className="comm-vote-score">{score}</span>
+              <button className={`comm-vote-btn${votes[post.id] === "down" ? " comm-vote-active-down" : ""}`} onClick={() => vote(post.id, "down")}>{"\u25BC"}</button>
+            </div>
+            <div className="comm-post-body">
+              <div className="comm-post-header">
+                <span className="comm-post-author">{post.isUserPost ? "You (anonymous)" : post.author}</span>
+                <span className="comm-post-time">{postTime}</span>
+              </div>
+              <p className="comm-post-text">{post.text}</p>
+              <div className="comm-post-footer">
+                <div className="comm-post-actions">
+                  {!isReply && (
+                    <button className="comm-reply-btn" onClick={() => { setReplyingTo(post.id); setShowCompose(true); haptic(); }}>
+                      {"\u{1F4AC}"} Reply
+                    </button>
+                  )}
+                  <span className={`comm-bookmark${bookmarks.includes(post.id) ? " comm-bookmark-active" : ""}`} onClick={() => toggleBookmark(post.id)}>
+                    {bookmarks.includes(post.id) ? "\u{1F516}" : "\u{1F3F7}"}
+                  </span>
+                </div>
+              </div>
+              <div className="comm-reactions">
+                {COMMUNITY_REACTIONS.map((r) => {
+                  const active = (reactions[post.id] || []).includes(r.type);
+                  return (
+                    <button key={r.type} className={`comm-reaction-btn${active ? " comm-reaction-active" : ""}`} onClick={() => toggleReaction(post.id, r.type)} title={r.label}>
+                      {r.emoji}
+                    </button>
+                  );
+                })}
+              </div>
+              {(showSaved || showMyPosts) && post.topicId && (
+                <div className="comm-post-topic-tag">{findTopic(post.topicId)?.title}</div>
+              )}
+            </div>
+          </div>
         </div>
-        <p className="comm-post-text">{post.text}</p>
-        <div className="comm-post-footer">
-          <span className={`comm-heart${likedPosts[post.id] ? " comm-heart-liked" : ""}`} onClick={() => toggleLike(post.id)}>
-            {likedPosts[post.id] ? "\u2665" : "\u2661"} {post.likes + (likedPosts[post.id] ? 1 : 0)}
-          </span>
-          <span className={`comm-bookmark${bookmarks.includes(post.id) ? " comm-bookmark-active" : ""}`} onClick={() => toggleBookmark(post.id)}>
-            {bookmarks.includes(post.id) ? "\u{1F516}" : "\u{1F3F7}"}
-          </span>
-        </div>
-        <div className="comm-reactions">
-          {COMMUNITY_REACTIONS.map((r) => {
-            const active = (reactions[post.id] || []).includes(r.type);
-            return (
-              <button key={r.type} className={`comm-reaction-btn${active ? " comm-reaction-active" : ""}`} onClick={() => toggleReaction(post.id, r.type)} title={r.label}>
-                {r.emoji}
-              </button>
-            );
-          })}
-        </div>
-        {post.topicId && showSaved && (
-          <div className="comm-post-topic-tag">{COMMUNITY_TOPICS.find((t) => t.id === post.topicId)?.title}</div>
-        )}
-        {post.isUserPost && showMyPosts && (
-          <div className="comm-post-topic-tag">{COMMUNITY_TOPICS.find((t) => t.id === post.topicId)?.title}</div>
-        )}
+        {postReplies.length > 0 && postReplies.map((r) => renderPost(r, true))}
       </div>
     );
   }
@@ -3305,7 +3468,7 @@ function CommunityScreen() {
         <div className="comm-header"><h2>Saved posts</h2></div>
         <div className="comm-posts">
           {savedPosts.length === 0 && <p className="comm-empty">Tap {"\u{1F3F7}"} on any post to save it here.</p>}
-          {savedPosts.map(renderPost)}
+          {savedPosts.map((p) => renderPost(p, false))}
         </div>
       </div>
     );
@@ -3313,6 +3476,7 @@ function CommunityScreen() {
 
   // My posts view
   if (showMyPosts) {
+    const myAll = [...userPosts, ...replies.filter((r) => r.isUserPost)];
     return (
       <div className="screen active">
         <div style={{ padding: "8px 16px 0" }}>
@@ -3320,8 +3484,8 @@ function CommunityScreen() {
         </div>
         <div className="comm-header"><h2>My posts</h2></div>
         <div className="comm-posts">
-          {userPosts.length === 0 && <p className="comm-empty">Your anonymous posts will appear here.</p>}
-          {userPosts.map(renderPost)}
+          {myAll.length === 0 && <p className="comm-empty">Your anonymous posts will appear here.</p>}
+          {myAll.map((p) => renderPost(p, !!p.parentId))}
         </div>
       </div>
     );
@@ -3329,19 +3493,25 @@ function CommunityScreen() {
 
   // Topic detail view
   if (activeTopic) {
-    const topic = COMMUNITY_TOPICS.find((t) => t.id === activeTopic);
+    const topic = findTopic(activeTopic);
+    if (!topic) { setActiveTopic(null); return null; }
     const topicUserPosts = userPosts.filter((p) => p.topicId === activeTopic);
-    const allPosts = [...topicUserPosts, ...topic.posts];
+    const curatedPosts = topic.posts || [];
+    const topLevel = [...topicUserPosts, ...curatedPosts].filter((p) => !p.parentId);
+    const sorted = sortPosts(topLevel, sortMode, votes);
     return (
       <div className="screen active">
         <div style={{ padding: "8px 16px 0" }}>
-          <button className="comm-back" onClick={() => setActiveTopic(null)}>{"\u2190"} Back to Community</button>
+          <button className="comm-back" onClick={() => { setActiveTopic(null); setSortMode("hot"); }}>{"\u2190"} Back to Community</button>
         </div>
         <div className="comm-topic-header">
           <span className="comm-topic-icon">{topic.icon}</span>
           <div>
             <h3 className="comm-topic-title">{topic.title}</h3>
             <p className="comm-topic-desc">{topic.description}</p>
+            {topic.tags && topic.tags.length > 0 && (
+              <div className="comm-topic-tags">{topic.tags.map((t) => <span key={t} className="comm-topic-tag-pill">{t}</span>)}</div>
+            )}
           </div>
         </div>
         {topic.resources && topic.resources.length > 0 && (
@@ -3355,23 +3525,31 @@ function CommunityScreen() {
             ))}
           </div>
         )}
-        <div className="comm-posts">
-          {allPosts.map(renderPost)}
+        <div className="comm-sort-tabs">
+          {["hot", "new", "top"].map((m) => (
+            <button key={m} className={`comm-sort-tab${sortMode === m ? " comm-sort-active" : ""}`} onClick={() => setSortMode(m)}>
+              {m === "hot" ? "\u{1F525} Hot" : m === "new" ? "\u{1F552} New" : "\u2B06 Top"}
+            </button>
+          ))}
         </div>
-        <div className="comm-compose-btn" onClick={() => { setShowCompose(true); haptic(); }}>
+        <div className="comm-posts">
+          {sorted.length === 0 && <p className="comm-empty">No posts yet. Be the first to share!</p>}
+          {sorted.map((p) => renderPost(p, false))}
+        </div>
+        <div className="comm-compose-btn" onClick={() => { setReplyingTo(null); setShowCompose(true); haptic(); }}>
           <span>{"\u{1F4AC}"}</span> Share your experience anonymously
         </div>
         {showCompose && (
-          <div className="comm-compose-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCompose(false); }}>
+          <div className="comm-compose-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowCompose(false); setReplyingTo(null); } }}>
             <div className="comm-compose-card">
               <div className="comm-compose-header">
-                <button onClick={() => setShowCompose(false)}>Cancel</button>
-                <strong>Share anonymously</strong>
-                <button onClick={submitPost} disabled={!composeText.trim()} className="comm-compose-submit">Post</button>
+                <button onClick={() => { setShowCompose(false); setReplyingTo(null); }}>Cancel</button>
+                <strong>{replyingTo ? "Reply anonymously" : "Share anonymously"}</strong>
+                <button onClick={replyingTo ? submitReply : submitPost} disabled={!composeText.trim()} className="comm-compose-submit">Post</button>
               </div>
               <textarea
                 className="comm-compose-input"
-                placeholder="Share what's helped you, or just let it out..."
+                placeholder={replyingTo ? "Write your reply..." : "Share what's helped you, or just let it out..."}
                 value={composeText}
                 onChange={(e) => setComposeText(e.target.value.slice(0, COMMUNITY_POST_MAX_CHARS))}
                 rows={5}
@@ -3386,6 +3564,10 @@ function CommunityScreen() {
   }
 
   // Topic list view
+  const allTopics = [
+    ...COMMUNITY_TOPICS.map((t) => ({ ...t, isPinned: true })),
+    ...userTopics.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+  ];
   return (
     <div className="screen active">
       <div className="comm-header">
@@ -3421,21 +3603,65 @@ function CommunityScreen() {
       </div>
 
       <div className="comm-topics">
-        <div className="section-label" style={{ padding: "0 16px 8px" }}>Discussion topics</div>
-        {COMMUNITY_TOPICS.map((topic) => {
+        <div className="section-label" style={{ padding: "0 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Discussion topics</span>
+          <button className="comm-new-topic-btn" onClick={() => setShowCreateTopic(true)}>+ New Topic</button>
+        </div>
+        {allTopics.map((topic) => {
           const topicUserPosts = userPosts.filter((p) => p.topicId === topic.id);
+          const postCount = (topic.posts?.length || 0) + topicUserPosts.length;
           return (
             <div key={topic.id} className="comm-topic-row" onClick={() => setActiveTopic(topic.id)}>
               <span className="comm-row-icon">{topic.icon}</span>
               <div className="comm-row-info">
-                <div className="comm-row-title">{topic.title}</div>
+                <div className="comm-row-title">
+                  {topic.isPinned && <span className="comm-pin">{"\u{1F4CC}"}</span>}
+                  {topic.title}
+                </div>
                 <div className="comm-row-desc">{topic.description}</div>
+                {topic.tags && topic.tags.length > 0 && (
+                  <div className="comm-topic-tags">{topic.tags.map((t) => <span key={t} className="comm-topic-tag-pill">{t}</span>)}</div>
+                )}
               </div>
-              <div className="comm-row-count">{topic.posts.length + topicUserPosts.length}</div>
+              <div className="comm-row-count">{postCount}</div>
             </div>
           );
         })}
       </div>
+
+      {showCreateTopic && (
+        <div className="comm-compose-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCreateTopic(false); }}>
+          <div className="comm-compose-card">
+            <div className="comm-compose-header">
+              <button onClick={() => setShowCreateTopic(false)}>Cancel</button>
+              <strong>New topic</strong>
+              <button onClick={submitTopic} disabled={!topicForm.title.trim()} className="comm-compose-submit">Create</button>
+            </div>
+            <div className="comm-topic-form">
+              <div className="comm-emoji-picker">
+                <label>Choose an icon</label>
+                <div className="comm-emoji-grid">
+                  {TOPIC_EMOJI_OPTIONS.map((e) => (
+                    <button key={e} className={`comm-emoji-opt${topicForm.icon === e ? " comm-emoji-selected" : ""}`} onClick={() => setTopicForm((f) => ({ ...f, icon: e }))}>{e}</button>
+                  ))}
+                </div>
+              </div>
+              <input className="comm-compose-input comm-topic-title-input" placeholder="Topic title" maxLength={TOPIC_TITLE_MAX}
+                value={topicForm.title} onChange={(e) => setTopicForm((f) => ({ ...f, title: e.target.value }))} />
+              <textarea className="comm-compose-input" placeholder="Description (optional)" rows={2}
+                value={topicForm.description} onChange={(e) => setTopicForm((f) => ({ ...f, description: e.target.value.slice(0, TOPIC_DESC_MAX) }))} />
+              <div className="comm-tag-picker">
+                {TOPIC_TAG_OPTIONS.map((tag) => (
+                  <button key={tag} className={`comm-tag-btn${topicForm.tags.includes(tag) ? " comm-tag-active" : ""}`}
+                    onClick={() => setTopicForm((f) => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag] }))}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3540,11 +3766,14 @@ export default function App() {
       localStorage.removeItem("vela_onboarded");
       localStorage.removeItem("vela_reminders_enabled");
       localStorage.removeItem("vela_reminder_times");
+      localStorage.removeItem("vela_community_votes");
       localStorage.removeItem("vela_community_likes");
       localStorage.removeItem("vela_community_bookmarks");
       localStorage.removeItem("vela_community_reactions");
       localStorage.removeItem("vela_community_posts");
       localStorage.removeItem("vela_community_guidelines_seen");
+      localStorage.removeItem("vela_community_user_topics");
+      localStorage.removeItem("vela_community_replies");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
