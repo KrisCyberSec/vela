@@ -473,7 +473,8 @@ const css = `
     .symptom-tile, .q-opt, .q-card, .notes-input, .ctx-step-btn, .ctx-dot, .ctx-pill,
     .settings-card, .weekly-summary, .trend-card, .symptom-list, .patterns-card,
     .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
-    .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card {
+    .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card,
+    .note-chip, .symptom-filter {
       background: var(--card-bg) !important;
     }
     .symptom-tile.active { background: var(--clay-light) !important; }
@@ -531,7 +532,7 @@ const css = `
   .nav-tab {
     font-size: 11px;
     font-weight: 500;
-    padding: 5px 10px;
+    padding: 5px 8px;
     border-radius: 16px;
     cursor: pointer;
     color: var(--ink-light);
@@ -670,6 +671,13 @@ const css = `
   }
 
   .symptoms-section { margin: 14px 16px 0; }
+  .symptom-filter {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--ink); background: white;
+    margin-bottom: 8px; outline: none;
+  }
+  .symptom-filter:focus { border-color: var(--clay); }
+  .symptom-filter::placeholder { color: var(--ink-light); }
   .symptom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .symptom-tile {
     background: white;
@@ -750,6 +758,13 @@ const css = `
   }
   .notes-input:focus { border-color: var(--clay); }
   .notes-input::placeholder { color: var(--ink-light); }
+  .note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .note-chip {
+    font-size: 12px; padding: 5px 10px; border-radius: 14px; cursor: pointer;
+    border: 1px solid var(--border); color: var(--ink-mid); background: white;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .note-chip.on { background: var(--sage-light); border-color: var(--sage); color: var(--sage-dark); }
 
   .log-btn {
     margin: 14px 16px 0;
@@ -847,6 +862,10 @@ const css = `
   .sym-info-name { font-size: 13px; font-weight: 500; color: var(--ink); }
   .sym-info-days { font-size: 12px; color: var(--ink-light); }
   .sym-mini-bar { height: 6px; border-radius: 3px; background: var(--clay); }
+  .sym-trend { font-size: 11px; margin-left: 4px; font-weight: 600; }
+  .sym-trend.up { color: var(--clay); }
+  .sym-trend.down { color: var(--sage); }
+  .sym-trend.same { color: var(--ink-light); }
 
   .unlock-card {
     margin: 12px 16px 0;
@@ -1100,6 +1119,66 @@ const css = `
     text-align: center; padding: 20px 24px 0; font-size: 12px; color: var(--ink-light);
   }
   .settings-footer a { color: var(--clay); text-decoration: underline; }
+
+  /* ── COMMUNITY ── */
+  .comm-header { padding: 16px 16px 0; }
+  .comm-header h2 { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--ink); }
+  .comm-header p { color: var(--ink-mid); font-size: 14px; margin-top: 4px; line-height: 1.5; }
+
+  .comm-stat-bar {
+    display: flex; gap: 12px; margin: 16px 16px 0; padding: 14px 16px;
+    background: linear-gradient(135deg, var(--sage), var(--sage-dark)); border-radius: var(--radius);
+  }
+  .comm-stat { flex: 1; text-align: center; }
+  .comm-stat-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: white; }
+  .comm-stat-label { font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+
+  .comm-topics { margin-top: 16px; }
+  .comm-topic-row {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .comm-topic-row:active { background: var(--clay-light); }
+  .comm-row-icon { font-size: 24px; flex-shrink: 0; }
+  .comm-row-info { flex: 1; }
+  .comm-row-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .comm-row-desc { font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+  .comm-row-count {
+    background: var(--clay-light); color: var(--clay-dark); font-size: 12px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+  }
+
+  .comm-share-prompt {
+    display: flex; gap: 12px; align-items: flex-start; margin: 20px 16px;
+    padding: 16px; background: var(--sage-light); border-radius: var(--radius);
+    border: 1px solid var(--sage); border-style: dashed;
+  }
+  .comm-share-icon { font-size: 24px; }
+  .comm-share-text strong { font-size: 14px; color: var(--sage-dark); }
+  .comm-share-text p { font-size: 12px; color: var(--ink-mid); margin-top: 4px; line-height: 1.5; }
+
+  .comm-back {
+    background: none; border: none; font-size: 14px; color: var(--clay-dark);
+    cursor: pointer; padding: 4px 0; font-family: 'DM Sans', sans-serif;
+  }
+  .comm-topic-header {
+    display: flex; gap: 12px; align-items: center; padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .comm-topic-icon { font-size: 32px; }
+  .comm-topic-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); }
+  .comm-topic-desc { font-size: 12px; color: var(--ink-mid); margin-top: 2px; }
+
+  .comm-posts { padding: 0 16px; }
+  .comm-post {
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .comm-post-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .comm-post-author { font-size: 12px; font-weight: 500; color: var(--ink-mid); }
+  .comm-post-time { font-size: 11px; color: var(--ink-light); }
+  .comm-post-text { font-size: 14px; color: var(--ink); line-height: 1.6; }
+  .comm-post-footer { margin-top: 8px; }
+  .comm-heart { font-size: 12px; color: var(--clay); cursor: pointer; }
 
   /* ── STREAK BADGE ── */
   .streak-row {
@@ -1356,6 +1435,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   const [activeSymptoms, setActiveSymptoms] = useState({});
   const [severities, setSeverities] = useState({});
   const [notes, setNotes] = useState("");
+  const [symptomFilter, setSymptomFilter] = useState("");
   const [sleepHours, setSleepHours] = useState(null);
   const [stress, setStress] = useState(null);
   const [caffeine, setCaffeine] = useState(null);
@@ -1516,8 +1596,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
 
       <div className="symptoms-section">
         <div className="section-label">Symptoms today</div>
+        {SYMPTOMS.length > 12 && (
+          <input
+            className="symptom-filter"
+            placeholder="Search symptoms..."
+            value={symptomFilter}
+            onChange={(e) => setSymptomFilter(e.target.value)}
+          />
+        )}
         <div className="symptom-grid">
-          {SYMPTOMS.map((s) => {
+          {SYMPTOMS.filter((s) => !symptomFilter || s.name.toLowerCase().includes(symptomFilter.toLowerCase())).map((s) => {
             const isActive = !!activeSymptoms[s.name];
             const sev = severities[s.name] || 0;
             return (
@@ -1588,6 +1676,14 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
       </div>
 
       <div className="notes-area">
+        <div className="note-chips">
+          {["Period started", "Bad night", "Stressful day", "Skipped meds", "Felt great"].map((chip) => (
+            <div key={chip} className={`note-chip${notes.includes(chip) ? " on" : ""}`} onClick={() => {
+              haptic("Light");
+              setNotes((prev) => prev.includes(chip) ? prev.replace(chip, "").replace(/,\s*,/g, ",").replace(/^,\s*|,\s*$/g, "").trim() : (prev ? prev + ", " + chip : chip));
+            }}>{chip}</div>
+          ))}
+        </div>
         <textarea
           className="notes-input"
           placeholder="Any notes or observations..."
@@ -1992,6 +2088,20 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     .sort((a, b) => b.days - a.days)
     .slice(0, 4);
 
+  // Previous week symptom days for trend arrows
+  const twoWeeksAgo = new Date(now);
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  const prevWeekLogs = logs.filter((l) => { const d = new Date(l.date); return d >= twoWeeksAgo && d < weekAgo; });
+  const prevSymptomDays = {};
+  const prevSeenDays = {};
+  prevWeekLogs.forEach((l) => {
+    const dayStr = l.date.slice(0, 10);
+    Object.keys(l.symptoms || {}).forEach((name) => {
+      const key = `${name}_${dayStr}`;
+      if (!prevSeenDays[key]) { prevSeenDays[key] = true; prevSymptomDays[name] = (prevSymptomDays[name] || 0) + 1; }
+    });
+  });
+
   // Find most common symptom for the insight callout
   const topSymptom = topSymptoms[0];
 
@@ -2103,18 +2213,25 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   <div className="section-label" style={{ padding: "12px 0 2px" }}>
                     Top symptoms
                   </div>
-                  {topSymptoms.map((s, i) => (
-                    <div key={i} className="sym-row">
-                      <div className="sym-rank">{i + 1}</div>
-                      <div className="sym-info">
-                        <div className="sym-info-name">{s.name}</div>
-                        <div className="sym-info-days">{s.days} of 7 days</div>
+                  {topSymptoms.map((s, i) => {
+                    const prev = prevSymptomDays[s.name] || 0;
+                    const trend = s.days > prev ? "up" : s.days < prev ? "down" : "same";
+                    return (
+                      <div key={i} className="sym-row">
+                        <div className="sym-rank">{i + 1}</div>
+                        <div className="sym-info">
+                          <div className="sym-info-name">
+                            {s.name}
+                            {prev > 0 && <span className={`sym-trend ${trend}`}>{trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}</span>}
+                          </div>
+                          <div className="sym-info-days">{s.days} of 7 days</div>
+                        </div>
+                        <div style={{ width: 80 }}>
+                          <div className="sym-mini-bar" style={{ width: `${s.pct}%` }} />
+                        </div>
                       </div>
-                      <div style={{ width: 80 }}>
-                        <div className="sym-mini-bar" style={{ width: `${s.pct}%` }} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -2893,6 +3010,148 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   );
 }
 
+// ─── Community Screen ─────────────────────────────────────────────────────────
+
+const COMMUNITY_TOPICS = [
+  {
+    id: "hot-flashes",
+    icon: "🌡",
+    title: "Hot flashes & night sweats",
+    description: "Coping strategies, triggers, and what actually works",
+    posts: [
+      { author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand has been a game-changer. I also switched to cotton sheets and it made a noticeable difference.", likes: 24 },
+      { author: "Anonymous", time: "5h ago", text: "My hot flashes got so much worse with caffeine. Once I cut it after noon, the nighttime ones reduced by half.", likes: 18 },
+      { author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Deep breathing helped me get through it.", likes: 31 },
+    ],
+  },
+  {
+    id: "brain-fog",
+    icon: "🧠",
+    title: "Brain fog & memory",
+    description: "You're not losing your mind — this is real",
+    posts: [
+      { author: "Anonymous", time: "3h ago", text: "I started writing everything down. Lists for everything. It felt silly at first but it genuinely reduced my anxiety about forgetting things.", likes: 42 },
+      { author: "Anonymous", time: "8h ago", text: "My doctor told me brain fog during perimenopause is caused by fluctuating estrogen levels. It's temporary. That alone made me feel better.", likes: 55 },
+    ],
+  },
+  {
+    id: "mood-anxiety",
+    icon: "💔",
+    title: "Mood changes & anxiety",
+    description: "The emotional rollercoaster nobody warned us about",
+    posts: [
+      { author: "Anonymous", time: "1h ago", text: "Some days I feel like a completely different person. Then I remember: hormones. It helps to name it.", likes: 38 },
+      { author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has done more for my anxiety than anything else I've tried. It's not a cure but it takes the edge off.", likes: 29 },
+      { author: "Anonymous", time: "2d ago", text: "If you're feeling rage that seems out of nowhere — that's perimenopause too. You're not broken. Your hormones are just really loud right now.", likes: 67 },
+    ],
+  },
+  {
+    id: "sleep",
+    icon: "😴",
+    title: "Sleep struggles",
+    description: "Getting rest when your body won't cooperate",
+    posts: [
+      { author: "Anonymous", time: "4h ago", text: "Magnesium glycinate before bed. I was skeptical but it honestly helped me stay asleep longer. Ask your doctor about it.", likes: 33 },
+      { author: "Anonymous", time: "1d ago", text: "I stopped looking at the clock when I wake up at 3am. Sounds small but it stopped the anxiety spiral of 'I only have 3 hours left'.", likes: 41 },
+    ],
+  },
+  {
+    id: "doctor-talks",
+    icon: "👩‍⚕️",
+    title: "Talking to your doctor",
+    description: "How to advocate for yourself",
+    posts: [
+      { author: "Anonymous", time: "7h ago", text: "Bring your Vela report to your appointment. My doctor was impressed I had actual data on my symptoms. It changed the whole conversation.", likes: 52 },
+      { author: "Anonymous", time: "2d ago", text: "If your doctor dismisses your symptoms, find a new doctor. It took me 3 tries but I finally found one who listens.", likes: 71 },
+    ],
+  },
+];
+
+function CommunityScreen() {
+  const [activeTopic, setActiveTopic] = useState(null);
+
+  if (activeTopic) {
+    const topic = COMMUNITY_TOPICS.find((t) => t.id === activeTopic);
+    return (
+      <div className="screen active">
+        <div style={{ padding: "8px 16px 0" }}>
+          <button className="comm-back" onClick={() => setActiveTopic(null)}>← Back to Community</button>
+        </div>
+        <div className="comm-topic-header">
+          <span className="comm-topic-icon">{topic.icon}</span>
+          <div>
+            <h3 className="comm-topic-title">{topic.title}</h3>
+            <p className="comm-topic-desc">{topic.description}</p>
+          </div>
+        </div>
+        <div className="comm-posts">
+          {topic.posts.map((post, i) => (
+            <div key={i} className="comm-post">
+              <div className="comm-post-header">
+                <span className="comm-post-author">{post.author}</span>
+                <span className="comm-post-time">{post.time}</span>
+              </div>
+              <p className="comm-post-text">{post.text}</p>
+              <div className="comm-post-footer">
+                <span className="comm-heart">♥ {post.likes}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="comm-share-prompt">
+          <div className="comm-share-icon">💬</div>
+          <div className="comm-share-text">
+            <strong>Share your experience</strong>
+            <p>Anonymous posting coming soon. Your story could help someone else.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="screen active">
+      <div className="comm-header">
+        <h2>Community</h2>
+        <p>You're not alone in this. Connect with women on the same journey.</p>
+      </div>
+
+      <div className="comm-stat-bar">
+        <div className="comm-stat">
+          <div className="comm-stat-value">12,847</div>
+          <div className="comm-stat-label">women tracking</div>
+        </div>
+        <div className="comm-stat">
+          <div className="comm-stat-value">847</div>
+          <div className="comm-stat-label">shared today</div>
+        </div>
+      </div>
+
+      <div className="comm-topics">
+        <div className="section-label" style={{ padding: "0 16px 8px" }}>Discussion topics</div>
+        {COMMUNITY_TOPICS.map((topic) => (
+          <div key={topic.id} className="comm-topic-row" onClick={() => setActiveTopic(topic.id)}>
+            <span className="comm-row-icon">{topic.icon}</span>
+            <div className="comm-row-info">
+              <div className="comm-row-title">{topic.title}</div>
+              <div className="comm-row-desc">{topic.description}</div>
+            </div>
+            <div className="comm-row-count">{topic.posts.length}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="comm-share-prompt">
+        <div className="comm-share-icon">🌿</div>
+        <div className="comm-share-text">
+          <strong>Your voice matters</strong>
+          <p>Anonymous sharing is coming soon. Every experience shared helps another woman feel less alone.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -3020,6 +3279,7 @@ export default function App() {
     { id: "tracker", label: "Today" },
     { id: "history", label: "History" },
     { id: "insights", label: "Insights" },
+    { id: "community", label: "Community" },
     { id: "settings", label: "Settings" },
   ];
 
@@ -3081,6 +3341,7 @@ export default function App() {
           onShowPaywall={() => setShowPaywall(true)}
         />
       )}
+      {onboarded && screen === "community" && <CommunityScreen />}
       {onboarded && screen === "settings" && (
         <SettingsScreen
           profile={profile}
