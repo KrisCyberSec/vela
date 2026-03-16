@@ -166,7 +166,7 @@ function analyzePatterns(logs) {
       const avgRate = total / dates.length;
       if (rate > avgRate * 1.5 && c >= 2) {
         const score = rate / Math.max(avgRate, 0.1);
-        if (!bestWeekday || score > bestWeekday.score) bestWeekday = { score, text: `${symptom} tends to peak on ${DAY_NAMES[dow]}s` };
+        if (!bestWeekday || score > bestWeekday.score) bestWeekday = { score, text: `${symptom} appeared most often on ${DAY_NAMES[dow]}s in your logs` };
       }
     });
   });
@@ -257,10 +257,10 @@ function analyzeCorrelations(logs) {
       const rateW = withT.filter((d) => d.symptoms[symptom]).length / withT.length;
       const rateWO = withoutT.filter((d) => d.symptoms[symptom]).length / withoutT.length;
       if (rateWO > 0.05 && rateW / rateWO >= 2.0) {
-        insights.push({ score: rateW / rateWO, text: `${symptom} is ${(rateW / rateWO).toFixed(1)}x more likely on days you ${trigger === "exercise" ? "exercise" : `have ${trigger}`}`, icon: trigger === "caffeine" ? "☕" : trigger === "alcohol" ? "🍷" : "🏃" });
+        insights.push({ score: rateW / rateWO, text: `${symptom} appeared ${(rateW / rateWO).toFixed(1)}x more often on days you logged ${trigger === "exercise" ? "exercise" : trigger}`, icon: trigger === "caffeine" ? "☕" : trigger === "alcohol" ? "🍷" : "🏃" });
       }
       if (trigger === "exercise" && rateWO > 0.1 && rateW < rateWO * 0.5) {
-        insights.push({ score: rateWO / Math.max(rateW, 0.05), text: `${symptom} is ${(rateWO / Math.max(rateW, 0.05)).toFixed(1)}x less frequent on days you exercise`, icon: "🏃" });
+        insights.push({ score: rateWO / Math.max(rateW, 0.05), text: `${symptom} appeared ${(rateWO / Math.max(rateW, 0.05)).toFixed(1)}x less often on days you logged exercise`, icon: "🏃" });
       }
     });
     const moodW = withT.filter((d) => d.mood !== null);
@@ -283,7 +283,7 @@ function analyzeCorrelations(logs) {
       const rL = sleepLow.filter((d) => d.symptoms[symptom]).length / sleepLow.length;
       const rO = sleepOk.filter((d) => d.symptoms[symptom]).length / sleepOk.length;
       if (rO > 0.05 && rL / rO >= 2.0) {
-        insights.push({ score: rL / rO, text: `${symptom} appears ${(rL / rO).toFixed(1)}x more after nights with less than 6 hours of sleep`, icon: "🛏️" });
+        insights.push({ score: rL / rO, text: `${symptom} appeared ${(rL / rO).toFixed(1)}x more often after nights with less than 6 hours of sleep`, icon: "🛏️" });
       }
     });
   }
@@ -296,7 +296,7 @@ function analyzeCorrelations(logs) {
       const rH = stressHi.filter((d) => d.symptoms[symptom]).length / stressHi.length;
       const rL = stressLo.filter((d) => d.symptoms[symptom]).length / stressLo.length;
       if (rL > 0.05 && rH / rL >= 2.0) {
-        insights.push({ score: rH / rL, text: `${symptom} is ${(rH / rL).toFixed(1)}x more common on high-stress days`, icon: "😤" });
+        insights.push({ score: rH / rL, text: `${symptom} appeared ${(rH / rL).toFixed(1)}x more often on high-stress days`, icon: "😤" });
       }
     });
   }
@@ -560,13 +560,13 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const PERSONALIZED_TIPS = [
-  { match: (d) => d.triggerReport?.some((t) => t.impact === "worsens" && t.triggerName.includes("caffeine")), tip: "Your data shows caffeine is linked to more symptoms. Try switching to herbal tea after noon — many women find this helps with hot flashes and sleep." },
-  { match: (d) => d.triggerReport?.some((t) => t.impact === "worsens" && t.triggerName.includes("alcohol")), tip: "Alcohol appears to be triggering more symptoms for you. Even reducing by one drink can make a difference — your body may be more sensitive during this transition." },
-  { match: (d) => d.triggerReport?.some((t) => t.impact === "helps" && t.triggerName.includes("exercise")), tip: "Exercise is clearly helping you! Your data shows fewer symptoms on active days. Even a 20-minute walk counts — keep it up!" },
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "worsens" && t.triggerName.includes("caffeine")), tip: "Your data shows a possible link between caffeine and more symptoms. While clinical evidence on trigger avoidance is limited, your personal patterns are worth discussing with your provider." },
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "worsens" && t.triggerName.includes("alcohol")), tip: "Your data suggests more symptoms on days with alcohol. Individual responses vary — consider discussing what you're seeing in your logs with your healthcare provider." },
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "helps" && t.triggerName.includes("exercise")), tip: "Your data shows fewer symptoms on active days. Exercise has strong evidence for improving mood during menopause, and your logs suggest it may be helping you too!" },
   { match: (d) => d.trend?.direction === "improving", tip: "You're trending in a positive direction! Whatever changes you've made recently are working. Keep up your current routine." },
   { match: (d) => d.trend?.direction === "worse", tip: "Your symptoms have been a bit more intense lately. This is normal — menopause isn't linear. Consider tracking what changed recently and discussing with your healthcare provider." },
   { match: (d) => d.bestDay?.avgMood >= 7, tip: `Your best days tend to be ${d => d.bestDay?.day}s. Try scheduling important tasks or self-care activities on those days when you tend to feel your best.` },
-  { match: (d) => d.avgMood < 5, tip: "Your mood has been lower than usual. Remember: hormonal changes directly affect neurotransmitters. Be gentle with yourself, and consider talking to someone if it persists." },
+  { match: (d) => d.avgMood < 5, tip: "Your mood has been lower than usual. Remember: hormonal changes directly affect neurotransmitters. Be gentle with yourself, and consider talking to your healthcare provider if it persists." },
   { match: () => true, tip: "Consistency in tracking helps spot patterns faster. Even on good days, a quick log helps Vela understand your full picture." }
 ];
 
@@ -604,9 +604,9 @@ function generateResponse(handler, logs, profile) {
   if (handler.handler === "triggerImpact") {
     const data = analyzeTriggerImpact(logs, handler.param);
     if (data.daysWithTrigger === 0) return `I don't have enough data on ${handler.param} yet. Try logging it when it comes up, and I'll analyze the impact!`;
-    if (data.impact === "worsens") return `Here's what I see: on days with ${handler.param}, you average ${data.avgSymptomsWith} symptoms compared to ${data.avgSymptomsWithout} without it. Your mood also tends to be ${data.avgMoodWith < data.avgMoodWithout ? "lower" : "about the same"} (${data.avgMoodWith} vs ${data.avgMoodWithout}). It might be worth reducing ${handler.param} and seeing how you feel.${stageNote}`;
-    if (data.impact === "helps") return `Good news! ${handler.param} seems to be helping you. On those days, you average ${data.avgSymptomsWith} symptoms vs ${data.avgSymptomsWithout} without it, and your mood tends to be ${data.avgMoodWith > data.avgMoodWithout ? "better" : "similar"}. Keep it up!`;
-    return `${handler.param} doesn't seem to have a strong effect either way based on your data. You average ${data.avgSymptomsWith} symptoms with it and ${data.avgSymptomsWithout} without. Keep logging and I'll watch for patterns.`;
+    if (data.impact === "worsens") return `Here's what your data shows: on days with ${handler.param}, you average ${data.avgSymptomsWith} symptoms compared to ${data.avgSymptomsWithout} without it. Your mood also tends to be ${data.avgMoodWith < data.avgMoodWithout ? "lower" : "about the same"} (${data.avgMoodWith} vs ${data.avgMoodWithout}). Note: clinical research on individual triggers is limited, but your personal data is valuable — consider sharing these patterns with your healthcare provider.${stageNote}`;
+    if (data.impact === "helps") return `Your data suggests ${handler.param} may be helping you. On those days, you average ${data.avgSymptomsWith} symptoms vs ${data.avgSymptomsWithout} without it, and your mood tends to be ${data.avgMoodWith > data.avgMoodWithout ? "better" : "similar"}. Individual responses vary, but this is a pattern worth noting!`;
+    return `${handler.param} doesn't show a strong correlation either way in your data. You average ${data.avgSymptomsWith} symptoms with it and ${data.avgSymptomsWithout} without. Keep logging and I'll watch for patterns.`;
   }
 
   if (handler.handler === "triggers") {
@@ -615,8 +615,8 @@ function generateResponse(handler, logs, profile) {
     const worst = results.filter((r) => r.impact === "worsens").sort((a, b) => b.avgSymptomsWith - a.avgSymptomsWith);
     const best = results.filter((r) => r.impact === "helps");
     let msg = "";
-    if (worst.length > 0) msg += `Your biggest triggers appear to be: ${worst.map((w) => `${w.triggerName} (+${(w.avgSymptomsWith - w.avgSymptomsWithout).toFixed(1)} symptoms)`).join(", ")}. `;
-    if (best.length > 0) msg += `On the positive side, ${best.map((b) => b.triggerName).join(" and ")} seem to help reduce your symptoms. `;
+    if (worst.length > 0) msg += `Based on your logs, these show a possible link to more symptoms: ${worst.map((w) => `${w.triggerName} (+${(w.avgSymptomsWith - w.avgSymptomsWithout).toFixed(1)} symptoms/day)`).join(", ")}. Note: individual patterns may differ from clinical evidence — share these findings with your provider. `;
+    if (best.length > 0) msg += `Your data also suggests ${best.map((b) => b.triggerName).join(" and ")} may be associated with fewer symptoms. `;
     if (msg === "") msg = "I need a bit more trigger data to give you a clear picture. Keep logging what you eat, drink, and do — I'll spot the connections!";
     return msg + stageNote;
   }
@@ -625,7 +625,7 @@ function generateResponse(handler, logs, profile) {
     const data = analyzeOverallTrend(logs);
     if (data.recentDays < 3) return "I need a few more days of data to spot a reliable trend. Keep logging!";
     if (data.direction === "improving") return `Great news — you're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}. Whatever you're doing, it's working!`;
-    if (data.direction === "worse") return `I want to be honest with you: the last 2 weeks have been a bit tougher. Symptoms went from ${data.prevSymptoms}/day to ${data.recentSymptoms}/day${data.recentMood < data.prevMood ? `, and mood dipped from ${data.prevMood} to ${data.recentMood}` : ""}.${stageNote} Remember, this journey isn't linear. Consider checking your triggers or talking to your healthcare provider.`;
+    if (data.direction === "worse") return `I want to be honest with you: the last 2 weeks have been a bit tougher. Symptoms went from ${data.prevSymptoms}/day to ${data.recentSymptoms}/day${data.recentMood < data.prevMood ? `, and mood dipped from ${data.prevMood} to ${data.recentMood}` : ""}.${stageNote} Remember, this journey isn't linear — symptom fluctuation is expected during the menopausal transition. If this continues, consider discussing your logs with your healthcare provider.`;
     return `Things are holding steady — ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}. Stability is actually a good sign!${stageNote}`;
   }
 
@@ -1800,6 +1800,7 @@ const css = `
   .chat-send { width: 40px; height: 40px; border-radius: 50%; background: var(--sage); border: none; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
   .chat-send:disabled { opacity: 0.4; }
   .chat-send:active { transform: scale(0.9); }
+  .chat-disclaimer { font-size: 11px; color: var(--ink-light); text-align: center; padding: 4px 12px 8px; line-height: 1.4; }
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ─── Weekly Digest Card ─── */
@@ -1941,11 +1942,11 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   // Rotating evidence-based tips based on onboarding symptom concerns (multi-select)
   const tipSets = {
     0: [
-      "Hot flashes and night sweats are the most common perimenopausal symptoms. Tracking their frequency helps identify triggers.",
-      "Many women find hot flashes worsen with caffeine, alcohol, or spicy food. Your logs can help spot these patterns.",
+      "Hot flashes and night sweats affect up to 80% of women during the menopausal transition. Tracking frequency and severity helps your doctor tailor treatment.",
+      "Some women notice hot flashes worsen with certain foods or drinks. Your logs can help you and your doctor spot personal patterns.",
       "Hot flashes typically peak 1-2 years after your last period and gradually ease. Tracking duration helps monitor progress.",
-      "Deep breathing when a hot flash starts can reduce its intensity. Log severity to see if coping strategies help.",
-      "Layered clothing and keeping your bedroom cool (65°F/18°C) are evidence-backed strategies for managing night sweats.",
+      "Cognitive-behavioral therapy (CBT) has Level I evidence for reducing the impact of hot flashes. Ask your doctor about evidence-based options.",
+      "Layered clothing and cooling strategies are commonly used by women managing hot flashes. Track what helps you — individual responses vary.",
     ],
     1: [
       "Sleep disruption affects up to 60% of women during the menopausal transition. Consistent logging reveals patterns your doctor can act on.",
@@ -1957,7 +1958,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
     2: [
       "Mood changes during perimenopause are linked to fluctuating estrogen. Tracking helps distinguish hormonal shifts from other factors.",
       "Anxiety is more common than depression during perimenopause. Logging mood alongside symptoms helps paint the full picture.",
-      "Regular exercise has been shown to reduce perimenopausal mood symptoms as effectively as some medications.",
+      "Regular exercise has strong evidence for improving mood and reducing depressive symptoms during perimenopause, though its effect on hot flashes specifically is less clear.",
       "Mood shifts often correlate with sleep quality. Your combined logs help your doctor see these connections.",
       "Many women find their mood stabilizes as they move from perimenopause into postmenopause. Tracking shows your trajectory.",
     ],
@@ -1984,9 +1985,9 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
       "Many effective treatments exist for menopausal intimate symptoms. Consistent tracking strengthens conversations with your provider.",
     ],
     7: [
-      "Heart palpitations during perimenopause are usually caused by hormonal fluctuations, not heart disease. Tracking patterns helps reassure.",
-      "Palpitations often coincide with hot flashes or anxiety. Your combined logs reveal these connections for your doctor.",
-      "If palpitations are frequent or prolonged, share your log data with your doctor to rule out other causes.",
+      "Heart palpitations during perimenopause can be related to hormonal fluctuations. Always discuss new or worsening palpitations with your doctor to rule out cardiac causes.",
+      "Palpitations often coincide with hot flashes or anxiety. Your combined logs help your doctor evaluate the pattern.",
+      "If palpitations are frequent, prolonged, or accompanied by dizziness or chest pain, seek medical evaluation promptly. Your log data helps your provider assess the pattern.",
     ],
   };
   const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
@@ -2675,10 +2676,13 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           </div>
           <div className="chat-messages">
             {chatMessages.length === 0 && (
-              <div className="chat-bubble assistant">
-                <div className="chat-avatar"><span>V</span></div>
-                <div className="chat-text">Hi! I'm Vela, your health companion. I analyze your logged data to find patterns and insights. Ask me anything about your symptoms, triggers, or trends — or tap a question below to get started.</div>
-              </div>
+              <>
+                <div className="chat-bubble assistant">
+                  <div className="chat-avatar"><span>V</span></div>
+                  <div className="chat-text">Hi! I'm Vela, your health companion. I analyze your logged data to find patterns and insights. Ask me anything about your symptoms, triggers, or trends — or tap a question below to get started.</div>
+                </div>
+                <div className="chat-disclaimer">Vela analyzes your personal data to find patterns. This is not medical advice — always consult your healthcare provider for treatment decisions.</div>
+              </>
             )}
             {chatMessages.map((msg, i) => (
               <div key={i} className={`chat-bubble ${msg.role}`}>
@@ -2803,6 +2807,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   <div className="digest-section-label">Personalized tip</div>
                   <div className="digest-section-text">{digest.tip}</div>
                 </div>
+                <div className="chat-disclaimer" style={{ marginTop: 8, paddingBottom: 0 }}>Based on your personal data. Not medical advice.</div>
               </div>
             );
           })()}
@@ -3730,15 +3735,15 @@ const COMMUNITY_TOPICS = [
     id: "hot-flashes",
     icon: "\u{1F321}",
     title: "Hot flashes & night sweats",
-    description: "Coping strategies, triggers, and what actually works",
+    description: "Sharing experiences and what's helped us",
     resources: [
-      { label: "Cooling strategies that actually work", type: "tip" },
-      { label: "When to talk to your doctor about HRT", type: "article" },
+      { label: "Evidence-based treatment options for VMS", type: "article" },
+      { label: "When to talk to your doctor about treatment", type: "article" },
     ],
     posts: [
-      { id: "hf-1", author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand has been a game-changer. I also switched to cotton sheets and it made a noticeable difference.", likes: 24 },
-      { id: "hf-2", author: "Anonymous", time: "5h ago", text: "My hot flashes got so much worse with caffeine. Once I cut it after noon, the nighttime ones reduced by half.", likes: 18 },
-      { id: "hf-3", author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Deep breathing helped me get through it.", likes: 31 },
+      { id: "hf-1", author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand helps me cope. Everyone's different though — tracking what works for you is key.", likes: 24 },
+      { id: "hf-2", author: "Anonymous", time: "5h ago", text: "I noticed a pattern in my Vela logs — certain days are worse than others. Showed my doctor and we came up with a plan together.", likes: 18 },
+      { id: "hf-3", author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Having a plan for those moments helps.", likes: 31 },
     ],
   },
   {
@@ -3766,7 +3771,7 @@ const COMMUNITY_TOPICS = [
     ],
     posts: [
       { id: "ma-1", author: "Anonymous", time: "1h ago", text: "Some days I feel like a completely different person. Then I remember: hormones. It helps to name it.", likes: 38 },
-      { id: "ma-2", author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has done more for my anxiety than anything else I've tried. It's not a cure but it takes the edge off.", likes: 29 },
+      { id: "ma-2", author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has helped my mood. Exercise has strong evidence for mood improvement during perimenopause. It's not a cure but it takes the edge off.", likes: 29 },
       { id: "ma-3", author: "Anonymous", time: "2d ago", text: "If you're feeling rage that seems out of nowhere \u2014 that's perimenopause too. You're not broken. Your hormones are just really loud right now.", likes: 67 },
     ],
   },
@@ -3776,11 +3781,11 @@ const COMMUNITY_TOPICS = [
     title: "Sleep struggles",
     description: "Getting rest when your body won't cooperate",
     resources: [
-      { label: "Building a menopause-friendly sleep routine", type: "tip" },
-      { label: "Supplements that may help with sleep", type: "article" },
+      { label: "Sleep hygiene strategies during menopause", type: "tip" },
+      { label: "When to talk to your doctor about sleep issues", type: "article" },
     ],
     posts: [
-      { id: "sl-1", author: "Anonymous", time: "4h ago", text: "Magnesium glycinate before bed. I was skeptical but it honestly helped me stay asleep longer. Ask your doctor about it.", likes: 33 },
+      { id: "sl-1", author: "Anonymous", time: "4h ago", text: "CBT for insomnia (CBT-I) was recommended by my doctor and it's been really effective. Ask your provider about evidence-based sleep treatments.", likes: 33 },
       { id: "sl-2", author: "Anonymous", time: "1d ago", text: "I stopped looking at the clock when I wake up at 3am. Sounds small but it stopped the anxiety spiral of 'I only have 3 hours left'.", likes: 41 },
     ],
   },
@@ -4105,7 +4110,7 @@ function CommunityScreen() {
         <div className="comm-guidelines">
           <div className="comm-guidelines-text">
             <strong>Welcome to our community {"\u{1F33F}"}</strong>
-            <p>This is a safe, anonymous space. Be kind, be honest, and remember: every woman's experience is valid. No medical advice — just support.</p>
+            <p>This is a safe, anonymous space. Be kind, be honest, and remember: every woman's experience is unique. Posts reflect personal experiences, not medical advice — always consult your healthcare provider before making treatment decisions.</p>
           </div>
           <button className="comm-guidelines-dismiss" onClick={() => { setGuidelinesSeen(true); haptic(); }}>Got it</button>
         </div>
