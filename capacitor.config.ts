@@ -14,6 +14,10 @@ const config: CapacitorConfig = {
       showSpinner: false,
       backgroundColor: '#FAF6F1',
     },
+    LocalNotifications: {
+      smallIcon: 'ic_stat_vela',
+      iconColor: '#C97B5C',
+    },
   },
 };
 

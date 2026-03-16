@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
+import { Capacitor } from "@capacitor/core";
 
 const SYMPTOMS = [
   { icon: "🌡", name: "Hot flash" },
@@ -48,6 +49,7 @@ const QUESTIONS = [
   },
   {
     text: "What's your main goal with Vela?",
+    multi: true,
     opts: [
       "Understand what's happening to my body",
       "Track symptoms to show my doctor",
@@ -293,6 +295,57 @@ function analyzeCorrelations(logs) {
   }
 
   return insights.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+// ─── Smart Reminders ─────────────────────────────────────────────────────────
+
+const REMINDER_MESSAGES = {
+  morning: { title: "Good morning", body: "How are you feeling today? Take a moment to log with Vela" },
+  evening: { title: "Evening check-in", body: "How was your day? A quick log helps Vela spot patterns for you" },
+  weekly: { title: "Your weekly summary", body: "Your Vela insights are ready. See how your week went" },
+};
+
+async function getLocalNotifications() {
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    const mod = await import("@capacitor/local-notifications");
+    return mod.LocalNotifications;
+  } catch { return null; }
+}
+
+async function cancelAllReminders() {
+  const LN = await getLocalNotifications();
+  if (!LN) return;
+  try { await LN.cancel({ notifications: [{ id: 1 }, { id: 2 }, { id: 3 }] }); } catch {}
+}
+
+async function scheduleReminders(prefIndex, times) {
+  const LN = await getLocalNotifications();
+  if (!LN) return;
+  const perm = await LN.requestPermissions();
+  if (perm.display !== "granted") return;
+  await cancelAllReminders();
+  const t = times || { morning: "09:00", evening: "20:00", weekly: "10:00" };
+  const notifications = [];
+  const [mH, mM] = t.morning.split(":").map(Number);
+  const [eH, eM] = t.evening.split(":").map(Number);
+  const [wH, wM] = t.weekly.split(":").map(Number);
+
+  if (prefIndex === 0) {
+    // Daily check-ins: morning + evening
+    notifications.push({ id: 1, title: REMINDER_MESSAGES.morning.title, body: REMINDER_MESSAGES.morning.body, schedule: { on: { hour: mH, minute: mM }, repeats: true } });
+    notifications.push({ id: 2, title: REMINDER_MESSAGES.evening.title, body: REMINDER_MESSAGES.evening.body, schedule: { on: { hour: eH, minute: eM }, repeats: true } });
+  } else if (prefIndex === 1) {
+    // Weekly summaries: Sunday morning
+    notifications.push({ id: 3, title: REMINDER_MESSAGES.weekly.title, body: REMINDER_MESSAGES.weekly.body, schedule: { on: { weekday: 1, hour: wH, minute: wM }, repeats: true } });
+  } else if (prefIndex === 2) {
+    // Only when I ask: nothing
+    return;
+  } else {
+    // Let the app decide: evening only
+    notifications.push({ id: 2, title: REMINDER_MESSAGES.evening.title, body: REMINDER_MESSAGES.evening.body, schedule: { on: { hour: eH, minute: eM }, repeats: true } });
+  }
+  try { await LN.schedule({ notifications }); } catch {}
 }
 
 function monthlyComparison(logs) {
@@ -971,6 +1024,21 @@ const css = `
     text-align: center;
   }
   .settings-danger-btn:hover { background: #FDF0EB; }
+
+  /* Toggle switch */
+  .toggle-wrap { position: relative; width: 44px; height: 26px; cursor: pointer; flex-shrink: 0; }
+  .toggle-track { width: 100%; height: 100%; border-radius: 13px; background: var(--border); transition: background 0.2s; }
+  .toggle-track.on { background: var(--sage); }
+  .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .toggle-thumb.on { transform: translateX(18px); }
+
+  /* Reminder time input */
+  .reminder-time-input {
+    font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
+    background: white; outline: none;
+  }
+  .reminder-time-input:focus { border-color: var(--clay); }
 
   .settings-footer {
     text-align: center; padding: 20px 24px 0; font-size: 12px; color: var(--ink-light);
@@ -2240,11 +2308,23 @@ function exportCSV(logs) {
 
 function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
   const q = QUESTIONS[questionIndex];
-  const [selected, setSelected] = useState(profile ? profile[questionIndex] : null);
+  const isMulti = !!q.multi;
+  const [selected, setSelected] = useState(profile ? profile[questionIndex] : (isMulti ? [] : null));
+  const [multiSelected, setMultiSelected] = useState(isMulti && profile ? (profile[questionIndex] ?? []) : []);
+
+  function handleSelect(i) {
+    if (isMulti) {
+      setMultiSelected((prev) => prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]);
+    } else {
+      setSelected(i);
+    }
+  }
 
   function handleSave() {
-    onSave(questionIndex, selected);
+    onSave(questionIndex, isMulti ? multiSelected : selected);
   }
+
+  const canSave = isMulti ? multiSelected.length > 0 : selected !== null;
 
   return (
     <div className="screen active">
@@ -2263,12 +2343,13 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
 
       <div className="q-card">
         <div className="q-text">{q.text}</div>
+        {isMulti && <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8, fontStyle: "italic" }}>Select all that apply</div>}
         <div className="q-options">
           {q.opts.map((opt, i) => (
             <button
               key={i}
-              className={`q-opt${selected === i ? " selected" : ""}`}
-              onClick={() => setSelected(i)}
+              className={`q-opt${isMulti ? (multiSelected.includes(i) ? " selected" : "") : (selected === i ? " selected" : "")}`}
+              onClick={() => handleSelect(i)}
             >
               {opt}
             </button>
@@ -2279,7 +2360,7 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
       <button
         className="onboard-btn"
         onClick={handleSave}
-        disabled={selected === null}
+        disabled={!canSave}
       >
         Save
       </button>
@@ -2289,15 +2370,17 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
 
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
-function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData }) {
+function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime }) {
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
+  const guidanceLabels = ["Daily check-ins & reminders", "Weekly summaries", "Only when I ask", "Let the app decide"];
+  const guidancePref = profile && profile[3] !== undefined && profile[3] !== null ? profile[3] : 3;
   const goalLabels = [
     "Understand my body",
     "Track for my doctor",
     "Find relief strategies",
     "Connect with others",
   ];
-  const goal = profile ? goalLabels[profile[2]] : "Not set";
+  const goal = profile ? (Array.isArray(profile[2]) ? profile[2].map((i) => goalLabels[i]).join(", ") : goalLabels[profile[2]]) : "Not set";
 
   return (
     <div className="screen active">
@@ -2329,6 +2412,71 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
               <span className="sr-arrow">›</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-label">Reminders</div>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="sr-left">
+              <span className="sr-icon">🔔</span>
+              <span className="sr-label">Reminders</span>
+            </div>
+            <div className="toggle-wrap" onClick={() => onToggleReminders(!remindersEnabled)}>
+              <div className={`toggle-track${remindersEnabled ? " on" : ""}`} />
+              <div className={`toggle-thumb${remindersEnabled ? " on" : ""}`} />
+            </div>
+          </div>
+          <div className="settings-row" onClick={() => onEditQuestion(3)}>
+            <div className="sr-left">
+              <span className="sr-icon">📋</span>
+              <span className="sr-label">Frequency</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="sr-value">{guidanceLabels[guidancePref]}</span>
+              <span className="sr-arrow">›</span>
+            </div>
+          </div>
+          {remindersEnabled && guidancePref !== 2 && (
+            <>
+              {(guidancePref === 0) && (
+                <div className="settings-row">
+                  <div className="sr-left">
+                    <span className="sr-icon">🌅</span>
+                    <span className="sr-label">Morning</span>
+                  </div>
+                  <input type="time" className="reminder-time-input" value={reminderTimes.morning} onChange={(e) => onUpdateReminderTime("morning", e.target.value)} />
+                </div>
+              )}
+              {(guidancePref === 0 || guidancePref === 3) && (
+                <div className="settings-row">
+                  <div className="sr-left">
+                    <span className="sr-icon">🌙</span>
+                    <span className="sr-label">Evening</span>
+                  </div>
+                  <input type="time" className="reminder-time-input" value={reminderTimes.evening} onChange={(e) => onUpdateReminderTime("evening", e.target.value)} />
+                </div>
+              )}
+              {guidancePref === 1 && (
+                <div className="settings-row">
+                  <div className="sr-left">
+                    <span className="sr-icon">📅</span>
+                    <span className="sr-label">Sunday</span>
+                  </div>
+                  <input type="time" className="reminder-time-input" value={reminderTimes.weekly} onChange={(e) => onUpdateReminderTime("weekly", e.target.value)} />
+                </div>
+              )}
+            </>
+          )}
+          {remindersEnabled && guidancePref === 2 && (
+            <div className="settings-row">
+              <div className="sr-left">
+                <span className="sr-icon">😌</span>
+                <span className="sr-label" style={{ color: "var(--ink-light)" }}>No reminders scheduled</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2433,6 +2581,12 @@ export default function App() {
   const [toast, setToast] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [remindersEnabled, setRemindersEnabled] = useState(() => {
+    return JSON.parse(localStorage.getItem("vela_reminders_enabled") || "true");
+  });
+  const [reminderTimes, setReminderTimes] = useState(() => {
+    return JSON.parse(localStorage.getItem("vela_reminder_times") || '{"morning":"09:00","evening":"20:00","weekly":"10:00"}');
+  });
 
   // Inject global styles
   useEffect(() => {
@@ -2452,6 +2606,14 @@ export default function App() {
     localStorage.setItem("vela_logs", JSON.stringify(logs));
   }, [logs]);
 
+  // Persist reminder settings
+  useEffect(() => {
+    localStorage.setItem("vela_reminders_enabled", JSON.stringify(remindersEnabled));
+  }, [remindersEnabled]);
+  useEffect(() => {
+    localStorage.setItem("vela_reminder_times", JSON.stringify(reminderTimes));
+  }, [reminderTimes]);
+
   function handleLog(entry) {
     const logEntry = { ...entry, date: new Date().toISOString() };
     setLogs((prev) => [logEntry, ...prev]);
@@ -2464,6 +2626,10 @@ export default function App() {
     setProfile(answers);
     setOnboarded(true);
     setScreen("tracker");
+    // Schedule reminders based on Q4 preference
+    if (answers[3] !== undefined && answers[3] !== null && remindersEnabled) {
+      scheduleReminders(answers[3]);
+    }
   }
 
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -2479,6 +2645,10 @@ export default function App() {
     setProfile(updated);
     setEditingQuestion(null);
     setScreen("settings");
+    // Re-schedule reminders if guidance preference changed
+    if (qIndex === 3 && remindersEnabled) {
+      scheduleReminders(answer, reminderTimes);
+    }
   }
 
   function handleBackFromEdit() {
@@ -2491,9 +2661,14 @@ export default function App() {
       localStorage.removeItem("vela_logs");
       localStorage.removeItem("vela_profile");
       localStorage.removeItem("vela_onboarded");
+      localStorage.removeItem("vela_reminders_enabled");
+      localStorage.removeItem("vela_reminder_times");
+      cancelAllReminders();
       setLogs([]);
       setProfile(null);
       setOnboarded(false);
+      setRemindersEnabled(true);
+      setReminderTimes({ morning: "09:00", evening: "20:00", weekly: "10:00" });
       setScreen("onboard");
     }
   }
@@ -2584,6 +2759,23 @@ export default function App() {
           onShowPaywall={() => setShowPaywall(true)}
           onEditQuestion={handleEditQuestion}
           onClearData={handleClearData}
+          remindersEnabled={remindersEnabled}
+          onToggleReminders={async (enabled) => {
+            setRemindersEnabled(enabled);
+            if (enabled && profile) {
+              await scheduleReminders(profile[3] ?? 3, reminderTimes);
+            } else {
+              await cancelAllReminders();
+            }
+          }}
+          reminderTimes={reminderTimes}
+          onUpdateReminderTime={async (key, time) => {
+            const updated = { ...reminderTimes, [key]: time };
+            setReminderTimes(updated);
+            if (remindersEnabled && profile) {
+              await scheduleReminders(profile[3] ?? 3, updated);
+            }
+          }}
         />
       )}
       {onboarded && screen === "edit-question" && editingQuestion !== null && (
