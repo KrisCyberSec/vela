@@ -1040,6 +1040,16 @@ const css = `
   }
   .reminder-time-input:focus { border-color: var(--clay); }
 
+  /* SVG Charts */
+  .chart-container { margin: 12px 16px 0; background: white; border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); }
+  .chart-container svg { width: 100%; height: auto; display: block; }
+  .chart-toggle { display: flex; gap: 4px; }
+  .chart-toggle-btn { font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 12px; border: 1px solid var(--border); background: white; color: var(--ink-light); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .chart-toggle-btn.active { background: var(--clay); color: white; border-color: var(--clay); }
+  .heatmap-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; justify-content: flex-end; }
+  .heatmap-legend-label { font-size: 10px; color: var(--ink-light); }
+  .heatmap-legend-box { width: 12px; height: 12px; border-radius: 2px; }
+
   .settings-footer {
     text-align: center; padding: 20px 24px 0; font-size: 12px; color: var(--ink-light);
   }
@@ -1623,6 +1633,244 @@ function HistoryScreen({ logs, isPremium, onShowPaywall }) {
   );
 }
 
+// ─── SVG Chart Components ────────────────────────────────────────────────────
+
+function MoodLineChart({ logs }) {
+  const [range, setRange] = useState(7);
+  const MOODS_EMOJI = ["😔", "😕", "😐", "🙂", "😊"];
+  const now = new Date();
+
+  // Build mood data for range
+  const data = [];
+  for (let i = range - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toISOString().slice(0, 10);
+    const dayMoods = logs
+      .filter((l) => l.date.slice(0, 10) === dayStr && l.mood !== null && l.mood !== undefined)
+      .map((l) => l.mood);
+    const avg = dayMoods.length > 0 ? dayMoods.reduce((a, b) => a + b, 0) / dayMoods.length : null;
+    const label = range <= 7 ? ["S","M","T","W","T","F","S"][d.getDay()] : d.getDate().toString();
+    data.push({ mood: avg, label });
+  }
+
+  const W = 340, H = 140, PL = 28, PR = 10, PT = 10, PB = 24;
+  const chartW = W - PL - PR, chartH = H - PT - PB;
+  const points = data.map((d, i) => ({
+    x: PL + (i / (data.length - 1 || 1)) * chartW,
+    y: d.mood !== null ? PT + chartH - (d.mood / 4) * chartH : null,
+    mood: d.mood,
+    label: d.label,
+  }));
+
+  // Build path from non-null points
+  const valid = points.filter((p) => p.y !== null);
+  let pathD = "";
+  if (valid.length >= 2) {
+    pathD = `M${valid[0].x},${valid[0].y}`;
+    for (let i = 1; i < valid.length; i++) {
+      const cx = (valid[i - 1].x + valid[i].x) / 2;
+      pathD += ` C${cx},${valid[i - 1].y} ${cx},${valid[i].y} ${valid[i].x},${valid[i].y}`;
+    }
+  }
+
+  // Area path (fill below line)
+  let areaD = "";
+  if (valid.length >= 2) {
+    areaD = pathD + ` L${valid[valid.length - 1].x},${PT + chartH} L${valid[0].x},${PT + chartH} Z`;
+  }
+
+  return (
+    <div className="chart-container">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div className="trend-title" style={{ margin: 0, padding: 0 }}>Mood trend</div>
+        <div className="chart-toggle">
+          <button className={`chart-toggle-btn${range === 7 ? " active" : ""}`} onClick={() => setRange(7)}>7d</button>
+          <button className={`chart-toggle-btn${range === 30 ? " active" : ""}`} onClick={() => setRange(30)}>30d</button>
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
+        <defs>
+          <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#C97B5C" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#C97B5C" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {/* Grid lines + emoji labels */}
+        {[0, 1, 2, 3, 4].map((level) => {
+          const y = PT + chartH - (level / 4) * chartH;
+          return (
+            <g key={level}>
+              <line x1={PL} y1={y} x2={W - PR} y2={y} stroke="#EDE0D8" strokeWidth="0.5" />
+              <text x={PL - 6} y={y + 5} textAnchor="end" fontSize="11">{MOODS_EMOJI[level]}</text>
+            </g>
+          );
+        })}
+        {/* Area fill */}
+        {areaD && <path d={areaD} fill="url(#moodGrad)" />}
+        {/* Line */}
+        {pathD && <path d={pathD} fill="none" stroke="#C97B5C" strokeWidth="2.5" strokeLinecap="round" />}
+        {/* Dots */}
+        {valid.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="4" fill="#C97B5C" stroke="white" strokeWidth="2" />
+        ))}
+        {/* X-axis labels */}
+        {points.filter((_, i) => range <= 7 || i % 5 === 0 || i === points.length - 1).map((p, i) => (
+          <text key={i} x={p.x} y={H - 4} textAnchor="middle" fontSize="10" fill="#A89080">{p.label}</text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function SymptomHeatmap({ logs }) {
+  const now = new Date();
+  const days = [];
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toISOString().slice(0, 10);
+    const dayLogs = logs.filter((l) => l.date.slice(0, 10) === dayStr);
+    const count = dayLogs.reduce((sum, l) => sum + Object.keys(l.symptoms || {}).length, 0);
+    days.push({ date: d, count, dow: d.getDay() });
+  }
+  const maxC = Math.max(...days.map((d) => d.count), 1);
+
+  // Arrange into weeks (columns)
+  const weeks = [];
+  let week = new Array(7).fill(null);
+  days.forEach((d, i) => {
+    week[d.dow] = d;
+    if (d.dow === 6 || i === days.length - 1) {
+      weeks.push(week);
+      week = new Array(7).fill(null);
+    }
+  });
+
+  const cellSize = 28, gap = 4, labelW = 20;
+  const W = labelW + weeks.length * (cellSize + gap);
+  const H = 7 * (cellSize + gap) + 30;
+  const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+
+  function getOpacity(count) {
+    if (count === 0) return 0.1;
+    const ratio = count / maxC;
+    if (ratio <= 0.25) return 0.3;
+    if (ratio <= 0.5) return 0.5;
+    if (ratio <= 0.75) return 0.75;
+    return 1;
+  }
+
+  return (
+    <div className="chart-container">
+      <div className="trend-title" style={{ margin: "0 0 10px", padding: 0 }}>Symptom activity (4 weeks)</div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
+        {/* DOW labels */}
+        {DOW.map((d, i) => (
+          <text key={i} x={labelW - 6} y={i * (cellSize + gap) + cellSize / 2 + 4} textAnchor="end" fontSize="10" fill="#A89080">{d}</text>
+        ))}
+        {/* Cells */}
+        {weeks.map((w, wi) =>
+          w.map((d, di) => {
+            if (!d) return null;
+            return (
+              <rect
+                key={`${wi}-${di}`}
+                x={labelW + wi * (cellSize + gap)}
+                y={di * (cellSize + gap)}
+                width={cellSize}
+                height={cellSize}
+                rx={4}
+                fill="#C97B5C"
+                opacity={getOpacity(d.count)}
+              />
+            );
+          })
+        )}
+      </svg>
+      <div className="heatmap-legend">
+        <span className="heatmap-legend-label">Less</span>
+        {[0.1, 0.3, 0.5, 0.75, 1].map((op, i) => (
+          <div key={i} className="heatmap-legend-box" style={{ background: `rgba(201,123,92,${op})` }} />
+        ))}
+        <span className="heatmap-legend-label">More</span>
+      </div>
+    </div>
+  );
+}
+
+function SleepSymptomScatter({ logs }) {
+  // Group by date, get sleep + symptom count per day
+  const byDate = {};
+  logs.forEach((l) => {
+    const d = l.date.slice(0, 10);
+    if (!byDate[d]) byDate[d] = { sleep: null, symptoms: 0 };
+    if (l.context && l.context.sleepHours !== null && l.context.sleepHours !== undefined) {
+      byDate[d].sleep = l.context.sleepHours;
+    }
+    byDate[d].symptoms += Object.keys(l.symptoms || {}).length;
+  });
+  const points = Object.values(byDate).filter((d) => d.sleep !== null);
+  if (points.length < 5) return null;
+
+  const minSleep = Math.floor(Math.min(...points.map((p) => p.sleep)));
+  const maxSleep = Math.ceil(Math.max(...points.map((p) => p.sleep)));
+  const maxSym = Math.max(...points.map((p) => p.symptoms), 1);
+
+  const W = 320, H = 200, PL = 32, PR = 10, PT = 10, PB = 30;
+  const chartW = W - PL - PR, chartH = H - PT - PB;
+  const sleepRange = Math.max(maxSleep - minSleep, 1);
+
+  // Simple linear regression
+  const n = points.length;
+  const sumX = points.reduce((s, p) => s + p.sleep, 0);
+  const sumY = points.reduce((s, p) => s + p.symptoms, 0);
+  const sumXY = points.reduce((s, p) => s + p.sleep * p.symptoms, 0);
+  const sumX2 = points.reduce((s, p) => s + p.sleep * p.sleep, 0);
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  const trendY1 = slope * minSleep + intercept;
+  const trendY2 = slope * maxSleep + intercept;
+
+  function toX(sleep) { return PL + ((sleep - minSleep) / sleepRange) * chartW; }
+  function toY(sym) { return PT + chartH - (sym / maxSym) * chartH; }
+
+  return (
+    <div className="chart-container">
+      <div className="trend-title" style={{ margin: "0 0 10px", padding: 0 }}>Sleep vs. symptoms</div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
+        {/* Grid */}
+        {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
+          const y = PT + chartH * (1 - r);
+          return <line key={i} x1={PL} y1={y} x2={W - PR} y2={y} stroke="#EDE0D8" strokeWidth="0.5" />;
+        })}
+        {/* Trend line */}
+        <line
+          x1={toX(minSleep)} y1={toY(Math.max(trendY1, 0))}
+          x2={toX(maxSleep)} y2={toY(Math.max(trendY2, 0))}
+          stroke="#7A9E87" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.7"
+        />
+        {/* Dots */}
+        {points.map((p, i) => (
+          <circle key={i} cx={toX(p.sleep)} cy={toY(p.symptoms)} r="5" fill="#C97B5C" opacity="0.7" stroke="white" strokeWidth="1.5" />
+        ))}
+        {/* X-axis labels */}
+        {Array.from({ length: Math.min(sleepRange + 1, 8) }, (_, i) => {
+          const v = minSleep + i * (sleepRange / Math.min(sleepRange, 7));
+          return <text key={i} x={toX(v)} y={H - 6} textAnchor="middle" fontSize="10" fill="#A89080">{v.toFixed(0)}h</text>;
+        })}
+        {/* Y-axis labels */}
+        {[0, Math.round(maxSym / 2), maxSym].map((v, i) => (
+          <text key={i} x={PL - 6} y={toY(v) + 4} textAnchor="end" fontSize="10" fill="#A89080">{v}</text>
+        ))}
+        {/* Axis titles */}
+        <text x={W / 2} y={H} textAnchor="middle" fontSize="10" fill="#6B5347">Sleep (hrs)</text>
+        <text x={6} y={H / 2} textAnchor="middle" fontSize="10" fill="#6B5347" transform={`rotate(-90, 6, ${H / 2})`}>Symptoms</text>
+      </svg>
+    </div>
+  );
+}
+
 // ─── Insights Screen ──────────────────────────────────────────────────────────
 
 function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
@@ -1736,19 +1984,23 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           )}
 
           {moodData.some((d) => d.mood !== null) && (
-            <div className="mood-trend">
-              <div className="mood-trend-title">Mood this week</div>
-              <div className="mood-trend-row">
-                {moodData.map((d, i) => (
-                  <div key={i} className="mood-trend-day">
-                    <div className="mood-trend-emoji">
-                      {d.mood !== null ? MOODS[d.mood] : "·"}
+            isPremium ? (
+              <MoodLineChart logs={logs} />
+            ) : (
+              <div className="mood-trend">
+                <div className="mood-trend-title">Mood this week</div>
+                <div className="mood-trend-row">
+                  {moodData.map((d, i) => (
+                    <div key={i} className="mood-trend-day">
+                      <div className="mood-trend-emoji">
+                        {d.mood !== null ? MOODS[d.mood] : "·"}
+                      </div>
+                      <div className="mood-trend-label">{d.day}</div>
                     </div>
-                    <div className="mood-trend-label">{d.day}</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {isPremium ? (
@@ -1790,6 +2042,9 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   ))}
                 </div>
               )}
+
+              <SymptomHeatmap logs={logs} />
+              <SleepSymptomScatter logs={logs} />
 
               {(() => {
                 const patterns = analyzePatterns(logs);
