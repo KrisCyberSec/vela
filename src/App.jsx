@@ -207,9 +207,10 @@ function analyzePatterns(logs) {
 }
 
 function predictSymptoms(logs) {
-  if (logs.length < 14) return [];
+  if (logs.length < 14) return { predictions: [], moodForecast: null, tip: null };
   const today = new Date();
   const todayDow = today.getDay();
+  const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const byDate = {};
   logs.forEach((l) => {
     const d = l.date.slice(0, 10);
@@ -219,18 +220,46 @@ function predictSymptoms(logs) {
   const dates = Object.keys(byDate).sort();
   const weekdaySymptoms = {};
   let weekdayDayCount = 0;
+  let moodSum = 0, moodCount = 0;
   dates.forEach((d) => {
     if (new Date(d + "T12:00:00").getDay() !== todayDow) return;
     weekdayDayCount++;
     const syms = [...new Set(byDate[d].flatMap((l) => Object.keys(l.symptoms || {})))];
     syms.forEach((s) => { weekdaySymptoms[s] = (weekdaySymptoms[s] || 0) + 1; });
+    byDate[d].forEach((l) => { if (l.mood !== null && l.mood !== undefined) { moodSum += l.mood; moodCount++; } });
   });
-  if (weekdayDayCount < 2) return [];
-  return Object.entries(weekdaySymptoms)
-    .filter(([, c]) => c / weekdayDayCount >= 0.5 && c >= 2)
+  if (weekdayDayCount < 2) return { predictions: [], moodForecast: null, tip: null };
+
+  const predictions = Object.entries(weekdaySymptoms)
+    .filter(([, c]) => c / weekdayDayCount >= 0.4 && c >= 2)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([name]) => name);
+    .slice(0, 3)
+    .map(([name, count]) => {
+      const pct = Math.round((count / weekdayDayCount) * 100);
+      // Check recent trend (last 3 occurrences of this weekday vs earlier)
+      const recentDates = dates.filter((d) => new Date(d + "T12:00:00").getDay() === todayDow);
+      const recent3 = recentDates.slice(-3);
+      const earlier3 = recentDates.slice(-6, -3);
+      const recentRate = recent3.length > 0 ? recent3.filter((d) => byDate[d].some((l) => Object.keys(l.symptoms || {}).includes(name))).length / recent3.length : 0;
+      const earlyRate = earlier3.length > 0 ? earlier3.filter((d) => byDate[d].some((l) => Object.keys(l.symptoms || {}).includes(name))).length / earlier3.length : 0;
+      const trend = recentRate > earlyRate + 0.15 ? "up" : recentRate < earlyRate - 0.15 ? "down" : "stable";
+      return { name, pct, trend };
+    });
+
+  const moodForecast = moodCount >= 2 ? Math.round(moodSum / moodCount * 10) / 10 : null;
+  const dayName = DOW[todayDow];
+
+  // Generate a contextual tip
+  let tip = null;
+  if (predictions.length > 0 && predictions[0].pct >= 70) {
+    tip = `${predictions[0].name} has appeared on ${predictions[0].pct}% of ${dayName}s. Consider planning accordingly.`;
+  } else if (moodForecast !== null && moodForecast <= 2) {
+    tip = `${dayName}s tend to be harder for you. Be gentle with yourself and consider lighter commitments.`;
+  } else if (predictions.length === 0) {
+    tip = `${dayName}s have been relatively symptom-free for you. Enjoy your day!`;
+  }
+
+  return { predictions, moodForecast, tip };
 }
 
 function analyzeCorrelations(logs) {
@@ -767,9 +796,11 @@ const css = `
     .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card,
     .note-chip, .symptom-filter, .comm-reaction-btn, .comm-header-btn,
     .comm-compose-input, .comm-compose-card, .comm-emoji-opt, .comm-tag-btn,
-    .comm-sort-tab, .chat-text, .chat-chip, .chat-input, .digest-card {
+    .comm-sort-tab, .chat-text, .chat-chip, .chat-input, .digest-card,
+    .add-symptom-card, .add-symptom-input, .milestone-card {
       background: var(--card-bg) !important;
     }
+    .milestone-card { border-color: var(--sage-light) !important; background: var(--sage-light) !important; }
     .chat-bubble.user .chat-text { background: var(--clay) !important; }
     .digest-spotlight { background: var(--sage-light) !important; }
     .digest-tip { background: var(--sage-light) !important; }
@@ -1819,6 +1850,85 @@ const css = `
   .digest-delta.down { color: var(--clay); font-weight: 500; }
   .digest-teaser { cursor: pointer; opacity: 0.8; }
   .digest-teaser:active { opacity: 0.6; }
+
+  /* ─── Enhanced Prediction Card ─── */
+  .pred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .pred-day { font-size: 12px; color: var(--ink-light); font-weight: 500; }
+  .pred-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .pred-item { display: flex; align-items: center; gap: 8px; }
+  .pred-item-name { font-size: 13px; color: var(--ink); width: 90px; flex-shrink: 0; }
+  .pred-item-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .pred-item-bar { height: 100%; background: var(--clay); border-radius: 3px; transition: width 0.6s ease; }
+  .pred-item-pct { font-size: 12px; color: var(--clay); font-weight: 600; width: 32px; text-align: right; }
+  .pred-item-trend { font-size: 13px; width: 16px; text-align: center; }
+  .pred-item-trend.up { color: var(--clay); }
+  .pred-item-trend.down { color: var(--sage); }
+  .pred-item-trend.stable { color: var(--ink-light); }
+  .pred-mood { font-size: 12px; color: var(--ink-mid); margin-top: 4px; }
+  .pred-tip { font-size: 12px; color: var(--sage); margin-top: 6px; font-style: italic; line-height: 1.4; }
+
+  /* ─── Custom Symptoms ─── */
+  .symptom-tile.add-symptom { border: 2px dashed var(--border); background: transparent; cursor: pointer; }
+  .symptom-tile.add-symptom .s-icon { font-size: 22px; color: var(--ink-light); }
+  .symptom-tile.add-symptom .s-name { color: var(--ink-light); }
+  .symptom-tile.custom { position: relative; }
+  .custom-remove { position: absolute; top: 4px; right: 6px; font-size: 14px; color: var(--ink-light); cursor: pointer; line-height: 1; z-index: 1; }
+  .custom-remove:hover { color: var(--clay); }
+  .add-symptom-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+  .add-symptom-card { background: var(--card-bg); border-radius: 16px; padding: 20px; width: 100%; max-width: 320px; }
+  .add-symptom-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); margin-bottom: 12px; }
+  .add-symptom-input { width: 100%; background: var(--cream); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--ink); outline: none; }
+  .add-symptom-input:focus { border-color: var(--sage); }
+  .add-symptom-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .add-symptom-cancel { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--ink-mid); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; }
+  .add-symptom-confirm { flex: 1; padding: 10px; border-radius: 10px; border: none; background: var(--sage); color: white; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .add-symptom-confirm:disabled { opacity: 0.4; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ─── Period Tracking ─── */
+  .ctx-period { padding: 10px 0 0; }
+  .ctx-period .ctx-pills { flex-wrap: wrap; }
+
+  /* ─── First-Week Milestones ─── */
+  .milestone-card { display: flex; gap: 14px; align-items: flex-start; background: linear-gradient(135deg, var(--sage-light), transparent); border: 1px solid var(--sage); border-radius: 16px; padding: 16px; margin: 0 16px 10px; animation: slideDown 0.4s ease; }
+  .milestone-icon { font-size: 28px; flex-shrink: 0; }
+  .milestone-content { flex: 1; }
+  .milestone-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); margin-bottom: 4px; }
+  .milestone-text { font-size: 13px; color: var(--ink-mid); line-height: 1.5; margin-bottom: 10px; }
+  .milestone-progress { }
+  .milestone-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+  .milestone-bar { height: 100%; background: var(--sage); border-radius: 3px; transition: width 0.6s ease; }
+  .milestone-label { font-size: 11px; color: var(--ink-light); }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── Animation Polish ─── */
+  .tip-card, .prediction-card, .wellbeing-card, .weekly-summary, .insight-callout, .digest-card, .trend-card, .patterns-card {
+    animation: fadeInUp 0.35s ease;
+  }
+  .symptom-tile { transition: all 0.15s ease; }
+  .symptom-tile:active { transform: scale(0.94); }
+  .symptom-tile.active { animation: popIn 0.2s ease; }
+  .wb-face { transition: all 0.15s ease; }
+  .wb-face:active { transform: scale(0.88); }
+  .wb-face.selected { animation: popIn 0.2s ease; }
+  .ctx-pill { transition: all 0.15s ease; }
+  .ctx-pill:active { transform: scale(0.93); }
+  .note-chip { transition: all 0.15s ease; }
+  .note-chip:active { transform: scale(0.93); }
+  .log-btn { transition: all 0.2s ease; }
+  .log-btn:active:not(:disabled) { transform: scale(0.96); }
+  .nav-tab { transition: all 0.15s ease; }
+  .streak-badge { animation: slideDown 0.4s ease; }
+  .comm-post-card { animation: fadeInUp 0.3s ease; }
+  @keyframes popIn { 0% { transform: scale(0.85); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+  /* ─── Chat typing indicator ─── */
+  .chat-typing { display: flex; align-items: center; gap: 8px; align-self: flex-start; }
+  .chat-typing .chat-text { display: flex; gap: 4px; padding: 12px 18px; }
+  .typing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-light); animation: typingBounce 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 `;
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
@@ -1930,6 +2040,32 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   const [caffeine, setCaffeine] = useState(null);
   const [alcohol, setAlcohol] = useState(null);
   const [exercise, setExercise] = useState(null);
+  const [customSymptoms, setCustomSymptoms] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vela_custom_symptoms")) || []; } catch { return []; }
+  });
+  const [showAddSymptom, setShowAddSymptom] = useState(false);
+  const [newSymptomName, setNewSymptomName] = useState("");
+  const [periodLogged, setPeriodLogged] = useState(null);
+  const [periodFlow, setPeriodFlow] = useState(null);
+
+  const allSymptoms = [...SYMPTOMS, ...customSymptoms];
+
+  function addCustomSymptom() {
+    const name = newSymptomName.trim();
+    if (!name || allSymptoms.some((s) => s.name.toLowerCase() === name.toLowerCase())) return;
+    const updated = [...customSymptoms, { icon: "✦", name, custom: true }];
+    setCustomSymptoms(updated);
+    localStorage.setItem("vela_custom_symptoms", JSON.stringify(updated));
+    setNewSymptomName("");
+    setShowAddSymptom(false);
+    haptic("Medium");
+  }
+
+  function removeCustomSymptom(name) {
+    const updated = customSymptoms.filter((s) => s.name !== name);
+    setCustomSymptoms(updated);
+    localStorage.setItem("vela_custom_symptoms", JSON.stringify(updated));
+  }
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -2016,7 +2152,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   function handleLog() {
     if (!canLog) return;
     haptic("Medium");
-    onLog({ mood, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise } });
+    onLog({ mood, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
     setMood(null);
     setActiveSymptoms({});
     setSeverities({});
@@ -2026,6 +2162,8 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
     setCaffeine(null);
     setAlcohol(null);
     setExercise(null);
+    setPeriodLogged(null);
+    setPeriodFlow(null);
   }
 
   return (
@@ -2047,6 +2185,36 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
         )}
       </div>
 
+      {(() => {
+        const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+        if (uniqueDays >= 7) return null;
+        const milestones = [
+          { day: 0, title: "Welcome to Vela", text: "Log your first entry below. Tracking even one symptom helps build your health picture.", icon: "🌱" },
+          { day: 1, title: "Day 1 complete!", text: "You've started your journey. Come back tomorrow — consistency is key to spotting patterns.", icon: "✨" },
+          { day: 2, title: "2 days tracked", text: "You're building momentum. Vela is starting to learn your patterns.", icon: "📊" },
+          { day: 3, title: "3 days in!", text: "Halfway to your first weekly insight. You're doing great — keep going!", icon: "🌿" },
+          { day: 4, title: "4 days strong", text: "Vela is starting to see connections in your data. A few more days unlocks patterns.", icon: "🔍" },
+          { day: 5, title: "5 days tracked", text: "Almost there! Two more days and Vela will generate your first personalized insights.", icon: "🌟" },
+          { day: 6, title: "6 days — so close!", text: "One more day and your first full weekly summary unlocks. You've got this!", icon: "🎯" },
+        ];
+        const m = milestones[uniqueDays] || milestones[0];
+        return (
+          <div className="milestone-card">
+            <div className="milestone-icon">{m.icon}</div>
+            <div className="milestone-content">
+              <div className="milestone-title">{m.title}</div>
+              <div className="milestone-text">{m.text}</div>
+              <div className="milestone-progress">
+                <div className="milestone-bar-bg">
+                  <div className="milestone-bar" style={{ width: `${(uniqueDays / 7) * 100}%` }} />
+                </div>
+                <div className="milestone-label">{uniqueDays}/7 days to first insights</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {tipText && (
         <div className="tip-card">
           <div className="tip-label">Evidence-based tip</div>
@@ -2055,15 +2223,37 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
       )}
 
       {isPremium && (() => {
-        const predicted = predictSymptoms(logs);
-        if (predicted.length === 0) return null;
+        const forecast = predictSymptoms(logs);
+        if (forecast.predictions.length === 0 && forecast.moodForecast === null) return null;
+        const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
         return (
           <div className="prediction-card">
-            <div className="pred-label">Based on your patterns</div>
-            <div className="pred-text">
-              On {new Date().toLocaleDateString("en-US", { weekday: "long" })}s, you often log{" "}
-              <strong>{predicted.join(" and ").toLowerCase()}</strong>. Keep tracking to refine predictions.
+            <div className="pred-header">
+              <div className="pred-label">Today's forecast</div>
+              <div className="pred-day">{dayName}</div>
             </div>
+            {forecast.predictions.length > 0 && (
+              <div className="pred-items">
+                {forecast.predictions.map((p, i) => (
+                  <div key={i} className="pred-item">
+                    <div className="pred-item-name">{p.name}</div>
+                    <div className="pred-item-bar-bg">
+                      <div className="pred-item-bar" style={{ width: `${p.pct}%` }} />
+                    </div>
+                    <div className="pred-item-pct">{p.pct}%</div>
+                    <div className={`pred-item-trend ${p.trend}`}>
+                      {p.trend === "up" ? "↑" : p.trend === "down" ? "↓" : "→"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {forecast.moodForecast !== null && (
+              <div className="pred-mood">
+                Typical mood: {MOODS[Math.round(forecast.moodForecast)]} ({forecast.moodForecast}/4)
+              </div>
+            )}
+            {forecast.tip && <div className="pred-tip">{forecast.tip}</div>}
           </div>
         );
       })()}
@@ -2085,7 +2275,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
 
       <div className="symptoms-section">
         <div className="section-label">Symptoms today</div>
-        {SYMPTOMS.length > 12 && (
+        {allSymptoms.length > 12 && (
           <input
             className="symptom-filter"
             placeholder="Search symptoms..."
@@ -2094,15 +2284,18 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
           />
         )}
         <div className="symptom-grid">
-          {SYMPTOMS.filter((s) => !symptomFilter || s.name.toLowerCase().includes(symptomFilter.toLowerCase())).map((s) => {
+          {allSymptoms.filter((s) => !symptomFilter || s.name.toLowerCase().includes(symptomFilter.toLowerCase())).map((s) => {
             const isActive = !!activeSymptoms[s.name];
             const sev = severities[s.name] || 0;
             return (
               <div
                 key={s.name}
-                className={`symptom-tile${isActive ? " active" : ""}`}
+                className={`symptom-tile${isActive ? " active" : ""}${s.custom ? " custom" : ""}`}
                 onClick={() => { haptic("Light"); toggleSymptom(s.name); }}
               >
+                {s.custom && (
+                  <div className="custom-remove" onClick={(e) => { e.stopPropagation(); removeCustomSymptom(s.name); }}>×</div>
+                )}
                 <div className="s-icon">{s.icon}</div>
                 <span className="s-name">{s.name}</span>
                 <div className="s-severity">
@@ -2120,7 +2313,31 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
               </div>
             );
           })}
+          <div className="symptom-tile add-symptom" onClick={() => { haptic("Light"); setShowAddSymptom(true); }}>
+            <div className="s-icon">+</div>
+            <span className="s-name">Add custom</span>
+          </div>
         </div>
+        {showAddSymptom && (
+          <div className="add-symptom-overlay" onClick={() => setShowAddSymptom(false)}>
+            <div className="add-symptom-card" onClick={(e) => e.stopPropagation()}>
+              <div className="add-symptom-title">Add custom symptom</div>
+              <input
+                className="add-symptom-input"
+                placeholder="e.g. Tinnitus, Burning mouth..."
+                value={newSymptomName}
+                onChange={(e) => setNewSymptomName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") addCustomSymptom(); }}
+                autoFocus
+                maxLength={30}
+              />
+              <div className="add-symptom-actions">
+                <button className="add-symptom-cancel" onClick={() => setShowAddSymptom(false)}>Cancel</button>
+                <button className="add-symptom-confirm" onClick={addCustomSymptom} disabled={!newSymptomName.trim()}>Add symptom</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="context-section">
@@ -2162,11 +2379,34 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
             </div>
           ))}
         </div>
+
+        {profile && (profile[0] === 0 || profile[0] === 1) && (
+          <div className="ctx-period">
+            <span className="ctx-label">🩸 Period</span>
+            <div className="ctx-pills" style={{ marginTop: 6 }}>
+              {[
+                { key: "none", label: "No period" },
+                { key: "spotting", label: "Spotting" },
+                { key: "light", label: "Light" },
+                { key: "medium", label: "Medium" },
+                { key: "heavy", label: "Heavy" },
+              ].map(({ key, label }) => (
+                <div
+                  key={key}
+                  className={`ctx-pill${periodLogged === key ? " on" : ""}`}
+                  onClick={() => { haptic("Light"); setPeriodLogged(periodLogged === key ? null : key); setPeriodFlow(key === "none" ? null : key); }}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="notes-area">
         <div className="note-chips">
-          {["Period started", "Bad night", "Stressful day", "Skipped meds", "Felt great"].map((chip) => (
+          {["Bad night", "Stressful day", "Skipped meds", "Felt great", "Period started"].map((chip) => (
             <div key={chip} className={`note-chip${notes.includes(chip) ? " on" : ""}`} onClick={() => {
               haptic("Light");
               setNotes((prev) => prev.includes(chip) ? prev.replace(chip, "").replace(/,\s*,/g, ",").replace(/^,\s*|,\s*$/g, "").trim() : (prev ? prev + ", " + chip : chip));
@@ -2549,23 +2789,30 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages, showCompanion]);
 
+  const [isTyping, setIsTyping] = useState(false);
+
   const handleQuestion = (text) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isTyping) return;
     const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
     const updated = [...chatMessages, userMsg];
-
-    if (logs.length < 7) {
-      const velaMsg = { role: "assistant", text: "Keep logging! I need at least 7 days of data to spot meaningful patterns. You're on day " + logs.length + " — almost there!", time: new Date().toISOString() };
-      setChatMessages([...updated, velaMsg]);
-      setChatInput("");
-      return;
-    }
-
-    const matched = matchQuestion(text);
-    const response = generateResponse(matched, logs, profile);
-    const velaMsg = { role: "assistant", text: response, time: new Date().toISOString() };
-    setChatMessages([...updated, velaMsg]);
+    setChatMessages(updated);
     setChatInput("");
+    setIsTyping(true);
+    haptic("Light");
+
+    setTimeout(() => {
+      let responseText;
+      if (logs.length < 7) {
+        responseText = "Keep logging! I need at least 7 days of data to spot meaningful patterns. You're on day " + logs.length + " — almost there!";
+      } else {
+        const matched = matchQuestion(text);
+        responseText = generateResponse(matched, logs, profile);
+      }
+      const velaMsg = { role: "assistant", text: responseText, time: new Date().toISOString() };
+      setChatMessages((prev) => [...prev, velaMsg]);
+      setIsTyping(false);
+      haptic("Light");
+    }, 600 + Math.random() * 400);
   };
 
   const DAY_NAMES = ["S", "M", "T", "W", "T", "F", "S"];
@@ -2690,6 +2937,16 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 <div className="chat-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
               </div>
             ))}
+            {isTyping && (
+              <div className="chat-bubble assistant chat-typing">
+                <div className="chat-avatar"><span>V</span></div>
+                <div className="chat-text">
+                  <div className="typing-dot" />
+                  <div className="typing-dot" />
+                  <div className="typing-dot" />
+                </div>
+              </div>
+            )}
             <div ref={chatEndRef} />
           </div>
           <div className="chat-chips">
@@ -4301,6 +4558,7 @@ export default function App() {
       localStorage.removeItem("vela_community_replies");
       localStorage.removeItem("vela_chat_messages");
       localStorage.removeItem("vela_last_digest_date");
+      localStorage.removeItem("vela_custom_symptoms");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
