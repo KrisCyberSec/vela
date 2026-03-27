@@ -166,6 +166,79 @@ function getJourneyLabel(profileIndex) {
   return labels[profileIndex] || null;
 }
 
+// ─── Profile-Based Personalization Engine ─────────────────────────────────────
+
+function getPersonalization(profile) {
+  if (!profile) return null;
+
+  const stage = profile[0]; // 0=regular, 1=peri, 2=post, 3=surgical
+  const concerns = Array.isArray(profile[1]) ? profile[1] : (profile[1] !== null && profile[1] !== undefined ? [profile[1]] : []);
+  const goals = Array.isArray(profile[2]) ? profile[2] : (profile[2] !== null && profile[2] !== undefined ? [profile[2]] : []);
+  const guidance = profile[3] ?? 3;
+
+  // Concern indices: 0=hot flashes, 1=sleep, 2=mood, 3=brain fog, 4=joint pain, 5=weight, 6=libido, 7=palpitations
+
+  // Map concerns to default symptom category
+  const concernToCat = { 0: "common", 1: "common", 2: "mood", 3: "mood", 4: "physical", 5: "digestive", 6: "intimate", 7: "physical" };
+  const defaultSymptomCat = concerns.length > 0 ? (concernToCat[concerns[0]] || "common") : "common";
+
+  // Map concerns to recommended CBT program
+  const concernToCBT = { 0: "cbt-hot-flashes", 1: "cbt-sleep", 2: "cbt-anxiety", 3: "cbt-anxiety", 7: "cbt-anxiety" };
+  const recommendedCBT = concerns.map((c) => concernToCBT[c]).filter(Boolean);
+
+  // Map concerns to recommended experiment order
+  const concernToExp = {
+    0: ["no-caffeine-7", "no-alcohol-14", "stress-mgmt-7"],
+    1: ["sleep-hygiene-7", "no-caffeine-7", "stress-mgmt-7"],
+    2: ["stress-mgmt-7", "exercise-7", "mood-journal-7"],
+    3: ["sleep-hygiene-7", "exercise-7", "hydration-7"],
+    4: ["exercise-7", "hydration-7", "stress-mgmt-7"],
+    5: ["exercise-7", "no-alcohol-14", "hydration-7"],
+    6: ["stress-mgmt-7", "exercise-7", "sleep-hygiene-7"],
+    7: ["stress-mgmt-7", "no-caffeine-7", "exercise-7"],
+  };
+  const expPriority = concerns.flatMap((c) => concernToExp[c] || []);
+
+  // Stage-aware greeting subtitles
+  const stageMessages = [
+    "Your cycle patterns matter — tracking now builds a baseline for what's ahead.",
+    "Your body is changing — every log helps you understand and navigate this transition.",
+    "You've crossed the threshold — tracking helps optimize this new chapter.",
+    "Your journey is unique — Vela adapts to your specific experience.",
+  ];
+  const stageMessage = stageMessages[stage] || stageMessages[1];
+
+  // Goal-driven feature emphasis
+  // 0=understand body, 1=track for doctor, 2=find relief, 3=connect with others
+  const wantsDoctor = goals.includes(1);
+  const wantsRelief = goals.includes(2);
+  const wantsCommunity = goals.includes(3);
+  const wantsUnderstanding = goals.includes(0);
+
+  // Personalized welcome after onboarding
+  const concernNames = {
+    0: "hot flashes", 1: "sleep", 2: "mood", 3: "brain fog",
+    4: "joint pain", 5: "weight", 6: "intimate health", 7: "palpitations",
+  };
+  const topConcernNames = concerns.slice(0, 2).map((c) => concernNames[c]).filter(Boolean);
+
+  // Personalized companion greeting
+  const companionGreeting = topConcernNames.length > 0
+    ? `I'm here to help you understand your ${topConcernNames.join(" and ")} patterns. Ask me anything about your logged data.`
+    : "I'm here to help you understand your symptom patterns. Ask me anything about your logged data.";
+
+  return {
+    stage, concerns, goals, guidance,
+    defaultSymptomCat,
+    recommendedCBT: [...new Set(recommendedCBT)],
+    expPriority: [...new Set(expPriority)],
+    stageMessage,
+    wantsDoctor, wantsRelief, wantsCommunity, wantsUnderstanding,
+    topConcernNames,
+    companionGreeting,
+  };
+}
+
 function analyzePatterns(logs) {
   if (logs.length < 7) return [];
   const patterns = [];
@@ -1282,6 +1355,10 @@ const css = `
   .tracker-header { padding: 16px 24px 0; }
   .tracker-header h2 { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--ink); }
   .tracker-header p { font-size: 13px; color: var(--ink-light); margin-top: 2px; }
+  .personalized-welcome {
+    font-size: 13px; color: var(--sage-dark); margin-top: 6px; line-height: 1.4;
+    font-style: italic; opacity: 0.9;
+  }
 
   .wellbeing-card {
     margin: 14px 16px 0;
@@ -2294,6 +2371,11 @@ const css = `
   .cbt-program-name { font-size: 14px; font-weight: 600; color: var(--ink); }
   .cbt-program-meta { font-size: 11px; color: var(--sage); font-weight: 500; margin-top: 2px; }
   .cbt-program-desc { font-size: 12px; color: var(--ink-light); line-height: 1.4; margin-top: 4px; }
+  .cbt-recommended-badge {
+    font-size: 10px; font-weight: 600; color: var(--sage); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 2px;
+  }
+  .cbt-program-item.recommended { border-color: var(--sage); background: var(--sage-light); }
   .cbt-completed-note { font-size: 12px; color: var(--sage); font-weight: 500; text-align: center; padding: 4px; }
   .cbt-teaser { opacity: 0.85; }
   .cbt-teaser:active { opacity: 0.65; }
@@ -2598,7 +2680,8 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
   const [severities, setSeverities] = useState({});
   const [notes, setNotes] = useState("");
   const [symptomFilter, setSymptomFilter] = useState("");
-  const [symptomCat, setSymptomCat] = useState("common");
+  const personalization = getPersonalization(profile);
+  const [symptomCat, setSymptomCat] = useState(personalization?.defaultSymptomCat || "common");
   const [sleepHours, setSleepHours] = useState(null);
   const [stress, setStress] = useState(null);
   const [caffeine, setCaffeine] = useState(null);
@@ -2739,6 +2822,9 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
       <div className="tracker-header">
         <h2>{getGreeting()}</h2>
         <p>{today}{journeyStage ? ` · ${journeyStage}` : ""}</p>
+        {logs.length === 0 && personalization && (
+          <div className="personalized-welcome">{personalization.stageMessage}</div>
+        )}
         {(() => {
           const xp = computeXP(logs);
           const lvl = getLevel(xp);
@@ -2765,14 +2851,17 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
       {(() => {
         const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
         if (uniqueDays >= 7) return null;
+        const concernHint = personalization?.topConcernNames?.length > 0
+          ? personalization.topConcernNames[0]
+          : "symptom";
         const milestones = [
-          { day: 0, title: "Welcome to Vela", text: "Log your first entry below. Tracking even one symptom helps build your health picture.", icon: "🌱" },
-          { day: 1, title: "Day 1 complete!", text: "You've started your journey. Come back tomorrow — consistency is key to spotting patterns.", icon: "✨" },
-          { day: 2, title: "2 days tracked", text: "You're building momentum. Vela is starting to learn your patterns.", icon: "📊" },
-          { day: 3, title: "3 days in!", text: "Halfway to your first weekly insight. You're doing great — keep going!", icon: "🌿" },
-          { day: 4, title: "4 days strong", text: "Vela is starting to see connections in your data. A few more days unlocks patterns.", icon: "🔍" },
-          { day: 5, title: "5 days tracked", text: "Almost there! Two more days and Vela will generate your first personalized insights.", icon: "🌟" },
-          { day: 6, title: "6 days — so close!", text: "One more day and your first full weekly summary unlocks. You've got this!", icon: "🎯" },
+          { day: 0, title: "Welcome to Vela", text: `Log your first entry below — start with how you're feeling and any ${concernHint} you notice today.`, icon: "🌱" },
+          { day: 1, title: "Day 1 complete!", text: `Great start! Come back tomorrow — tracking ${concernHint} consistently is the fastest way to spot what helps.`, icon: "✨" },
+          { day: 2, title: "2 days tracked", text: `You're building momentum. Vela is already learning your ${concernHint} patterns.`, icon: "📊" },
+          { day: 3, title: "3 days in!", text: "Halfway to your first weekly insight. Your data is starting to tell a story — keep going!", icon: "🌿" },
+          { day: 4, title: "4 days strong", text: `Vela is finding connections in your data. A few more days reveals what triggers your ${concernHint}.`, icon: "🔍" },
+          { day: 5, title: "5 days tracked", text: "Almost there! Two more days and Vela generates your first personalized insights.", icon: "🌟" },
+          { day: 6, title: "6 days — so close!", text: "One more day unlocks your full weekly summary, trend charts, and pattern analysis!", icon: "🎯" },
         ];
         const m = milestones[uniqueDays] || milestones[0];
         return (
@@ -2809,6 +2898,61 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
           );
         }
         return null;
+      })()}
+
+      {/* Goal-based nudges */}
+      {(() => {
+        if (!personalization || logs.length < 3) return null;
+        const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+        const nudges = [];
+
+        // Doctor-track users: nudge to check doctor prep after 14 days
+        if (personalization.wantsDoctor && uniqueDays >= 14 && !localStorage.getItem("vela_doctor_nudge_dismissed")) {
+          nudges.push(
+            <div key="doctor" className="nudge-card" onClick={() => onNavigate && onNavigate("insights")} style={{ borderColor: "var(--clay)" }}>
+              <div className="nudge-icon">🩺</div>
+              <div className="nudge-content">
+                <div className="nudge-title">Ready for your doctor?</div>
+                <div className="nudge-text">You have {uniqueDays} days of data. Vela can generate a report with talking points for your next visit.</div>
+              </div>
+              <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_doctor_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
+            </div>
+          );
+        }
+
+        // Community-oriented users: nudge to explore community after 3 logs
+        if (personalization.wantsCommunity && logs.length >= 3 && logs.length <= 10 && !localStorage.getItem("vela_community_nudge_dismissed")) {
+          nudges.push(
+            <div key="community" className="nudge-card" onClick={() => onNavigate && onNavigate("community")} style={{ borderColor: "var(--sage)" }}>
+              <div className="nudge-icon">💬</div>
+              <div className="nudge-content">
+                <div className="nudge-title">You're not alone in this</div>
+                <div className="nudge-text">Connect with others navigating the same journey. Share experiences, ask questions.</div>
+              </div>
+              <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_community_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
+            </div>
+          );
+        }
+
+        // Relief-seekers: nudge to try CBT or experiments after 5 logs
+        if (personalization.wantsRelief && uniqueDays >= 5 && uniqueDays <= 12 && !localStorage.getItem("vela_relief_nudge_dismissed")) {
+          const hasExperiment = localStorage.getItem("vela_active_experiment");
+          const hasCBT = localStorage.getItem("vela_active_cbt");
+          if (!hasExperiment && !hasCBT) {
+            nudges.push(
+              <div key="relief" className="nudge-card" style={{ borderColor: "var(--sage)" }}>
+                <div className="nudge-icon">🧪</div>
+                <div className="nudge-content">
+                  <div className="nudge-title">Ready to try something?</div>
+                  <div className="nudge-text">Based on your {personalization.topConcernNames.length > 0 ? personalization.topConcernNames[0] : "symptom"} concerns, try an experiment or CBT program below.</div>
+                </div>
+                <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_relief_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
+              </div>
+            );
+          }
+        }
+
+        return nudges.length > 0 ? nudges[0] : null; // Show one nudge at a time
       })()}
 
       {tipText && (
@@ -2866,10 +3010,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         if (!activeExp) {
           return isPremium ? (
             <div className="exp-card exp-start" onClick={() => {
-              const available = EXPERIMENTS.filter((e) => {
-                const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
-                return !completed.includes(e.id);
-              });
+              const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
+              let available = EXPERIMENTS.filter((e) => !completed.includes(e.id));
+              // Sort by user's concern-based priority
+              if (personalization?.expPriority?.length > 0) {
+                available.sort((a, b) => {
+                  const aIdx = personalization.expPriority.indexOf(a.id);
+                  const bIdx = personalization.expPriority.indexOf(b.id);
+                  return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+                });
+              }
               if (available.length === 0) return;
               const exp = available[0];
               localStorage.setItem("vela_active_experiment", JSON.stringify({ ...exp, startDate: new Date().toISOString(), daysCompleted: 0 }));
@@ -3700,7 +3850,13 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
               <>
                 <div className="chat-bubble assistant">
                   <div className="chat-avatar"><span>V</span></div>
-                  <div className="chat-text">Hi! I'm Vela, your health companion. I analyze your logged data to find patterns and insights. Ask me anything about your symptoms, triggers, or trends — or tap a question below to get started.</div>
+                  <div className="chat-text">{(() => {
+                    const p = getPersonalization(profile);
+                    if (p?.topConcernNames?.length > 0) {
+                      return `Hi! I'm Vela, your health companion. ${p.companionGreeting} I'll help you spot what triggers your ${p.topConcernNames[0]}, find your best and worst days, and prepare for doctor visits. Tap a question below or ask your own.`;
+                    }
+                    return "Hi! I'm Vela, your health companion. I analyze your logged data to find patterns and insights. Ask me anything about your symptoms, triggers, or trends — or tap a question below to get started.";
+                  })()}</div>
                 </div>
                 <div className="chat-disclaimer">Vela analyzes your personal data to find patterns. This is not medical advice — always consult your healthcare provider for treatment decisions.</div>
               </>
@@ -3745,9 +3901,13 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         <div className="insight-callout">
           <div className="ic-label">Getting started</div>
           <div className="ic-text">
-            Log your first entry on the <strong>Today</strong> tab to start
-            seeing patterns here. After 7 days, Vela will surface personalized
-            insights about your symptoms.
+            {(() => {
+              const p = getPersonalization(profile);
+              if (p?.topConcernNames?.length > 0) {
+                return <>Log your first entry on the <strong>Today</strong> tab. After 7 days, Vela will analyze your <strong>{p.topConcernNames.join(" and ")}</strong> patterns and show you what your data reveals.</>;
+              }
+              return <>Log your first entry on the <strong>Today</strong> tab to start seeing patterns here. After 7 days, Vela will surface personalized insights about your symptoms.</>;
+            })()}
           </div>
         </div>
       ) : (
@@ -4165,25 +4325,39 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 <button className="cbt-btn" onClick={() => setShowCBTList(true)}>Browse programs</button>
               ) : (
                 <div className="cbt-program-list">
-                  {CBT_PROGRAMS.filter((p) => {
+                  {(() => {
+                    const p = getPersonalization(profile);
                     const completed = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
-                    return !completed.includes(p.id);
-                  }).map((program) => (
-                    <div key={program.id} className="cbt-program-item" onClick={() => {
-                      const cbt = { programId: program.id, startDate: new Date().toISOString(), completed: [] };
-                      setActiveCBT(cbt);
-                      localStorage.setItem("vela_active_cbt", JSON.stringify(cbt));
-                      setShowCBTList(false);
-                      haptic("Medium");
-                    }}>
-                      <div className="cbt-program-icon">{program.icon}</div>
-                      <div className="cbt-program-info">
-                        <div className="cbt-program-name">{program.title}</div>
-                        <div className="cbt-program-meta">{program.subtitle} · {program.xpReward} XP</div>
-                        <div className="cbt-program-desc">{program.desc}</div>
-                      </div>
-                    </div>
-                  ))}
+                    let programs = CBT_PROGRAMS.filter((prog) => !completed.includes(prog.id));
+                    // Sort recommended programs first
+                    if (p?.recommendedCBT?.length > 0) {
+                      programs.sort((a, b) => {
+                        const aRec = p.recommendedCBT.includes(a.id) ? 0 : 1;
+                        const bRec = p.recommendedCBT.includes(b.id) ? 0 : 1;
+                        return aRec - bRec;
+                      });
+                    }
+                    return programs.map((program) => {
+                      const isRecommended = p?.recommendedCBT?.includes(program.id);
+                      return (
+                        <div key={program.id} className={`cbt-program-item${isRecommended ? " recommended" : ""}`} onClick={() => {
+                          const cbt = { programId: program.id, startDate: new Date().toISOString(), completed: [] };
+                          setActiveCBT(cbt);
+                          localStorage.setItem("vela_active_cbt", JSON.stringify(cbt));
+                          setShowCBTList(false);
+                          haptic("Medium");
+                        }}>
+                          <div className="cbt-program-icon">{program.icon}</div>
+                          <div className="cbt-program-info">
+                            {isRecommended && <div className="cbt-recommended-badge">Recommended for you</div>}
+                            <div className="cbt-program-name">{program.title}</div>
+                            <div className="cbt-program-meta">{program.subtitle} · {program.xpReward} XP</div>
+                            <div className="cbt-program-desc">{program.desc}</div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                   {JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]").length > 0 && (
                     <div className="cbt-completed-note">✓ You've completed {JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]").length} program(s)</div>
                   )}
@@ -5601,6 +5775,9 @@ export default function App() {
       localStorage.removeItem("vela_active_cbt");
       localStorage.removeItem("vela_completed_cbt");
       localStorage.removeItem("vela_insights_nudge_dismissed");
+      localStorage.removeItem("vela_doctor_nudge_dismissed");
+      localStorage.removeItem("vela_community_nudge_dismissed");
+      localStorage.removeItem("vela_relief_nudge_dismissed");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
