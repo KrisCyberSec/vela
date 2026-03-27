@@ -946,16 +946,16 @@ const BADGES = [
 ];
 
 const LEVELS = [
-  { level: 1, name: "Newcomer", xpNeeded: 0 },
-  { level: 2, name: "Explorer", xpNeeded: 50 },
-  { level: 3, name: "Tracker", xpNeeded: 150 },
-  { level: 4, name: "Pattern Finder", xpNeeded: 350 },
-  { level: 5, name: "Insightful", xpNeeded: 600 },
-  { level: 6, name: "Dedicated", xpNeeded: 1000 },
-  { level: 7, name: "Empowered", xpNeeded: 1500 },
-  { level: 8, name: "Advocate", xpNeeded: 2200 },
-  { level: 9, name: "Mentor", xpNeeded: 3000 },
-  { level: 10, name: "Vela Master", xpNeeded: 4000 },
+  { level: 1, name: "Newcomer", xpNeeded: 0, unlock: null },
+  { level: 2, name: "Explorer", xpNeeded: 50, unlock: "Daily insights unlocked" },
+  { level: 3, name: "Tracker", xpNeeded: 150, unlock: "Self-experiments unlocked" },
+  { level: 4, name: "Pattern Finder", xpNeeded: 350, unlock: "Streak freeze earned" },
+  { level: 5, name: "Insightful", xpNeeded: 600, unlock: "CBT programs unlocked" },
+  { level: 6, name: "Dedicated", xpNeeded: 1000, unlock: "Advanced correlations" },
+  { level: 7, name: "Empowered", xpNeeded: 1500, unlock: "Community flair badge" },
+  { level: 8, name: "Advocate", xpNeeded: 2200, unlock: "Custom experiment builder" },
+  { level: 9, name: "Mentor", xpNeeded: 3000, unlock: "Full pattern history" },
+  { level: 10, name: "Vela Master", xpNeeded: 4000, unlock: "Everything unlocked" },
 ];
 
 function computeGamificationStats(logs) {
@@ -975,13 +975,23 @@ function computeGamificationStats(logs) {
   return { streak, totalLogs, uniqueSymptoms, uniqueDays, moodLogs, notesCount, contextLogs, communityPosts, aiChats, weekendLogs, nightLogs, earlyLogs, periodLogs };
 }
 
+function getStreakMultiplier(streak) {
+  if (streak >= 30) return 3;
+  if (streak >= 14) return 2;
+  if (streak >= 7) return 1.5;
+  return 1;
+}
+
 function computeXP(logs) {
   let xp = 0;
+  const streak = getStreak(logs);
+  const multiplier = getStreakMultiplier(streak);
   xp += logs.length * 10; // 10 XP per log
   const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
   xp += uniqueDays * 5; // 5 XP bonus per unique day
-  const streak = getStreak(logs);
   xp += Math.min(streak, 60) * 3; // 3 XP per streak day (cap at 60)
+  // Streak multiplier bonus: extra XP for sustained streaks
+  if (streak >= 7) xp += Math.floor(streak * (multiplier - 1) * 2);
   const moodLogs = logs.filter((l) => l.mood !== null && l.mood !== undefined).length;
   xp += moodLogs * 2; // 2 XP per mood log
   const contextLogs = logs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null)).length;
@@ -2502,6 +2512,7 @@ const css = `
   .gam-xp-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
   .gam-xp-bar { height: 100%; background: linear-gradient(90deg, var(--clay), var(--sage)); border-radius: 4px; transition: width 0.6s ease; }
   .gam-xp-label { font-size: 10px; color: var(--ink-light); margin-top: 2px; }
+  .gam-next-unlock { font-size: 10px; color: var(--gold); margin-top: 2px; font-weight: 500; }
   .xp-gain-flash { color: var(--sage); font-weight: 700; animation: xpFlash 2s ease forwards; }
   @keyframes xpFlash { 0% { opacity: 0; transform: translateY(4px); } 15% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }
   .gam-streak { font-size: 14px; font-weight: 600; color: var(--clay); white-space: nowrap; }
@@ -2527,9 +2538,30 @@ const css = `
   @keyframes badgeEarned { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
   .gam-badge.earned { animation: badgeEarned 0.4s ease; }
 
-  .badge-toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--sage); color: white; padding: 10px 20px; border-radius: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.25); animation: toastSlide 0.4s ease, toastFade 0.4s ease 2.6s forwards; }
-  .badge-toast-icon { font-size: 24px; }
-  .badge-toast-text { font-weight: 500; }
+  .badge-toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; background: linear-gradient(135deg, var(--sage), #5a7a5a); color: white; padding: 14px 22px; border-radius: 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,0.35); animation: badgeSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), toastFade 0.4s ease 2.6s forwards; max-width: 90%; }
+  .badge-toast-icon { font-size: 32px; animation: badgeBounce 0.6s ease 0.3s; }
+  .badge-toast-content { display: flex; flex-direction: column; gap: 2px; }
+  .badge-toast-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; }
+  .badge-toast-text { font-weight: 600; font-size: 14px; }
+  @keyframes badgeSlideIn { 0% { transform: translateX(-50%) translateY(-30px) scale(0.8); opacity: 0; } 100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; } }
+  @keyframes badgeBounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+
+  .streak-mult { font-size: 10px; font-weight: 700; color: var(--gold); margin-left: 2px; }
+
+  .levelup-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease; }
+  .levelup-card { background: var(--card-bg); border-radius: 24px; padding: 40px 32px; text-align: center; max-width: 320px; width: 90%; animation: levelUpPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .levelup-sparkle { font-size: 48px; animation: sparkleRotate 2s linear infinite; }
+  .levelup-title { font-size: 14px; text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-top: 12px; font-weight: 600; }
+  .levelup-level { font-size: 56px; font-weight: 800; color: var(--ink); margin-top: 8px; font-family: 'DM Serif Display', serif; }
+  .levelup-name { font-size: 20px; color: var(--sage); font-weight: 600; margin-top: 4px; }
+  .levelup-unlock { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 20px; padding: 12px 16px; background: rgba(111,145,103,0.15); border-radius: 12px; font-size: 14px; color: var(--ink); font-weight: 500; animation: unlockSlide 0.5s ease 0.4s both; }
+  .levelup-unlock-icon { font-size: 20px; }
+  .levelup-btn { margin-top: 24px; padding: 12px 40px; background: var(--sage); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: transform 0.15s; }
+  .levelup-btn:active { transform: scale(0.95); }
+  @keyframes levelUpPop { 0% { transform: scale(0.5) translateY(40px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+  @keyframes sparkleRotate { 0% { transform: rotate(0deg) scale(1); } 25% { transform: rotate(5deg) scale(1.1); } 50% { transform: rotate(0deg) scale(1); } 75% { transform: rotate(-5deg) scale(1.1); } 100% { transform: rotate(0deg) scale(1); } }
+  @keyframes unlockSlide { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
   @keyframes toastSlide { from { transform: translateX(-50%) translateY(-20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
   @keyframes toastFade { to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
 
@@ -2888,9 +2920,13 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
                   {xpGain > 0 && <span className="xp-gain-flash">+{xpGain} XP </span>}
                   {lvl.isMax ? "MAX" : `${lvl.xp} XP · ${lvl.xpToNext} to next`}
                 </div>
+                {!lvl.isMax && (() => {
+                  const nextLvl = LEVELS.find((l) => l.level === lvl.level + 1);
+                  return nextLvl?.unlock ? <div className="gam-next-unlock">🔓 Next: {nextLvl.unlock}</div> : null;
+                })()}
               </div>
               {streak > 0 && (
-                <div className="gam-streak">🔥 {streak}</div>
+                <div className="gam-streak">🔥 {streak}{getStreakMultiplier(streak) > 1 && <span className="streak-mult">{getStreakMultiplier(streak)}x</span>}</div>
               )}
             </div>
           );
@@ -5734,6 +5770,8 @@ export default function App() {
   const [toast, setToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [badgeToast, setBadgeToast] = useState(null);
+  const [levelUp, setLevelUp] = useState(null); // { level, name, unlock }
+  const prevLevelRef = useRef(null);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
@@ -5779,6 +5817,17 @@ export default function App() {
       setBadgeToast(newEarned[0]);
       setTimeout(() => setBadgeToast(null), 3000);
     }
+    // Level-up detection
+    const prevXp = computeXP(prevLogs);
+    const newXp = computeXP(newLogs);
+    const prevLvl = getLevel(prevXp);
+    const newLvl = getLevel(newXp);
+    if (newLvl.level > prevLvl.level) {
+      setTimeout(() => {
+        haptic("Heavy");
+        setLevelUp({ level: newLvl.level, name: newLvl.name, unlock: LEVELS.find((l) => l.level === newLvl.level)?.unlock });
+      }, newEarned.length > 0 ? 3500 : 500); // delay if badge toast is showing
+    }
   }
 
   function handleLog(entry) {
@@ -5803,6 +5852,13 @@ export default function App() {
     }
     else if (entry.notes && entry.notes.length > 20) msg = "Great notes! These details help spot patterns. 📝";
     else if (entry.energy !== null && entry.energy !== undefined && entry.mood !== null && entry.mood !== undefined) msg = "Mood + energy logged — building your full picture. 🌟";
+    // Calculate XP gained from this log
+    const prevXp = computeXP(logs);
+    const newXp = computeXP(newLogs);
+    const gained = newXp - prevXp;
+    if (gained > 0) msg += ` +${gained} XP`;
+    const streakMult = getStreakMultiplier(streak);
+    if (streakMult > 1) msg += ` (${streakMult}x streak bonus!)`;
     setToastMsg(msg);
     setToast(true);
     setTimeout(() => setToast(false), 3500);
@@ -6008,7 +6064,29 @@ export default function App() {
       {badgeToast && (
         <div className="badge-toast">
           <span className="badge-toast-icon">{badgeToast.icon}</span>
-          <span className="badge-toast-text">Badge unlocked: {badgeToast.name}!</span>
+          <div className="badge-toast-content">
+            <span className="badge-toast-title">Badge unlocked!</span>
+            <span className="badge-toast-text">{badgeToast.icon} {badgeToast.name} — {badgeToast.desc}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Level-Up Celebration */}
+      {levelUp && (
+        <div className="levelup-overlay" onClick={() => setLevelUp(null)}>
+          <div className="levelup-card">
+            <div className="levelup-sparkle">✨</div>
+            <div className="levelup-title">Level Up!</div>
+            <div className="levelup-level">Lv.{levelUp.level}</div>
+            <div className="levelup-name">{levelUp.name}</div>
+            {levelUp.unlock && (
+              <div className="levelup-unlock">
+                <span className="levelup-unlock-icon">🔓</span>
+                <span>{levelUp.unlock}</span>
+              </div>
+            )}
+            <button className="levelup-btn" onClick={() => setLevelUp(null)}>Continue</button>
+          </div>
         </div>
       )}
     </div>
