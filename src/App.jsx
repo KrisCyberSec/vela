@@ -2425,6 +2425,7 @@ const css = `
     font-family: 'DM Sans', sans-serif; cursor: pointer;
   }
   .cbt-lesson-done-btn:active { background: var(--sage-light); }
+  .cbt-next-week-hint { font-size: 12px; color: var(--sage); text-align: center; padding: 8px 0 4px; font-weight: 500; }
   .cbt-prev-weeks { margin-top: 8px; }
   .cbt-prev-weeks summary { font-size: 12px; color: var(--ink-light); cursor: pointer; padding: 4px 0; }
   .cbt-prev-week { margin: 8px 0; }
@@ -2440,6 +2441,9 @@ const css = `
   .cbt-program-name { font-size: 14px; font-weight: 600; color: var(--ink); }
   .cbt-program-meta { font-size: 11px; color: var(--sage); font-weight: 500; margin-top: 2px; }
   .cbt-program-desc { font-size: 12px; color: var(--ink-light); line-height: 1.4; margin-top: 4px; }
+  .cbt-completed-badge { font-size: 11px; color: var(--sage); font-weight: 500; margin-bottom: 2px; }
+  .cbt-program-item.completed { opacity: 0.7; }
+  .cbt-program-item.completed:active { opacity: 0.55; }
   .cbt-recommended-badge {
     font-size: 10px; font-weight: 600; color: var(--sage); text-transform: uppercase;
     letter-spacing: 0.05em; margin-bottom: 2px;
@@ -3015,8 +3019,8 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
             <div className="nudge-card">
               <div className="nudge-icon">🔥</div>
               <div className="nudge-content">
-                <div className="nudge-title">{streak}-day streak! 1.5x XP active</div>
-                <div className="nudge-text">Your consistency is paying off — every log now earns 50% more XP. Keep going for 2x at 14 days!</div>
+                <div className="nudge-title">{streak}-day streak!</div>
+                <div className="nudge-text">Your consistency is building a clearer picture of your patterns. Keep it going!</div>
               </div>
               <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_streak_celebrated", "1"); setXpTick((t) => t + 1); }}>×</div>
             </div>
@@ -3110,7 +3114,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
             <div className="lesson-card completed" style={{ animation: "cardSlideIn 0.3s ease" }}>
               <div className="lesson-header">
                 <div className="lesson-label">Daily insight</div>
-                <div className="lesson-xp" style={{ color: "var(--sage)" }}>✓ +{todayLesson.xp} XP earned!</div>
+                <div className="lesson-xp" style={{ color: "var(--sage)" }}>✓ Done</div>
               </div>
               <div className="lesson-title">{todayLesson.title}</div>
             </div>
@@ -3120,7 +3124,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
           <div className={`lesson-card${completedToday ? " completed" : ""}`}>
             <div className="lesson-header">
               <div className="lesson-label">Daily insight</div>
-              <div className="lesson-xp">{completedToday ? "✓ Done" : `+${todayLesson.xp} XP`}</div>
+              <div className="lesson-xp">{completedToday ? "✓ Done" : "Today"}</div>
             </div>
             <div className="lesson-title">{todayLesson.title}</div>
             {!completedToday ? (
@@ -3132,7 +3136,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
                   haptic("Medium");
                   setLessonDone(true);
                   setXpTick((t) => t + 1); // triggers XP bar re-render
-                }}>Got it! +{todayLesson.xp} XP</button>
+                }}>Got it!</button>
               </>
             ) : (
               <div className="lesson-text" style={{ opacity: 0.6 }}>{todayLesson.text}</div>
@@ -3197,7 +3201,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
                 localStorage.removeItem("vela_active_experiment");
                 haptic("Medium");
                 setXpTick((t) => t + 1);
-              }}>Claim {activeExp.xpReward} XP & finish</button>
+              }}>Complete experiment</button>
             ) : (
               <button className="exp-btn exp-abandon" onClick={() => {
                 if (window.confirm("End this experiment early?")) {
@@ -4373,11 +4377,15 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           {activeCBT ? (() => {
             const program = CBT_PROGRAMS.find((p) => p.id === activeCBT.programId);
             if (!program) return null;
-            const startDate = new Date(activeCBT.startDate);
-            const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / 86400000);
-            const currentWeek = Math.min(Math.floor(daysSinceStart / 7), program.weeks - 1);
-            const currentModule = program.modules[currentWeek];
             const completedLessons = activeCBT.completed || [];
+            // Advance week when all lessons in current week are done
+            let currentWeek = 0;
+            for (let w = 0; w < program.modules.length - 1; w++) {
+              const weekLessonKeys = program.modules[w].lessons.map((l) => `w${w}-d${l.day}`);
+              if (weekLessonKeys.every((k) => completedLessons.includes(k))) currentWeek = w + 1;
+              else break;
+            }
+            const currentModule = program.modules[currentWeek];
             const allLessons = program.modules.flatMap((m, wi) => m.lessons.map((l) => ({ ...l, weekIndex: wi })));
             const totalLessons = allLessons.length;
             const completedCount = completedLessons.length;
@@ -4401,15 +4409,15 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 </div>
                 {isComplete ? (
                   <div>
-                    <div className="cbt-complete-msg">🎉 Program complete! You've earned {program.xpReward} XP</div>
+                    <div className="cbt-complete-msg">🎉 You finished the program — well done!</div>
                     <button className="cbt-btn" onClick={() => {
                       const completed = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
-                      completed.push(activeCBT.programId);
+                      if (!completed.includes(activeCBT.programId)) completed.push(activeCBT.programId);
                       localStorage.setItem("vela_completed_cbt", JSON.stringify(completed));
                       localStorage.removeItem("vela_active_cbt");
                       setActiveCBT(null);
                       haptic("Medium");
-                    }}>Finish & claim XP</button>
+                    }}>Finish program</button>
                   </div>
                 ) : (
                   <>
@@ -4442,6 +4450,14 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                         );
                       })}
                     </div>
+                    {currentWeek < program.modules.length - 1 && (() => {
+                      const weekKeys = currentModule.lessons.map((l) => `w${currentWeek}-d${l.day}`);
+                      const doneCount = weekKeys.filter((k) => completedLessons.includes(k)).length;
+                      const remaining = weekKeys.length - doneCount;
+                      return remaining > 0 ? (
+                        <div className="cbt-next-week-hint">{remaining} lesson{remaining !== 1 ? "s" : ""} left to unlock Week {currentWeek + 2}</div>
+                      ) : null;
+                    })()}
                     {currentWeek > 0 && (
                       <details className="cbt-prev-weeks">
                         <summary>Previous weeks</summary>
@@ -4486,19 +4502,24 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   {(() => {
                     const p = getPersonalization(profile);
                     const completed = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
-                    let programs = CBT_PROGRAMS.filter((prog) => !completed.includes(prog.id));
-                    // Sort recommended programs first
-                    if (p?.recommendedCBT?.length > 0) {
-                      programs.sort((a, b) => {
+                    let programs = [...CBT_PROGRAMS];
+                    // Sort: recommended first, then uncompleted before completed
+                    programs.sort((a, b) => {
+                      const aComp = completed.includes(a.id) ? 1 : 0;
+                      const bComp = completed.includes(b.id) ? 1 : 0;
+                      if (aComp !== bComp) return aComp - bComp;
+                      if (p?.recommendedCBT?.length > 0) {
                         const aRec = p.recommendedCBT.includes(a.id) ? 0 : 1;
                         const bRec = p.recommendedCBT.includes(b.id) ? 0 : 1;
                         return aRec - bRec;
-                      });
-                    }
+                      }
+                      return 0;
+                    });
                     return programs.map((program) => {
                       const isRecommended = p?.recommendedCBT?.includes(program.id);
+                      const isDone = completed.includes(program.id);
                       return (
-                        <div key={program.id} className={`cbt-program-item${isRecommended ? " recommended" : ""}`} onClick={() => {
+                        <div key={program.id} className={`cbt-program-item${isRecommended && !isDone ? " recommended" : ""}${isDone ? " completed" : ""}`} onClick={() => {
                           const cbt = { programId: program.id, startDate: new Date().toISOString(), completed: [] };
                           setActiveCBT(cbt);
                           localStorage.setItem("vela_active_cbt", JSON.stringify(cbt));
@@ -4507,18 +4528,16 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                         }}>
                           <div className="cbt-program-icon">{program.icon}</div>
                           <div className="cbt-program-info">
-                            {isRecommended && <div className="cbt-recommended-badge">Recommended for you</div>}
+                            {isDone && <div className="cbt-completed-badge">✓ Completed — tap to revisit</div>}
+                            {isRecommended && !isDone && <div className="cbt-recommended-badge">Recommended for you</div>}
                             <div className="cbt-program-name">{program.title}</div>
-                            <div className="cbt-program-meta">{program.subtitle} · {program.xpReward} XP</div>
+                            <div className="cbt-program-meta">{program.subtitle}</div>
                             <div className="cbt-program-desc">{program.desc}</div>
                           </div>
                         </div>
                       );
                     });
                   })()}
-                  {JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]").length > 0 && (
-                    <div className="cbt-completed-note">✓ You've completed {JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]").length} program(s)</div>
-                  )}
                   <button className="cbt-btn cbt-abandon" onClick={() => setShowCBTList(false)}>Cancel</button>
                 </div>
               )}
@@ -5118,7 +5137,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         if (uniqueDays >= 7 && uniqueDays < 14) steps.push({ icon: "🔬", text: "Check your Insights tab — your patterns are ready!", action: "insights" });
         if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "🧪", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "today" });
         if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "🧠", text: "Start a recommended CBT program", action: "today" });
-        if (completedLessons < 3) steps.push({ icon: "💡", text: "Complete today's daily insight for bonus XP", action: "today" });
+        if (completedLessons < 3) steps.push({ icon: "💡", text: "Read today's daily insight", action: "today" });
         if (p?.wantsDoctor && uniqueDays >= 14) steps.push({ icon: "👩‍⚕️", text: "Generate your doctor report from your 2 weeks of data", action: "export" });
         if (p?.wantsCommunity) steps.push({ icon: "💬", text: "Join the community — you're not alone in this", action: "community" });
         if (steps.length === 0) return null;
