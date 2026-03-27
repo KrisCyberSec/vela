@@ -776,8 +776,13 @@ function matchQuestion(input) {
 }
 
 function generateResponse(handler, logs, profile) {
-  const stage = profile ? getJourneyLabel(profile.journeyIndex) : null;
-  const stageNote = stage ? ` During ${stage}, this is quite common.` : "";
+  const p = getPersonalization(profile);
+  const stage = profile ? getJourneyLabel(profile[0]) : null;
+  const concern = p?.topConcernNames?.[0];
+  const stageNote = stage ? ` During ${stage.toLowerCase()}, this is quite common.` : "";
+  const energyLogs = logs.filter((l) => l.energy !== null && l.energy !== undefined);
+  const avgEnergy = energyLogs.length > 0 ? Math.round(energyLogs.slice(0, 14).reduce((s, l) => s + l.energy, 0) / Math.min(energyLogs.length, 14) * 10) / 10 : null;
+  const energyNote = avgEnergy !== null ? (avgEnergy <= 1 ? " I also notice your energy has been quite low — that's worth mentioning to your provider." : avgEnergy >= 3 ? " Your energy levels have been looking good, which is a positive sign." : "") : "";
 
   if (handler.handler === "symptomTrend") {
     const data = analyzeSymptomTrend(logs, handler.param);
@@ -808,10 +813,11 @@ function generateResponse(handler, logs, profile) {
 
   if (handler.handler === "trend") {
     const data = analyzeOverallTrend(logs);
-    if (data.recentDays < 3) return "I need a few more days of data to spot a reliable trend. Keep logging!";
-    if (data.direction === "improving") return `Great news — you're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}. Whatever you're doing, it's working!`;
-    if (data.direction === "worse") return `I want to be honest with you: the last 2 weeks have been a bit tougher. Symptoms went from ${data.prevSymptoms}/day to ${data.recentSymptoms}/day${data.recentMood < data.prevMood ? `, and mood dipped from ${data.prevMood} to ${data.recentMood}` : ""}.${stageNote} Remember, this journey isn't linear — symptom fluctuation is expected during the menopausal transition. If this continues, consider discussing your logs with your healthcare provider.`;
-    return `Things are holding steady — ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}. Stability is actually a good sign!${stageNote}`;
+    if (data.recentDays < 3) return concern ? `I need a few more days of ${concern} data to spot a reliable trend. Keep logging!` : "I need a few more days of data to spot a reliable trend. Keep logging!";
+    const energyTrend = data.recentEnergy > 0 && data.prevEnergy > 0 ? (data.recentEnergy > data.prevEnergy ? " Your energy is also trending up!" : data.recentEnergy < data.prevEnergy ? " I notice your energy has dipped a bit too." : "") : "";
+    if (data.direction === "improving") return `Great news — you're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}.${energyTrend} Whatever you're doing, it's working!`;
+    if (data.direction === "worse") return `I want to be honest with you: the last 2 weeks have been a bit tougher. Symptoms went from ${data.prevSymptoms}/day to ${data.recentSymptoms}/day${data.recentMood < data.prevMood ? `, and mood dipped from ${data.prevMood} to ${data.recentMood}` : ""}.${energyTrend}${stageNote} Remember, this journey isn't linear — symptom fluctuation is expected during the menopausal transition.${energyNote} If this continues, consider discussing your logs with your healthcare provider.`;
+    return `Things are holding steady — ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}.${energyTrend} Stability is actually a good sign!${stageNote}`;
   }
 
   if (handler.handler === "doctor") {
@@ -842,13 +848,20 @@ function generateResponse(handler, logs, profile) {
 
   // recent / fallback
   const data = analyzeRecentPattern(logs);
-  if (!data) return "I don't have any data from this week yet. Log how you're feeling today and I'll start building your picture!";
+  if (!data) return concern ? `I don't have any data from this week yet. Log how your ${concern} is today and I'll start building your picture!` : "I don't have any data from this week yet. Log how you're feeling today and I'll start building your picture!";
   let msg = `Here's your week so far (${data.daysLogged} days logged):\n\n`;
-  if (data.avgMood) msg += `Mood: ${data.avgMood}/10 average\n`;
-  if (data.topSymptoms.length > 0) msg += `Top symptoms: ${data.topSymptoms.map((s) => `${s.name} (${s.count}x)`).join(", ")}\n`;
+  if (data.avgMood !== null) msg += `Mood: ${data.avgMood}/10 average\n`;
+  if (data.avgEnergy !== null) msg += `Energy: ${["Depleted", "Low", "Moderate", "Good", "Energized"][data.avgEnergy] || data.avgEnergy}/4 average\n`;
+  if (data.topSymptoms.length > 0) {
+    msg += `Top symptoms: ${data.topSymptoms.map((s) => `${s.name} (${s.count}x)`).join(", ")}\n`;
+    if (concern && data.topSymptoms.some((s) => s.name.toLowerCase().includes(concern.toLowerCase()))) {
+      msg += `\n📌 Your ${concern} appeared ${data.topSymptoms.find((s) => s.name.toLowerCase().includes(concern.toLowerCase())).count} times this week.\n`;
+    }
+  }
   if (data.topContext && data.topContext.length > 0) msg += `Context factors: ${data.topContext.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
   if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })} (mood: ${data.bestDay.mood})`;
-  return msg + stageNote;
+  msg += stageNote + energyNote;
+  return msg;
 }
 
 function generateWeeklyDigest(logs, profile) {
@@ -897,6 +910,12 @@ function generateWeeklyDigest(logs, profile) {
     try { return t.match(digestData); } catch { return false; }
   });
 
+  // XP summary for the week
+  const currentXP = computeXP(logs);
+  const currentLevel = getLevel(currentXP);
+  const streak = getStreak(logs);
+  const streakMult = getStreakMultiplier(streak);
+
   return {
     daysLogged: thisWeek.length,
     avgMood: thisMood,
@@ -907,7 +926,13 @@ function generateWeeklyDigest(logs, profile) {
     symptomTrends,
     triggerReport: triggerReport.filter((t) => t.daysWithTrigger >= 2),
     bestDay: bestDayEntry,
-    tip: tip ? tip.tip : PERSONALIZED_TIPS[PERSONALIZED_TIPS.length - 1].tip
+    tip: tip ? tip.tip : PERSONALIZED_TIPS[PERSONALIZED_TIPS.length - 1].tip,
+    xp: currentXP,
+    level: currentLevel.level,
+    levelName: currentLevel.name,
+    xpToNext: currentLevel.xpToNext,
+    streak,
+    streakMult,
   };
 }
 
@@ -2966,19 +2991,64 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         );
       })()}
 
-      {/* Insights nudge at day 7+ */}
+      {/* Ongoing journey guidance (day 7+) */}
       {(() => {
         const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+        if (uniqueDays < 7) return null;
         const dismissed = localStorage.getItem("vela_insights_nudge_dismissed");
+        const xp = computeXP(logs);
+        const lvl = getLevel(xp);
+        const hasExperiment = !!localStorage.getItem("vela_active_experiment");
+        const hasCBT = !!localStorage.getItem("vela_active_cbt");
+        const streak = getStreak(logs);
+        const concern = personalization?.topConcernNames?.[0];
+
+        // Priority-ordered guidance — show the most relevant one
         if (uniqueDays >= 7 && uniqueDays <= 14 && !dismissed) {
           return (
             <div className="nudge-card" onClick={() => onNavigate && onNavigate("insights")}>
               <div className="nudge-icon">✨</div>
               <div className="nudge-content">
                 <div className="nudge-title">Your patterns are ready!</div>
-                <div className="nudge-text">You have {uniqueDays} days of data — tap to explore your insights and trends.</div>
+                <div className="nudge-text">{concern ? `See how your ${concern} correlates with sleep, stress, and more.` : `You have ${uniqueDays} days of data — tap to explore your insights and trends.`}</div>
               </div>
               <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_insights_nudge_dismissed", "1"); haptic("Light"); }}>×</div>
+            </div>
+          );
+        }
+        if (uniqueDays >= 14 && uniqueDays <= 21 && !hasExperiment && !hasCBT && lvl.level >= 3 && !localStorage.getItem("vela_experiment_nudge_dismissed")) {
+          return (
+            <div className="nudge-card">
+              <div className="nudge-icon">🧪</div>
+              <div className="nudge-content">
+                <div className="nudge-title">Ready to experiment?</div>
+                <div className="nudge-text">{concern ? `You've unlocked experiments! Try one targeting your ${concern} and see what changes.` : "You've unlocked self-experiments. Try a structured challenge and track the impact."}</div>
+              </div>
+              <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_experiment_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
+            </div>
+          );
+        }
+        if (streak >= 7 && streak <= 10 && !localStorage.getItem("vela_streak_celebrated")) {
+          return (
+            <div className="nudge-card">
+              <div className="nudge-icon">🔥</div>
+              <div className="nudge-content">
+                <div className="nudge-title">{streak}-day streak! 1.5x XP active</div>
+                <div className="nudge-text">Your consistency is paying off — every log now earns 50% more XP. Keep going for 2x at 14 days!</div>
+              </div>
+              <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_streak_celebrated", "1"); setXpTick((t) => t + 1); }}>×</div>
+            </div>
+          );
+        }
+        if (uniqueDays >= 28 && !localStorage.getItem("vela_month_nudge_dismissed")) {
+          return (
+            <div className="nudge-card" onClick={() => onNavigate && onNavigate("insights")}>
+              <div className="nudge-icon">🏆</div>
+              <div className="nudge-content">
+                <div className="nudge-title">One month of data!</div>
+                <div className="nudge-text">Your monthly comparison is now available in Insights. See how your patterns evolved over time.</div>
+              </div>
+              <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_month_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
             </div>
           );
         }
@@ -3089,11 +3159,24 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         );
       })()}
 
-      {/* Active Experiment */}
+      {/* Active Experiment — unlocked at Lv.3 or Premium */}
       {(() => {
+        const userLevel = getLevel(computeXP(logs)).level;
+        const canExperiment = userLevel >= 3 || isPremium;
         const activeExp = JSON.parse(localStorage.getItem("vela_active_experiment") || "null");
         if (!activeExp) {
-          return isPremium ? (
+          if (!canExperiment) {
+            return (
+              <div className="exp-card exp-locked" style={{ opacity: 0.6, cursor: "default" }}>
+                <div className="exp-header">
+                  <span className="exp-icon">🔒</span>
+                  <span className="exp-label">Self-experiments</span>
+                </div>
+                <div className="exp-desc">Reach Lv.3 (Tracker) to unlock structured challenges — {getLevel(computeXP(logs)).xpToNext} XP to go!</div>
+              </div>
+            );
+          }
+          return (
             <div className="exp-card exp-start" onClick={() => {
               const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
               let available = EXPERIMENTS.filter((e) => !completed.includes(e.id));
@@ -3117,7 +3200,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
               </div>
               <div className="exp-desc">Try a structured challenge and see how it affects your symptoms</div>
             </div>
-          ) : null;
+          );
         }
         const daysSinceStart = Math.floor((new Date() - new Date(activeExp.startDate)) / 86400000);
         const progress = Math.min(daysSinceStart, activeExp.duration);
@@ -4079,6 +4162,33 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   </div>
                 )}
 
+                <div className="digest-section">
+                  <div className="digest-section-label">Your progress</div>
+                  <div className="digest-section-text">
+                    Lv.{digest.level} {digest.levelName} · {digest.xp} XP
+                    {digest.xpToNext > 0 && ` · ${digest.xpToNext} to next level`}
+                  </div>
+                  {digest.streak > 0 && (
+                    <div className="digest-section-text">
+                      🔥 {digest.streak}-day streak{digest.streakMult > 1 ? ` · ${digest.streakMult}x XP bonus active!` : ""}
+                    </div>
+                  )}
+                </div>
+
+                {digest.avgEnergy !== null && (
+                  <div className="digest-section">
+                    <div className="digest-section-label">Energy</div>
+                    <div className="digest-section-text">
+                      Avg: {["Depleted", "Low", "Moderate", "Good", "Energized"][Math.round(digest.avgEnergy)] || digest.avgEnergy}
+                      {digest.energyDelta !== null && (
+                        <span className={`digest-delta ${digest.energyDelta >= 0 ? "up" : "down"}`}>
+                          {" "}{digest.energyDelta >= 0 ? "↑" : "↓"} {Math.abs(digest.energyDelta)} vs last week
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="digest-section digest-tip">
                   <div className="digest-section-label">Personalized tip</div>
                   <div className="digest-section-text">{digest.tip}</div>
@@ -4294,8 +4404,11 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         </>
       )}
 
-      {/* ─── CBT Programs Section ─── */}
-      {isPremium ? (
+      {/* ─── CBT Programs Section — unlocked at Lv.5 or Premium ─── */}
+      {(() => {
+        const userLevel = getLevel(computeXP(logs)).level;
+        const canCBT = userLevel >= 5 || isPremium;
+        return canCBT ? (
         <div className="cbt-section">
           {activeCBT ? (() => {
             const program = CBT_PROGRAMS.find((p) => p.id === activeCBT.programId);
@@ -4453,16 +4566,17 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           )}
         </div>
       ) : (
-        <div className="cbt-card cbt-teaser" onClick={onShowPaywall} style={{ margin: "12px 16px", cursor: "pointer" }}>
+        <div className="cbt-card cbt-teaser" style={{ margin: "12px 16px", cursor: "default", opacity: 0.6 }}>
           <div className="cbt-card-header">
-            <span className="cbt-card-icon">🧠</span>
+            <span className="cbt-card-icon">🔒</span>
             <div>
-              <div className="cbt-card-title">CBT Programs <span style={{ fontSize: 11, color: "var(--ink-light)" }}>🔒 Premium</span></div>
-              <div className="cbt-card-sub">Multi-week evidence-based programs for managing hot flashes, sleep, and anxiety</div>
+              <div className="cbt-card-title">CBT Programs</div>
+              <div className="cbt-card-sub">Reach Lv.5 (Insightful) to unlock — {getLevel(computeXP(logs)).xpToNext} XP to go!</div>
             </div>
           </div>
         </div>
-      )}
+      );
+      })()}
 
       {isPremium ? (
         <div className="doctor-prep">
