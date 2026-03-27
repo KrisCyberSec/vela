@@ -971,16 +971,16 @@ const BADGES = [
 ];
 
 const LEVELS = [
-  { level: 1, name: "Newcomer", xpNeeded: 0, unlock: null },
-  { level: 2, name: "Explorer", xpNeeded: 50, unlock: "Daily insights unlocked" },
-  { level: 3, name: "Tracker", xpNeeded: 150, unlock: "Self-experiments unlocked" },
-  { level: 4, name: "Pattern Finder", xpNeeded: 350, unlock: "Streak freeze earned" },
-  { level: 5, name: "Insightful", xpNeeded: 600, unlock: "CBT programs unlocked" },
-  { level: 6, name: "Dedicated", xpNeeded: 1000, unlock: "Advanced correlations" },
-  { level: 7, name: "Empowered", xpNeeded: 1500, unlock: "Community flair badge" },
-  { level: 8, name: "Advocate", xpNeeded: 2200, unlock: "Custom experiment builder" },
-  { level: 9, name: "Mentor", xpNeeded: 3000, unlock: "Full pattern history" },
-  { level: 10, name: "Vela Master", xpNeeded: 4000, unlock: "Everything unlocked" },
+  { level: 1, name: "Beginning your journey", xpNeeded: 0, unlock: null },
+  { level: 2, name: "Building awareness", xpNeeded: 50, unlock: "Your first patterns are emerging" },
+  { level: 3, name: "Finding your rhythm", xpNeeded: 150, unlock: "Your data is telling a story" },
+  { level: 4, name: "Seeing connections", xpNeeded: 350, unlock: "Vela is learning what affects you" },
+  { level: 5, name: "Understanding your body", xpNeeded: 600, unlock: "Deep patterns are taking shape" },
+  { level: 6, name: "Taking control", xpNeeded: 1000, unlock: "You know your triggers" },
+  { level: 7, name: "Empowered", xpNeeded: 1500, unlock: "Your journey is inspiring others" },
+  { level: 8, name: "Advocate", xpNeeded: 2200, unlock: "You're helping others feel less alone" },
+  { level: 9, name: "Mentor", xpNeeded: 3000, unlock: "Your wisdom is guiding this community" },
+  { level: 10, name: "Vela companion", xpNeeded: 4000, unlock: "You've built a complete picture of your health" },
 ];
 
 function computeGamificationStats(logs) {
@@ -2530,6 +2530,9 @@ const css = `
 
   /* ─── Gamification ─── */
   .gamification-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); }
+  .journey-bar { margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .journey-text { font-size: 13px; color: var(--ink-light); }
+  .journey-streak { font-size: 14px; }
   .gam-level-badge { display: flex; flex-direction: column; align-items: center; min-width: 48px; }
   .gam-level-num { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--clay); line-height: 1; }
   .gam-level-name { font-size: 9px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
@@ -2921,40 +2924,19 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
           <div className="personalized-welcome">{personalization.stageMessage}</div>
         )}
         {(() => {
-          void xpTick; // ensure re-render reads fresh localStorage
-          const xp = computeXP(logs);
-          const lvl = getLevel(xp);
-          // Track XP gains for flash animation
-          if (prevXpRef.current === null) prevXpRef.current = xp;
-          const gained = xp - prevXpRef.current;
-          if (gained > 0 && gained !== xpGain) {
-            setTimeout(() => { prevXpRef.current = xp; setXpGain(0); }, 2000);
-            if (xpGain === 0) setTimeout(() => setXpGain(gained), 0);
-          }
-          return (
-            <div className="gamification-bar">
-              <div className="gam-level-badge">
-                <span className="gam-level-num">Lv.{lvl.level}</span>
-                <span className="gam-level-name">{lvl.name}</span>
-              </div>
-              <div className="gam-xp-section">
-                <div className="gam-xp-bar-bg">
-                  <div className="gam-xp-bar" style={{ width: `${lvl.pct}%`, transition: "width 0.6s ease" }} />
-                </div>
-                <div className="gam-xp-label">
-                  {xpGain > 0 && <span className="xp-gain-flash">+{xpGain} XP </span>}
-                  {lvl.isMax ? "MAX" : `${lvl.xp} XP · ${lvl.xpToNext} to next`}
-                </div>
-                {!lvl.isMax && (() => {
-                  const nextLvl = LEVELS.find((l) => l.level === lvl.level + 1);
-                  return nextLvl?.unlock ? <div className="gam-next-unlock">🔓 Next: {nextLvl.unlock}</div> : null;
-                })()}
-              </div>
-              {streak > 0 && (
-                <div className="gam-streak">🔥 {streak}{getStreakMultiplier(streak) > 1 && <span className="streak-mult">{getStreakMultiplier(streak)}x</span>}</div>
-              )}
+          void xpTick;
+          const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+          const patternCount = logs.length >= 7 ? analyzePatterns(logs).length : 0;
+          const parts = [];
+          if (uniqueDays > 0) parts.push(`Day ${uniqueDays}`);
+          if (patternCount > 0) parts.push(`${patternCount} pattern${patternCount !== 1 ? "s" : ""} found`);
+          if (streak > 1) parts.push(`${streak}-day streak`);
+          return parts.length > 0 ? (
+            <div className="journey-bar">
+              <span className="journey-text">{parts.join(" · ")}</span>
+              {streak > 1 && <span className="journey-streak">🔥</span>}
             </div>
-          );
+          ) : null;
         })()}
       </div>
 
@@ -3159,23 +3141,10 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         );
       })()}
 
-      {/* Active Experiment — unlocked at Lv.3 or Premium */}
+      {/* Active Experiment */}
       {(() => {
-        const userLevel = getLevel(computeXP(logs)).level;
-        const canExperiment = userLevel >= 3 || isPremium;
         const activeExp = JSON.parse(localStorage.getItem("vela_active_experiment") || "null");
         if (!activeExp) {
-          if (!canExperiment) {
-            return (
-              <div className="exp-card exp-locked" style={{ opacity: 0.6, cursor: "default" }}>
-                <div className="exp-header">
-                  <span className="exp-icon">🔒</span>
-                  <span className="exp-label">Self-experiments</span>
-                </div>
-                <div className="exp-desc">Reach Lv.3 (Tracker) to unlock structured challenges — {getLevel(computeXP(logs)).xpToNext} XP to go!</div>
-              </div>
-            );
-          }
           return (
             <div className="exp-card exp-start" onClick={() => {
               const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
@@ -4162,18 +4131,12 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   </div>
                 )}
 
-                <div className="digest-section">
-                  <div className="digest-section-label">Your progress</div>
-                  <div className="digest-section-text">
-                    Lv.{digest.level} {digest.levelName} · {digest.xp} XP
-                    {digest.xpToNext > 0 && ` · ${digest.xpToNext} to next level`}
+                {digest.streak > 1 && (
+                  <div className="digest-section">
+                    <div className="digest-section-label">Consistency</div>
+                    <div className="digest-section-text">🔥 {digest.streak}-day streak — your data gets more insightful every day you log.</div>
                   </div>
-                  {digest.streak > 0 && (
-                    <div className="digest-section-text">
-                      🔥 {digest.streak}-day streak{digest.streakMult > 1 ? ` · ${digest.streakMult}x XP bonus active!` : ""}
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {digest.avgEnergy !== null && (
                   <div className="digest-section">
@@ -4404,11 +4367,8 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         </>
       )}
 
-      {/* ─── CBT Programs Section — unlocked at Lv.5 or Premium ─── */}
-      {(() => {
-        const userLevel = getLevel(computeXP(logs)).level;
-        const canCBT = userLevel >= 5 || isPremium;
-        return canCBT ? (
+      {/* ─── CBT Programs Section ─── */}
+      {(
         <div className="cbt-section">
           {activeCBT ? (() => {
             const program = CBT_PROGRAMS.find((p) => p.id === activeCBT.programId);
@@ -4565,18 +4525,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             </div>
           )}
         </div>
-      ) : (
-        <div className="cbt-card cbt-teaser" style={{ margin: "12px 16px", cursor: "default", opacity: 0.6 }}>
-          <div className="cbt-card-header">
-            <span className="cbt-card-icon">🔒</span>
-            <div>
-              <div className="cbt-card-title">CBT Programs</div>
-              <div className="cbt-card-sub">Reach Lv.5 (Insightful) to unlock — {getLevel(computeXP(logs)).xpToNext} XP to go!</div>
-            </div>
-          </div>
-        </div>
-      );
-      })()}
+      )}
 
       {isPremium ? (
         <div className="doctor-prep">
@@ -5106,26 +5055,17 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         const locked = BADGES.filter((b) => !b.check(stats));
         return (
           <div className="settings-section">
-            <div className="settings-section-label">Your progress</div>
+            <div className="settings-section-label">Your journey</div>
             <div className="settings-card">
               <div className="gam-profile">
                 <div className="gam-profile-level">
-                  <div className="gam-big-level">Lv.{lvl.level}</div>
                   <div className="gam-big-name">{lvl.name}</div>
                 </div>
                 <div className="gam-profile-stats">
-                  <div className="gam-ps"><div className="gam-ps-val">{xp}</div><div className="gam-ps-label">XP</div></div>
-                  <div className="gam-ps"><div className="gam-ps-val">{earned.length}</div><div className="gam-ps-label">badges</div></div>
+                  <div className="gam-ps"><div className="gam-ps-val">{stats.uniqueDays}</div><div className="gam-ps-label">days tracked</div></div>
+                  <div className="gam-ps"><div className="gam-ps-val">{earned.length}</div><div className="gam-ps-label">milestones</div></div>
                   <div className="gam-ps"><div className="gam-ps-val">{stats.streak}</div><div className="gam-ps-label">streak</div></div>
                 </div>
-                {!lvl.isMax && (
-                  <div style={{ marginTop: 8 }}>
-                    <div className="gam-xp-bar-bg" style={{ height: 6 }}>
-                      <div className="gam-xp-bar" style={{ width: `${lvl.pct}%` }} />
-                    </div>
-                    <div className="gam-xp-label" style={{ fontSize: 11 }}>{lvl.xpToNext} XP to Level {lvl.level + 1}</div>
-                  </div>
-                )}
                 {isPremium && (
                   <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: "1px solid var(--border)" }}>
                     <div>
@@ -5145,7 +5085,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
               </div>
             </div>
             <div className="settings-card" style={{ marginTop: 8 }}>
-              <div className="gam-badges-title">Badges ({earned.length}/{BADGES.length})</div>
+              <div className="gam-badges-title">Milestones ({earned.length}/{BADGES.length})</div>
               <div className="gam-badges-grid">
                 {earned.map((b) => (
                   <div key={b.id} className="gam-badge earned">
@@ -5970,13 +5910,6 @@ export default function App() {
     }
     else if (entry.notes && entry.notes.length > 20) msg = "Great notes! These details help spot patterns. 📝";
     else if (entry.energy !== null && entry.energy !== undefined && entry.mood !== null && entry.mood !== undefined) msg = "Mood + energy logged — building your full picture. 🌟";
-    // Calculate XP gained from this log
-    const prevXp = computeXP(logs);
-    const newXp = computeXP(newLogs);
-    const gained = newXp - prevXp;
-    if (gained > 0) msg += ` +${gained} XP`;
-    const streakMult = getStreakMultiplier(streak);
-    if (streakMult > 1) msg += ` (${streakMult}x streak bonus!)`;
     setToastMsg(msg);
     setToast(true);
     setTimeout(() => setToast(false), 3500);
@@ -6322,23 +6255,21 @@ export default function App() {
         <div className="badge-toast">
           <span className="badge-toast-icon">{badgeToast.icon}</span>
           <div className="badge-toast-content">
-            <span className="badge-toast-title">Badge unlocked!</span>
-            <span className="badge-toast-text">{badgeToast.icon} {badgeToast.name} — {badgeToast.desc}</span>
+            <span className="badge-toast-title">Milestone reached!</span>
+            <span className="badge-toast-text">{badgeToast.icon} {badgeToast.name}</span>
           </div>
         </div>
       )}
 
-      {/* Level-Up Celebration */}
+      {/* Journey Milestone Celebration */}
       {levelUp && (
         <div className="levelup-overlay" onClick={() => setLevelUp(null)}>
           <div className="levelup-card">
-            <div className="levelup-sparkle">✨</div>
-            <div className="levelup-title">Level Up!</div>
-            <div className="levelup-level">Lv.{levelUp.level}</div>
-            <div className="levelup-name">{levelUp.name}</div>
+            <div className="levelup-sparkle">🌿</div>
+            <div className="levelup-title">Milestone reached</div>
+            <div className="levelup-level" style={{ fontSize: 28 }}>{levelUp.name}</div>
             {levelUp.unlock && (
               <div className="levelup-unlock">
-                <span className="levelup-unlock-icon">🔓</span>
                 <span>{levelUp.unlock}</span>
               </div>
             )}
