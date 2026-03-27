@@ -9,25 +9,66 @@ function haptic(style = "Light") {
   }
 }
 
+const SYMPTOM_CATEGORIES = [
+  { key: "common", label: "Most common" },
+  { key: "mood", label: "Mood & cognitive" },
+  { key: "physical", label: "Physical" },
+  { key: "intimate", label: "Intimate health" },
+  { key: "digestive", label: "Digestive" },
+  { key: "other", label: "Other" },
+];
+
 const SYMPTOMS = [
-  { icon: "🌡", name: "Hot flash" },
-  { icon: "🌙", name: "Night sweats" },
-  { icon: "😴", name: "Poor sleep" },
-  { icon: "🧠", name: "Brain fog" },
-  { icon: "💔", name: "Mood shifts" },
-  { icon: "⚡", name: "Fatigue" },
-  { icon: "💧", name: "Dryness" },
-  { icon: "💊", name: "Headache" },
-  { icon: "🦴", name: "Joint pain" },
-  { icon: "😰", name: "Anxiety" },
-  { icon: "⚖️", name: "Weight change" },
-  { icon: "❤️", name: "Low libido" },
-  { icon: "💓", name: "Palpitations" },
-  { icon: "🫧", name: "Bloating" },
-  { icon: "💇", name: "Hair thinning" },
-  { icon: "🔥", name: "Irritability" },
-  { icon: "🧊", name: "Chills" },
-  { icon: "💭", name: "Memory lapse" },
+  // Most common (shown first)
+  { icon: "🌡", name: "Hot flash", cat: "common" },
+  { icon: "🌙", name: "Night sweats", cat: "common" },
+  { icon: "😴", name: "Poor sleep", cat: "common" },
+  { icon: "🧠", name: "Brain fog", cat: "common" },
+  { icon: "💔", name: "Mood shifts", cat: "common" },
+  { icon: "⚡", name: "Fatigue", cat: "common" },
+  { icon: "😰", name: "Anxiety", cat: "common" },
+  { icon: "🔥", name: "Irritability", cat: "common" },
+  // Mood & cognitive
+  { icon: "😢", name: "Depression", cat: "mood" },
+  { icon: "😱", name: "Panic attacks", cat: "mood" },
+  { icon: "💭", name: "Memory lapse", cat: "mood" },
+  { icon: "🗣️", name: "Word-finding difficulty", cat: "mood" },
+  { icon: "🎯", name: "Difficulty concentrating", cat: "mood" },
+  { icon: "😤", name: "Mood swings", cat: "mood" },
+  { icon: "😶", name: "Low motivation", cat: "mood" },
+  // Physical
+  { icon: "💊", name: "Headache", cat: "physical" },
+  { icon: "🤕", name: "Migraine", cat: "physical" },
+  { icon: "🦴", name: "Joint pain", cat: "physical" },
+  { icon: "💪", name: "Muscle aches", cat: "physical" },
+  { icon: "🔙", name: "Back pain", cat: "physical" },
+  { icon: "💓", name: "Palpitations", cat: "physical" },
+  { icon: "🧊", name: "Chills", cat: "physical" },
+  { icon: "🌀", name: "Dizziness", cat: "physical" },
+  { icon: "👂", name: "Tinnitus", cat: "physical" },
+  { icon: "✋", name: "Tingling/numbness", cat: "physical" },
+  { icon: "🦵", name: "Restless legs", cat: "physical" },
+  { icon: "💇", name: "Hair thinning", cat: "physical" },
+  { icon: "🧴", name: "Dry skin", cat: "physical" },
+  { icon: "🌊", name: "Breast tenderness", cat: "physical" },
+  { icon: "⚖️", name: "Weight change", cat: "physical" },
+  // Intimate health
+  { icon: "💧", name: "Vaginal dryness", cat: "intimate" },
+  { icon: "🔥", name: "Vaginal irritation", cat: "intimate" },
+  { icon: "❤️", name: "Low libido", cat: "intimate" },
+  { icon: "🚽", name: "Urinary urgency", cat: "intimate" },
+  { icon: "💦", name: "Incontinence", cat: "intimate" },
+  // Digestive
+  { icon: "🫧", name: "Bloating", cat: "digestive" },
+  { icon: "🤢", name: "Nausea", cat: "digestive" },
+  { icon: "🔥", name: "Acid reflux", cat: "digestive" },
+  { icon: "😣", name: "Digestive changes", cat: "digestive" },
+  // Other
+  { icon: "🫁", name: "Shortness of breath", cat: "other" },
+  { icon: "👄", name: "Dry mouth", cat: "other" },
+  { icon: "👁️", name: "Dry eyes", cat: "other" },
+  { icon: "🦷", name: "Gum problems", cat: "other" },
+  { icon: "🐛", name: "Crawling skin", cat: "other" },
 ];
 
 const QUESTIONS = [
@@ -843,6 +884,27 @@ function computeXP(logs) {
   const stats = computeGamificationStats(logs);
   const earned = BADGES.filter((b) => b.check(stats));
   xp += earned.length * 25; // 25 XP per badge
+  // Lesson XP: 10 XP per completed daily lesson
+  try {
+    const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]");
+    xp += completedLessons.length * 10;
+  } catch {}
+  // Completed experiment XP
+  try {
+    const completedExps = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
+    completedExps.forEach((id) => {
+      const exp = EXPERIMENTS.find((e) => e.id === id);
+      if (exp) xp += exp.xpReward;
+    });
+  } catch {}
+  // Completed CBT program XP
+  try {
+    const completedCBT = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
+    completedCBT.forEach((id) => {
+      const prog = CBT_PROGRAMS.find((p) => p.id === id);
+      if (prog) xp += prog.xpReward;
+    });
+  } catch {}
   return xp;
 }
 
@@ -888,6 +950,119 @@ const DAILY_LESSONS = [
   { id: "dl-12", title: "Preparing for your doctor visit", text: "Bring data, not just feelings. Doctors respond to patterns: 'I've had hot flashes 4 out of 7 days, worse after caffeine' is more actionable than 'I've been having hot flashes.'", xp: 10 },
   { id: "dl-13", title: "Menopause is not a disease", text: "Menopause is a natural biological transition. While symptoms can be challenging, framing it as a health transition rather than a medical condition supports better self-advocacy.", xp: 10 },
   { id: "dl-14", title: "Your data tells a story", text: "After just 2 weeks of tracking, patterns emerge that would be invisible otherwise. Day-of-week effects, trigger correlations, and symptom clusters all become clear with consistent data.", xp: 10 },
+];
+
+const CBT_PROGRAMS = [
+  {
+    id: "cbt-hot-flashes",
+    title: "Managing Hot Flashes",
+    subtitle: "4-week CBT-based program",
+    icon: "🌡",
+    weeks: 4,
+    desc: "Cognitive-behavioral therapy has Level I evidence for reducing the impact of hot flashes. This program teaches you practical techniques week by week.",
+    modules: [
+      { week: 1, title: "Understanding your triggers", lessons: [
+        { day: 1, title: "What actually happens during a hot flash", content: "Hot flashes occur when your hypothalamus — the brain's thermostat — becomes more sensitive to small changes in body temperature. Understanding the mechanism helps you respond calmly rather than reactively." },
+        { day: 2, title: "Identifying your personal triggers", content: "Common triggers include warm environments, spicy food, alcohol, caffeine, and stress — but triggers are individual. Review your Vela logs today. Which days had hot flashes, and what context did you log?" },
+        { day: 3, title: "The stress-hot flash connection", content: "Stress activates your sympathetic nervous system, which can trigger or intensify hot flashes. This week, notice: do hot flashes happen more during stressful moments?" },
+        { day: 5, title: "Your trigger map", content: "By now you may see patterns. Write down your top 3 suspected triggers. Over the next weeks, we'll test these hypotheses with your tracking data." },
+        { day: 7, title: "Week 1 reflection", content: "Review your logs from this week. How many hot flashes did you have? Any patterns with time of day, stress, or context? This is your baseline." },
+      ]},
+      { week: 2, title: "Paced breathing & relaxation", lessons: [
+        { day: 1, title: "Introduction to paced breathing", content: "Slow, diaphragmatic breathing at 5-7 breaths per minute has been shown to reduce hot flash frequency in some studies. Try it: breathe in for 5 counts, out for 5 counts, for 5 minutes." },
+        { day: 2, title: "Using paced breathing in the moment", content: "When you feel a hot flash beginning, start paced breathing immediately. The goal isn't to stop it — it's to reduce the distress and duration. Practice during a calm moment first." },
+        { day: 3, title: "Progressive muscle relaxation", content: "Tense each muscle group for 5 seconds, then release. Start from your toes and work up. This activates the parasympathetic nervous system, counteracting the stress response." },
+        { day: 5, title: "Building a relaxation routine", content: "Choose one technique — paced breathing or progressive relaxation — and practice it twice daily this week. Consistency matters more than duration. Even 3 minutes counts." },
+        { day: 7, title: "Week 2 check-in", content: "Compare this week's hot flash count to last week. Even if the number hasn't changed, has your experience of them shifted? Reduced distress is a real and measurable outcome." },
+      ]},
+      { week: 3, title: "Cognitive restructuring", lessons: [
+        { day: 1, title: "Thoughts about hot flashes matter", content: "Research shows that catastrophic thoughts ('Everyone can see me sweating,' 'I can't handle this') intensify the hot flash experience. Today, notice your automatic thoughts when a hot flash occurs." },
+        { day: 2, title: "Challenging unhelpful thoughts", content: "When you notice a negative thought, ask: Is this definitely true? What would I say to a friend? A hot flash is uncomfortable but temporary — it typically peaks in 3-5 minutes." },
+        { day: 3, title: "Replacing with balanced thoughts", content: "Instead of 'This is unbearable,' try 'This is uncomfortable, and it will pass in a few minutes.' Instead of 'Everyone notices,' try 'Most people are focused on themselves.'" },
+        { day: 5, title: "The acceptance approach", content: "Paradoxically, accepting hot flashes rather than fighting them often reduces their impact. 'I'm having a hot flash. It's temporary. My body is adjusting.' This isn't giving up — it's a proven strategy." },
+        { day: 7, title: "Week 3 reflection", content: "Which cognitive technique felt most natural? Write it down. Having a go-to thought pattern ready is the key to making CBT automatic rather than effortful." },
+      ]},
+      { week: 4, title: "Lifestyle integration", lessons: [
+        { day: 1, title: "Your complete toolkit", content: "You now have: trigger awareness, paced breathing, relaxation techniques, and cognitive restructuring. This week, we combine them into a personalized action plan." },
+        { day: 2, title: "Environmental strategies", content: "Layer clothing, keep cold water nearby, use a fan. These aren't treatments — they're practical comfort strategies that pair with your CBT techniques." },
+        { day: 3, title: "Sleep and hot flashes", content: "Night sweats disrupt sleep, and poor sleep worsens daytime symptoms. Use your relaxation technique before bed. Keep your bedroom cool. Have a change of clothes ready." },
+        { day: 5, title: "Your personal action plan", content: "Write your plan: 'When I feel a hot flash coming, I will [your chosen technique]. My thought will be [your balanced thought]. My environmental strategy is [your approach].'" },
+        { day: 7, title: "Program complete", content: "Compare your week 4 logs to week 1. Most women see improvement in hot flash distress, even if frequency hasn't changed. Reduced distress IS success. Continue using your techniques — they get easier with practice." },
+      ]},
+    ],
+    xpReward: 200,
+  },
+  {
+    id: "cbt-sleep",
+    title: "Better Sleep",
+    subtitle: "3-week CBT-I program",
+    icon: "🌙",
+    weeks: 3,
+    desc: "CBT for insomnia (CBT-I) is the gold-standard first-line treatment recommended by NAMS. This program teaches core CBT-I techniques adapted for menopausal sleep issues.",
+    modules: [
+      { week: 1, title: "Sleep foundations", lessons: [
+        { day: 1, title: "How menopause affects sleep", content: "Declining estrogen and progesterone directly affect sleep architecture. Night sweats, anxiety, and bladder urgency add further disruption. Understanding the causes helps you target solutions." },
+        { day: 2, title: "Sleep hygiene basics", content: "Consistent wake time (even weekends), cool bedroom (65-68°F), dark room, no screens 30 min before bed. These aren't enough alone but form the foundation." },
+        { day: 3, title: "The sleep window", content: "If you're in bed 9 hours but sleeping 6, your brain associates bed with being awake. Counterintuitively, spending less time in bed can improve sleep quality. Track your actual sleep hours this week." },
+        { day: 5, title: "Stimulus control", content: "Rule: bed is only for sleep (and intimacy). If you're awake for 20+ minutes, get up and do something boring in dim light. Return when drowsy. This re-trains your brain's bed-sleep association." },
+        { day: 7, title: "Week 1 review", content: "Check your Vela logs: what's your average sleep this week? What time did you go to bed vs fall asleep? This data helps you set a realistic sleep window for next week." },
+      ]},
+      { week: 2, title: "Cognitive techniques for sleep", lessons: [
+        { day: 1, title: "Racing thoughts at bedtime", content: "Write worries in a 'worry journal' before bed — not in bed. Literally tell your brain: 'I've noted this. I'll address it tomorrow.' The act of writing externalizes the thought." },
+        { day: 2, title: "Clock-watching worsens insomnia", content: "Turn your clock away. Checking the time triggers anxiety ('It's 2am and I'm still awake!'), which triggers adrenaline, which prevents sleep. The time doesn't matter — only sleepiness does." },
+        { day: 3, title: "Managing night sweats", content: "If night sweats wake you: have a cool damp cloth ready, change clothes if needed, use your paced breathing. Don't check the time. Focus on returning to sleep, not the disruption." },
+        { day: 5, title: "Daytime habits that affect sleep", content: "No caffeine after noon. Regular exercise (but not within 3 hours of bedtime). Brief morning sunlight exposure helps set your circadian rhythm. Small changes compound." },
+        { day: 7, title: "Week 2 check-in", content: "Compare your sleep hours this week to last week. Are you falling asleep faster? Waking less? Even small improvements indicate your brain is re-learning healthy sleep patterns." },
+      ]},
+      { week: 3, title: "Sustaining good sleep", lessons: [
+        { day: 1, title: "Relaxation for sleep", content: "Try progressive muscle relaxation or a body scan meditation before bed. These activate the parasympathetic nervous system. The key is consistency — same technique, same time, every night." },
+        { day: 2, title: "When to talk to your doctor", content: "If sleep issues persist despite CBT-I techniques, discuss with your healthcare provider. They may evaluate for sleep apnea (more common post-menopause) or discuss short-term medication options." },
+        { day: 3, title: "Building your sleep routine", content: "Your ideal routine: dim lights 1 hour before bed → worry journal → relaxation technique → bed (only when drowsy). This routine becomes a sleep signal for your brain." },
+        { day: 5, title: "Handling setbacks", content: "Bad nights will happen — that's normal. Don't compensate by sleeping in or napping long. Stick to your wake time. One bad night doesn't erase your progress." },
+        { day: 7, title: "Program complete", content: "Review your 3 weeks of sleep data. CBT-I shows cumulative benefit — your best improvements may come in the weeks after completing this program. Keep using your techniques." },
+      ]},
+    ],
+    xpReward: 150,
+  },
+  {
+    id: "cbt-anxiety",
+    title: "Anxiety & Mood",
+    subtitle: "4-week CBT program",
+    icon: "🧠",
+    weeks: 4,
+    desc: "Anxiety and mood changes are among the most common perimenopause symptoms. This evidence-based program builds skills for managing both hormonal and situational mood shifts.",
+    modules: [
+      { week: 1, title: "Understanding mood changes", lessons: [
+        { day: 1, title: "Why menopause affects mood", content: "Estrogen modulates serotonin, dopamine, and norepinephrine. When estrogen fluctuates unpredictably during perimenopause, so do these mood-regulating neurotransmitters. This is biology, not weakness." },
+        { day: 2, title: "Anxiety vs worry", content: "Worry is about specific things. Anxiety is a general state of unease, often with physical symptoms (racing heart, tension, dread). During perimenopause, anxiety often appears without a clear cause." },
+        { day: 3, title: "Tracking mood patterns", content: "Use your Vela mood and energy logs to spot patterns. Is anxiety worse at certain times? On certain days? After poor sleep? Data removes guesswork." },
+        { day: 5, title: "The thought-feeling-behavior cycle", content: "Thoughts ('Something bad will happen') create feelings (anxiety) which drive behaviors (avoidance). CBT breaks this cycle by targeting thoughts. You'll learn how this week." },
+        { day: 7, title: "Week 1 baseline", content: "Review your mood logs from this week. What was your average mood score? How many days did you log anxiety? This is your starting point." },
+      ]},
+      { week: 2, title: "Challenging anxious thoughts", lessons: [
+        { day: 1, title: "Catching automatic thoughts", content: "When you feel anxious, pause and ask: 'What am I thinking right now?' Write the thought down. Often, awareness alone reduces its power. Common ones: catastrophizing, mind-reading, fortune-telling." },
+        { day: 2, title: "Evidence for and against", content: "For each anxious thought, list evidence supporting it AND evidence against it. Usually the 'against' column is longer. This isn't positive thinking — it's balanced thinking." },
+        { day: 3, title: "Decatastrophizing", content: "Ask: 'What's the worst that could happen? How would I cope? What's most likely to happen?' Most catastrophic predictions never materialize, and you're more resilient than anxiety tells you." },
+        { day: 5, title: "Behavioral experiments", content: "Test your anxious predictions. If you think 'I'll fall apart if I go to that event,' go and observe what actually happens. Real-world evidence is the strongest antidote to anxiety." },
+        { day: 7, title: "Week 2 reflection", content: "Which challenging technique worked best for you? There's no wrong answer. The technique that feels most natural is the one you'll actually use." },
+      ]},
+      { week: 3, title: "Building resilience", lessons: [
+        { day: 1, title: "The role of exercise", content: "Exercise has strong Level I evidence for improving mood during menopause. Even 30 minutes of brisk walking produces mood benefits. It's not about fitness — it's about neurochemistry." },
+        { day: 2, title: "Social connection matters", content: "Isolation worsens anxiety. Schedule one social interaction this week, even brief. The Vela community counts — connecting with others who understand your experience has measurable benefits." },
+        { day: 3, title: "Grounding techniques", content: "When anxiety spikes, try 5-4-3-2-1: Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste. This redirects your brain from threat mode to sensory mode." },
+        { day: 5, title: "Self-compassion", content: "Talk to yourself like you'd talk to a friend going through this. 'This is hard, and it's okay to struggle. Many women experience this, and it does get better.' Self-compassion reduces cortisol." },
+        { day: 7, title: "Week 3 check-in", content: "Compare your mood scores to week 1. Are you seeing improvement? Remember: CBT is a skill — like any skill, it improves with practice." },
+      ]},
+      { week: 4, title: "Your maintenance plan", lessons: [
+        { day: 1, title: "Recognizing warning signs", content: "What are YOUR early signs of mood dipping? Changes in sleep, appetite, motivation, or social withdrawal? Catching it early means intervening early." },
+        { day: 2, title: "Your wellness toolkit", content: "List your top 3 strategies from this program. Maybe it's challenging thoughts, exercise, and grounding. Write them where you'll see them. Simplicity is key." },
+        { day: 3, title: "When to seek more help", content: "CBT self-help is effective for mild-moderate anxiety. If symptoms are severe, persistent, or interfering with daily life, talk to your healthcare provider. Therapy and/or medication may be appropriate." },
+        { day: 5, title: "Hormones aren't everything", content: "Menopause coincides with major life changes: aging parents, empty nest, career shifts, relationship changes. Address ALL contributors to mood, not just hormonal ones." },
+        { day: 7, title: "Program complete", content: "You've built real skills. Mood changes during menopause typically improve over time, especially with the tools you now have. Continue tracking — your data shows your progress." },
+      ]},
+    ],
+    xpReward: 200,
+  },
 ];
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -940,7 +1115,9 @@ const css = `
     .comm-compose-input, .comm-compose-card, .comm-emoji-opt, .comm-tag-btn,
     .comm-sort-tab, .chat-text, .chat-chip, .chat-input, .digest-card,
     .gamification-bar, .gam-badge, .exp-card, .lesson-card,
-    .add-symptom-card, .add-symptom-input, .milestone-card {
+    .add-symptom-card, .add-symptom-input, .milestone-card,
+    .symptom-cat-tab, .active-symptom-chip, .energy-chip,
+    .cbt-card, .cbt-program-item, .cbt-lesson-done-btn, .nudge-card {
       background: var(--card-bg) !important;
     }
     .milestone-card { border-color: var(--sage-light) !important; background: var(--sage-light) !important; }
@@ -953,6 +1130,11 @@ const css = `
     .comm-sort-active { background: var(--clay) !important; color: white !important; }
     .comm-emoji-selected { background: var(--clay-light) !important; }
     .symptom-tile.active { background: var(--clay-light) !important; }
+    .symptom-cat-tab.active { background: var(--sage) !important; color: white !important; border-color: var(--sage) !important; }
+    .active-symptom-chip { background: var(--clay-light) !important; color: var(--clay) !important; border-color: var(--clay) !important; }
+    .energy-chip.active { background: var(--sage-light) !important; border-color: var(--sage) !important; }
+    .cbt-lesson-header:active { background: rgba(255,255,255,0.05) !important; }
+    .cbt-program-item:active { background: var(--sage-light) !important; }
     .ctx-dot.active { background: var(--clay-light) !important; }
     .ctx-pill.on { background: var(--sage-light) !important; }
     .streak-milestone.earned { background: var(--sage) !important; }
@@ -1145,6 +1327,23 @@ const css = `
     margin-bottom: 10px;
   }
 
+  .energy-section { margin: 14px 16px 0; }
+  .energy-row {
+    display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .energy-row::-webkit-scrollbar { display: none; }
+  .energy-chip {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+    padding: 10px 4px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    background: white; cursor: pointer; transition: all 0.15s; gap: 4px;
+  }
+  .energy-chip:active { transform: scale(0.94); }
+  .energy-chip.active { border-color: var(--sage); background: var(--sage-light); }
+  .energy-icon { font-size: 20px; }
+  .energy-label { font-size: 10px; font-weight: 500; color: var(--ink-light); text-align: center; }
+  .energy-chip.active .energy-label { color: var(--sage-dark); font-weight: 600; }
+
   .symptoms-section { margin: 14px 16px 0; }
   .symptom-filter {
     width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -1153,6 +1352,33 @@ const css = `
   }
   .symptom-filter:focus { border-color: var(--clay); }
   .symptom-filter::placeholder { color: var(--ink-light); }
+
+  .active-symptoms-summary {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+  }
+  .active-symptom-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    background: var(--clay-light); color: var(--clay-dark); border: 1px solid var(--clay);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .active-symptom-chip:active { transform: scale(0.94); opacity: 0.7; }
+
+  .symptom-cat-tabs {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .symptom-cat-tabs::-webkit-scrollbar { display: none; }
+  .symptom-cat-tab {
+    flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; border: 1.5px solid var(--border); background: white;
+    color: var(--ink-light); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .symptom-cat-tab:active { transform: scale(0.96); }
+  .symptom-cat-tab.active {
+    background: var(--sage); color: white; border-color: var(--sage);
+  }
+
   .symptom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .symptom-tile {
     background: white;
@@ -1834,6 +2060,23 @@ const css = `
   }
   .tip-text { font-size: 13px; line-height: 1.5; }
 
+  /* ── Nudge Card ── */
+  .nudge-card {
+    margin: 12px 16px 0; padding: 14px 16px; border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--sage-light), white);
+    border: 1.5px solid var(--sage); cursor: pointer;
+    display: flex; gap: 12px; align-items: center; transition: all 0.15s;
+  }
+  .nudge-card:active { transform: scale(0.98); opacity: 0.85; }
+  .nudge-icon { font-size: 24px; flex-shrink: 0; }
+  .nudge-content { flex: 1; }
+  .nudge-title { font-size: 14px; font-weight: 600; color: var(--sage-dark); }
+  .nudge-text { font-size: 12px; color: var(--ink-mid); margin-top: 2px; line-height: 1.4; }
+  .nudge-dismiss {
+    font-size: 18px; color: var(--ink-light); cursor: pointer; padding: 4px 8px;
+    line-height: 1; flex-shrink: 0;
+  }
+
   /* ── TOAST ── */
   .toast {
     position: fixed;
@@ -1993,6 +2236,67 @@ const css = `
   .digest-delta.down { color: var(--clay); font-weight: 500; }
   .digest-teaser { cursor: pointer; opacity: 0.8; }
   .digest-teaser:active { opacity: 0.6; }
+
+  /* ─── CBT Programs ─── */
+  .cbt-section { margin: 0 0 8px; }
+  .cbt-card {
+    background: var(--card-bg); border-radius: 16px; margin: 12px 16px; padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .cbt-card-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .cbt-card-icon { font-size: 28px; flex-shrink: 0; }
+  .cbt-card-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--ink); }
+  .cbt-card-sub { font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+  .cbt-progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .cbt-progress-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .cbt-progress-fill { height: 100%; background: var(--sage); border-radius: 3px; transition: width 0.4s ease; }
+  .cbt-progress-label { font-size: 11px; color: var(--ink-light); white-space: nowrap; }
+  .cbt-btn {
+    width: 100%; padding: 10px; border: none; border-radius: var(--radius-sm);
+    background: var(--sage); color: white; font-weight: 600; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 8px;
+  }
+  .cbt-btn:active { opacity: 0.85; transform: scale(0.98); }
+  .cbt-btn.cbt-abandon { background: transparent; color: var(--ink-light); font-size: 12px; font-weight: 400; margin-top: 8px; }
+  .cbt-complete-msg { text-align: center; padding: 12px; font-size: 14px; color: var(--sage-dark); font-weight: 500; }
+  .cbt-lessons { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+  .cbt-lesson { border-radius: var(--radius-sm); overflow: hidden; }
+  .cbt-lesson-header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 8px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cbt-lesson-header:active { background: var(--cream); }
+  .cbt-lesson-check { font-size: 14px; color: var(--ink-light); width: 20px; text-align: center; }
+  .cbt-lesson.done .cbt-lesson-check { color: var(--sage); font-weight: 700; }
+  .cbt-lesson-title { flex: 1; font-size: 13px; color: var(--ink); font-weight: 500; }
+  .cbt-lesson.done .cbt-lesson-title { color: var(--ink-light); text-decoration: line-through; }
+  .cbt-lesson-arrow { font-size: 11px; color: var(--ink-light); }
+  .cbt-lesson-content { padding: 4px 8px 12px 36px; }
+  .cbt-lesson-content p { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+  .cbt-lesson-done-btn {
+    margin-top: 10px; padding: 6px 16px; border: 1.5px solid var(--sage); border-radius: 20px;
+    background: transparent; color: var(--sage); font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .cbt-lesson-done-btn:active { background: var(--sage-light); }
+  .cbt-prev-weeks { margin-top: 8px; }
+  .cbt-prev-weeks summary { font-size: 12px; color: var(--ink-light); cursor: pointer; padding: 4px 0; }
+  .cbt-prev-week { margin: 8px 0; }
+  .cbt-prev-week-title { font-size: 12px; font-weight: 600; color: var(--ink-mid); margin-bottom: 4px; }
+  .cbt-prev-lesson { font-size: 12px; color: var(--ink-light); padding: 2px 0 2px 8px; }
+  .cbt-program-list { display: flex; flex-direction: column; gap: 10px; }
+  .cbt-program-item {
+    display: flex; gap: 12px; padding: 12px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s;
+  }
+  .cbt-program-item:active { border-color: var(--sage); background: var(--sage-light); transform: scale(0.98); }
+  .cbt-program-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .cbt-program-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .cbt-program-meta { font-size: 11px; color: var(--sage); font-weight: 500; margin-top: 2px; }
+  .cbt-program-desc { font-size: 12px; color: var(--ink-light); line-height: 1.4; margin-top: 4px; }
+  .cbt-completed-note { font-size: 12px; color: var(--sage); font-weight: 500; text-align: center; padding: 4px; }
+  .cbt-teaser { opacity: 0.85; }
+  .cbt-teaser:active { opacity: 0.65; }
 
   /* ─── Enhanced Prediction Card ─── */
   .pred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -2288,12 +2592,13 @@ function OnboardingScreen({ onComplete }) {
 
 // ─── Tracker Screen ───────────────────────────────────────────────────────────
 
-function TrackerScreen({ onLog, logs, profile, isPremium }) {
+function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
   const [mood, setMood] = useState(null);
   const [activeSymptoms, setActiveSymptoms] = useState({});
   const [severities, setSeverities] = useState({});
   const [notes, setNotes] = useState("");
   const [symptomFilter, setSymptomFilter] = useState("");
+  const [symptomCat, setSymptomCat] = useState("common");
   const [sleepHours, setSleepHours] = useState(null);
   const [stress, setStress] = useState(null);
   const [caffeine, setCaffeine] = useState(null);
@@ -2306,13 +2611,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   const [newSymptomName, setNewSymptomName] = useState("");
   const [periodLogged, setPeriodLogged] = useState(null);
   const [periodFlow, setPeriodFlow] = useState(null);
+  const [energy, setEnergy] = useState(null);
+  const [lessonDone, setLessonDone] = useState(false);
+  const [xpTick, setXpTick] = useState(0);
 
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
 
   function addCustomSymptom() {
     const name = newSymptomName.trim();
     if (!name || allSymptoms.some((s) => s.name.toLowerCase() === name.toLowerCase())) return;
-    const updated = [...customSymptoms, { icon: "✦", name, custom: true }];
+    const updated = [...customSymptoms, { icon: "✦", name, custom: true, cat: "other" }];
     setCustomSymptoms(updated);
     localStorage.setItem("vela_custom_symptoms", JSON.stringify(updated));
     setNewSymptomName("");
@@ -2411,8 +2719,9 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
   function handleLog() {
     if (!canLog) return;
     haptic("Medium");
-    onLog({ mood, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
+    onLog({ mood, energy, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
     setMood(null);
+    setEnergy(null);
     setActiveSymptoms({});
     setSeverities({});
     setNotes("");
@@ -2483,6 +2792,25 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
         );
       })()}
 
+      {/* Insights nudge at day 7+ */}
+      {(() => {
+        const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+        const dismissed = localStorage.getItem("vela_insights_nudge_dismissed");
+        if (uniqueDays >= 7 && uniqueDays <= 14 && !dismissed) {
+          return (
+            <div className="nudge-card" onClick={() => onNavigate && onNavigate("insights")}>
+              <div className="nudge-icon">✨</div>
+              <div className="nudge-content">
+                <div className="nudge-title">Your patterns are ready!</div>
+                <div className="nudge-text">You have {uniqueDays} days of data — tap to explore your insights and trends.</div>
+              </div>
+              <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_insights_nudge_dismissed", "1"); haptic("Light"); }}>×</div>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       {tipText && (
         <div className="tip-card">
           <div className="tip-label">Evidence-based tip</div>
@@ -2495,7 +2823,18 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
         const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]");
         const dayIndex = Math.floor((new Date() - new Date(2025, 0, 1)) / 86400000) % DAILY_LESSONS.length;
         const todayLesson = DAILY_LESSONS[dayIndex];
-        const completedToday = completedLessons.includes(new Date().toISOString().slice(0, 10));
+        const completedToday = lessonDone || completedLessons.includes(new Date().toISOString().slice(0, 10));
+        if (lessonDone) {
+          return (
+            <div className="lesson-card completed" style={{ animation: "cardSlideIn 0.3s ease" }}>
+              <div className="lesson-header">
+                <div className="lesson-label">Daily insight</div>
+                <div className="lesson-xp" style={{ color: "var(--sage)" }}>✓ +{todayLesson.xp} XP earned!</div>
+              </div>
+              <div className="lesson-title">{todayLesson.title}</div>
+            </div>
+          );
+        }
         return (
           <div className={`lesson-card${completedToday ? " completed" : ""}`}>
             <div className="lesson-header">
@@ -2509,9 +2848,9 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
                 <button className="lesson-btn" onClick={() => {
                   const updated = [...completedLessons, new Date().toISOString().slice(0, 10)];
                   localStorage.setItem("vela_completed_lessons", JSON.stringify(updated.slice(-30)));
-                  haptic("Light");
-                  window.dispatchEvent(new Event("storage"));
-                  window.location.reload();
+                  haptic("Medium");
+                  setLessonDone(true);
+                  setXpTick((t) => t + 1); // triggers XP bar re-render
                 }}>Got it! +{todayLesson.xp} XP</button>
               </>
             ) : (
@@ -2535,7 +2874,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
               const exp = available[0];
               localStorage.setItem("vela_active_experiment", JSON.stringify({ ...exp, startDate: new Date().toISOString(), daysCompleted: 0 }));
               haptic("Medium");
-              window.location.reload();
+              setXpTick((t) => t + 1);
             }}>
               <div className="exp-header">
                 <span className="exp-icon">🧪</span>
@@ -2570,13 +2909,13 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
                 localStorage.setItem("vela_completed_experiments", JSON.stringify(completed));
                 localStorage.removeItem("vela_active_experiment");
                 haptic("Medium");
-                window.location.reload();
+                setXpTick((t) => t + 1);
               }}>Claim {activeExp.xpReward} XP & finish</button>
             ) : (
               <button className="exp-btn exp-abandon" onClick={() => {
                 if (window.confirm("End this experiment early?")) {
                   localStorage.removeItem("vela_active_experiment");
-                  window.location.reload();
+                  setXpTick((t) => t + 1);
                 }
               }}>End experiment</button>
             )}
@@ -2635,18 +2974,71 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
         </div>
       </div>
 
+      <div className="energy-section">
+        <div className="section-label">Energy level</div>
+        <div className="energy-row">
+          {[
+            { level: 1, label: "Depleted", icon: "🪫" },
+            { level: 2, label: "Low", icon: "😮‍💨" },
+            { level: 3, label: "Moderate", icon: "⚡" },
+            { level: 4, label: "Good", icon: "💪" },
+            { level: 5, label: "Energized", icon: "🔋" },
+          ].map(({ level, label, icon }) => (
+            <div
+              key={level}
+              className={`energy-chip${energy === level ? " active" : ""}`}
+              onClick={() => { haptic("Light"); setEnergy(energy === level ? null : level); }}
+            >
+              <span className="energy-icon">{icon}</span>
+              <span className="energy-label">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="symptoms-section">
         <div className="section-label">Symptoms today</div>
-        {allSymptoms.length > 12 && (
-          <input
-            className="symptom-filter"
-            placeholder="Search symptoms..."
-            value={symptomFilter}
-            onChange={(e) => setSymptomFilter(e.target.value)}
-          />
+        {/* Active symptoms summary */}
+        {Object.keys(activeSymptoms).length > 0 && (
+          <div className="active-symptoms-summary">
+            {Object.keys(activeSymptoms).map((name) => {
+              const s = allSymptoms.find((sym) => sym.name === name);
+              return (
+                <span key={name} className="active-symptom-chip" onClick={() => { haptic("Light"); toggleSymptom(name); }}>
+                  {s ? s.icon : "✦"} {name} ×
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {/* Search */}
+        <input
+          className="symptom-filter"
+          placeholder="Search symptoms..."
+          value={symptomFilter}
+          onChange={(e) => setSymptomFilter(e.target.value)}
+        />
+        {/* Category tabs */}
+        {!symptomFilter && (
+          <div className="symptom-cat-tabs">
+            {SYMPTOM_CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                className={`symptom-cat-tab${symptomCat === cat.key ? " active" : ""}`}
+                onClick={() => { haptic("Light"); setSymptomCat(cat.key); }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         )}
         <div className="symptom-grid">
-          {allSymptoms.filter((s) => !symptomFilter || s.name.toLowerCase().includes(symptomFilter.toLowerCase())).map((s) => {
+          {allSymptoms
+            .filter((s) => {
+              if (symptomFilter) return s.name.toLowerCase().includes(symptomFilter.toLowerCase());
+              return s.cat === symptomCat || (!s.cat && symptomCat === "other");
+            })
+            .map((s) => {
             const isActive = !!activeSymptoms[s.name];
             const sev = severities[s.name] || 0;
             return (
@@ -2675,10 +3067,13 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
               </div>
             );
           })}
-          <div className="symptom-tile add-symptom" onClick={() => { haptic("Light"); setShowAddSymptom(true); }}>
-            <div className="s-icon">+</div>
-            <span className="s-name">Add custom</span>
-          </div>
+          {/* Show add custom tile only when on "other" category or searching */}
+          {(symptomCat === "other" || symptomFilter) && (
+            <div className="symptom-tile add-symptom" onClick={() => { haptic("Light"); setShowAddSymptom(true); }}>
+              <div className="s-icon">+</div>
+              <span className="s-name">Add custom</span>
+            </div>
+          )}
         </div>
         {showAddSymptom && (
           <div className="add-symptom-overlay" onClick={() => setShowAddSymptom(false)}>
@@ -3163,6 +3558,11 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   }, [chatMessages, showCompanion]);
 
   const [isTyping, setIsTyping] = useState(false);
+  const [activeCBT, setActiveCBT] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vela_active_cbt")); } catch { return null; }
+  });
+  const [showCBTList, setShowCBTList] = useState(false);
+  const [expandedLesson, setExpandedLesson] = useState(null);
 
   const handleQuestion = (text) => {
     if (!text.trim() || isTyping) return;
@@ -3647,6 +4047,162 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             </div>
           )}
         </>
+      )}
+
+      {/* ─── CBT Programs Section ─── */}
+      {isPremium ? (
+        <div className="cbt-section">
+          {activeCBT ? (() => {
+            const program = CBT_PROGRAMS.find((p) => p.id === activeCBT.programId);
+            if (!program) return null;
+            const startDate = new Date(activeCBT.startDate);
+            const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / 86400000);
+            const currentWeek = Math.min(Math.floor(daysSinceStart / 7), program.weeks - 1);
+            const currentModule = program.modules[currentWeek];
+            const completedLessons = activeCBT.completed || [];
+            const allLessons = program.modules.flatMap((m, wi) => m.lessons.map((l) => ({ ...l, weekIndex: wi })));
+            const totalLessons = allLessons.length;
+            const completedCount = completedLessons.length;
+            const progressPct = Math.round((completedCount / totalLessons) * 100);
+            const isComplete = completedCount >= totalLessons;
+
+            return (
+              <div className="cbt-card">
+                <div className="cbt-card-header">
+                  <span className="cbt-card-icon">{program.icon}</span>
+                  <div>
+                    <div className="cbt-card-title">{program.title}</div>
+                    <div className="cbt-card-sub">Week {currentWeek + 1} of {program.weeks} · {currentModule?.title}</div>
+                  </div>
+                </div>
+                <div className="cbt-progress-row">
+                  <div className="cbt-progress-bg">
+                    <div className="cbt-progress-fill" style={{ width: `${progressPct}%` }} />
+                  </div>
+                  <span className="cbt-progress-label">{completedCount}/{totalLessons} lessons</span>
+                </div>
+                {isComplete ? (
+                  <div>
+                    <div className="cbt-complete-msg">🎉 Program complete! You've earned {program.xpReward} XP</div>
+                    <button className="cbt-btn" onClick={() => {
+                      const completed = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
+                      completed.push(activeCBT.programId);
+                      localStorage.setItem("vela_completed_cbt", JSON.stringify(completed));
+                      localStorage.removeItem("vela_active_cbt");
+                      setActiveCBT(null);
+                      haptic("Medium");
+                    }}>Finish & claim XP</button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="cbt-lessons">
+                      {currentModule?.lessons.map((lesson) => {
+                        const lessonKey = `w${currentWeek}-d${lesson.day}`;
+                        const isDone = completedLessons.includes(lessonKey);
+                        const isExpanded = expandedLesson === lessonKey;
+                        return (
+                          <div key={lessonKey} className={`cbt-lesson${isDone ? " done" : ""}`}>
+                            <div className="cbt-lesson-header" onClick={() => setExpandedLesson(isExpanded ? null : lessonKey)}>
+                              <span className="cbt-lesson-check">{isDone ? "✓" : "○"}</span>
+                              <span className="cbt-lesson-title">{lesson.title}</span>
+                              <span className="cbt-lesson-arrow">{isExpanded ? "▾" : "▸"}</span>
+                            </div>
+                            {isExpanded && (
+                              <div className="cbt-lesson-content">
+                                <p>{lesson.content}</p>
+                                {!isDone && (
+                                  <button className="cbt-lesson-done-btn" onClick={() => {
+                                    const updated = { ...activeCBT, completed: [...completedLessons, lessonKey] };
+                                    setActiveCBT(updated);
+                                    localStorage.setItem("vela_active_cbt", JSON.stringify(updated));
+                                    haptic("Medium");
+                                  }}>Mark complete</button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {currentWeek > 0 && (
+                      <details className="cbt-prev-weeks">
+                        <summary>Previous weeks</summary>
+                        {program.modules.slice(0, currentWeek).map((mod, wi) => (
+                          <div key={wi} className="cbt-prev-week">
+                            <div className="cbt-prev-week-title">Week {wi + 1}: {mod.title}</div>
+                            {mod.lessons.map((lesson) => {
+                              const lk = `w${wi}-d${lesson.day}`;
+                              return (
+                                <div key={lk} className="cbt-prev-lesson">
+                                  <span>{completedLessons.includes(lk) ? "✓" : "○"}</span> {lesson.title}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </details>
+                    )}
+                    <button className="cbt-btn cbt-abandon" onClick={() => {
+                      if (window.confirm("End this program early? Your progress will be lost.")) {
+                        localStorage.removeItem("vela_active_cbt");
+                        setActiveCBT(null);
+                      }
+                    }}>Leave program</button>
+                  </>
+                )}
+              </div>
+            );
+          })() : (
+            <div className="cbt-card">
+              <div className="cbt-card-header">
+                <span className="cbt-card-icon">🧠</span>
+                <div>
+                  <div className="cbt-card-title">CBT Programs</div>
+                  <div className="cbt-card-sub">Evidence-based programs to build coping skills</div>
+                </div>
+              </div>
+              {!showCBTList ? (
+                <button className="cbt-btn" onClick={() => setShowCBTList(true)}>Browse programs</button>
+              ) : (
+                <div className="cbt-program-list">
+                  {CBT_PROGRAMS.filter((p) => {
+                    const completed = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
+                    return !completed.includes(p.id);
+                  }).map((program) => (
+                    <div key={program.id} className="cbt-program-item" onClick={() => {
+                      const cbt = { programId: program.id, startDate: new Date().toISOString(), completed: [] };
+                      setActiveCBT(cbt);
+                      localStorage.setItem("vela_active_cbt", JSON.stringify(cbt));
+                      setShowCBTList(false);
+                      haptic("Medium");
+                    }}>
+                      <div className="cbt-program-icon">{program.icon}</div>
+                      <div className="cbt-program-info">
+                        <div className="cbt-program-name">{program.title}</div>
+                        <div className="cbt-program-meta">{program.subtitle} · {program.xpReward} XP</div>
+                        <div className="cbt-program-desc">{program.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]").length > 0 && (
+                    <div className="cbt-completed-note">✓ You've completed {JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]").length} program(s)</div>
+                  )}
+                  <button className="cbt-btn cbt-abandon" onClick={() => setShowCBTList(false)}>Cancel</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="cbt-card cbt-teaser" onClick={onShowPaywall} style={{ margin: "12px 16px", cursor: "pointer" }}>
+          <div className="cbt-card-header">
+            <span className="cbt-card-icon">🧠</span>
+            <div>
+              <div className="cbt-card-title">CBT Programs <span style={{ fontSize: 11, color: "var(--ink-light)" }}>🔒 Premium</span></div>
+              <div className="cbt-card-sub">Multi-week evidence-based programs for managing hot flashes, sleep, and anxiety</div>
+            </div>
+          </div>
+        </div>
       )}
 
       {isPremium ? (
@@ -4914,6 +5470,7 @@ export default function App() {
     return JSON.parse(localStorage.getItem("vela_profile") || "null");
   });
   const [toast, setToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
   const [badgeToast, setBadgeToast] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -4966,8 +5523,20 @@ export default function App() {
     const logEntry = { ...entry, date: new Date().toISOString() };
     const newLogs = [logEntry, ...logs];
     setLogs(newLogs);
+    // Smart contextual toast messages
+    const uniqueDays = new Set(newLogs.map((l) => l.date.slice(0, 10))).size;
+    const streak = getStreak(newLogs);
+    let msg = "Entry logged! Keep it up. 🌿";
+    if (uniqueDays === 1) msg = "First entry logged! You're on your way. 🌱";
+    else if (uniqueDays === 3) msg = "3 days logged! Patterns are starting to form. 📊";
+    else if (uniqueDays === 7) msg = "7 days! Tap Insights to see your first patterns. ✨";
+    else if (uniqueDays === 14) msg = "2 weeks of data! Your insights are getting powerful. 🔬";
+    else if (streak >= 7 && streak % 7 === 0) msg = `${streak}-day streak! You're building a powerful health picture. 🔥`;
+    else if (Object.keys(entry.symptoms || {}).length >= 3) msg = "Detailed entry logged! More data = better insights. 💡";
+    else if (entry.notes && entry.notes.length > 20) msg = "Great notes! These details help spot patterns. 📝";
+    setToastMsg(msg);
     setToast(true);
-    setTimeout(() => setToast(false), 2500);
+    setTimeout(() => setToast(false), 3000);
     setTimeout(() => checkNewBadges(logs, newLogs), 500);
   }
 
@@ -5029,6 +5598,9 @@ export default function App() {
       localStorage.removeItem("vela_completed_experiments");
       localStorage.removeItem("vela_streak_freezes");
       localStorage.removeItem("vela_streak_freeze_count");
+      localStorage.removeItem("vela_active_cbt");
+      localStorage.removeItem("vela_completed_cbt");
+      localStorage.removeItem("vela_insights_nudge_dismissed");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
@@ -5108,7 +5680,7 @@ export default function App() {
       {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} />}
       {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => setShowPaywall(true)} />}
       {onboarded && screen === "insights" && (
         <InsightsScreen
@@ -5157,7 +5729,7 @@ export default function App() {
 
       {/* Toast */}
       <div className={`toast${toast ? " show" : ""}`}>
-        Entry logged! Keep it up. 🌿
+        {toastMsg || "Entry logged! Keep it up. 🌿"}
       </div>
 
       {/* Badge Toast */}
