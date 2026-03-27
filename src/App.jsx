@@ -88,16 +88,31 @@ function getStreak(logs) {
   if (logs.length === 0) return 0;
   let streak = 0;
   const today = new Date();
-  for (let i = 0; i <= 90; i++) {
+  const freezes = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freezes") || "[]"); } catch { return []; } })();
+  for (let i = 0; i <= 120; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dayStr = d.toISOString().slice(0, 10);
     const hasLog = logs.some((l) => l.date.slice(0, 10) === dayStr);
+    const isFrozen = freezes.includes(dayStr);
     if (hasLog) streak++;
-    else if (i > 0) break; // allow today to be missing
-    else break;
+    else if (isFrozen && i > 0) streak++; // freeze counts as a streak day
+    else if (i > 0) break;
+    else break; // today with no log and no freeze
   }
   return streak;
+}
+
+function useStreakFreeze() {
+  const today = new Date().toISOString().slice(0, 10);
+  const freezes = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freezes") || "[]"); } catch { return []; } })();
+  if (freezes.includes(today)) return false; // already frozen today
+  const available = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freeze_count") || "0"); } catch { return 0; } })();
+  if (available <= 0) return false;
+  freezes.push(today);
+  localStorage.setItem("vela_streak_freezes", JSON.stringify(freezes.slice(-30)));
+  localStorage.setItem("vela_streak_freeze_count", JSON.stringify(available - 1));
+  return true;
 }
 
 function getJourneyLabel(profileIndex) {
@@ -748,6 +763,133 @@ function generateWeeklyDigest(logs, profile) {
   };
 }
 
+// ─── Gamification Engine ─────────────────────────────────────────────────────
+
+const BADGES = [
+  // Streak badges
+  { id: "streak-3", icon: "🌱", name: "Seedling", desc: "3-day logging streak", check: (s) => s.streak >= 3 },
+  { id: "streak-7", icon: "🌿", name: "Sprouting", desc: "7-day logging streak", check: (s) => s.streak >= 7 },
+  { id: "streak-14", icon: "🌳", name: "Taking Root", desc: "14-day logging streak", check: (s) => s.streak >= 14 },
+  { id: "streak-30", icon: "🌲", name: "Deeply Rooted", desc: "30-day logging streak", check: (s) => s.streak >= 30 },
+  { id: "streak-60", icon: "🏔️", name: "Mountain Strong", desc: "60-day logging streak", check: (s) => s.streak >= 60 },
+  // Logging milestones
+  { id: "logs-1", icon: "✨", name: "First Step", desc: "Log your first entry", check: (s) => s.totalLogs >= 1 },
+  { id: "logs-10", icon: "📝", name: "Getting Started", desc: "Log 10 entries", check: (s) => s.totalLogs >= 10 },
+  { id: "logs-50", icon: "📊", name: "Data Builder", desc: "Log 50 entries", check: (s) => s.totalLogs >= 50 },
+  { id: "logs-100", icon: "🏆", name: "Century Club", desc: "Log 100 entries", check: (s) => s.totalLogs >= 100 },
+  { id: "logs-365", icon: "👑", name: "Year of Wisdom", desc: "Log 365 entries", check: (s) => s.totalLogs >= 365 },
+  // Feature discovery
+  { id: "mood-first", icon: "😊", name: "Mood Tracker", desc: "Log your first mood", check: (s) => s.moodLogs >= 1 },
+  { id: "notes-first", icon: "📓", name: "Journaler", desc: "Add your first note", check: (s) => s.notesCount >= 1 },
+  { id: "context-first", icon: "🔍", name: "Context Seeker", desc: "Log sleep, stress, or a trigger", check: (s) => s.contextLogs >= 1 },
+  { id: "symptoms-5", icon: "🩺", name: "Body Listener", desc: "Track 5 different symptoms", check: (s) => s.uniqueSymptoms >= 5 },
+  { id: "symptoms-10", icon: "🧬", name: "Full Spectrum", desc: "Track 10 different symptoms", check: (s) => s.uniqueSymptoms >= 10 },
+  // Community
+  { id: "community-post", icon: "💬", name: "Voice Found", desc: "Write your first community post", check: (s) => s.communityPosts >= 1 },
+  { id: "community-5", icon: "🤝", name: "Supporter", desc: "Write 5 community posts", check: (s) => s.communityPosts >= 5 },
+  // Insights
+  { id: "insight-first", icon: "💡", name: "Pattern Spotter", desc: "View your first weekly insight", check: (s) => s.uniqueDays >= 7 },
+  { id: "ai-chat", icon: "🤖", name: "Vela Whisperer", desc: "Ask Vela your first question", check: (s) => s.aiChats >= 1 },
+  // Special
+  { id: "weekend-warrior", icon: "🦸", name: "Weekend Warrior", desc: "Log on both Saturday and Sunday", check: (s) => s.weekendLogs >= 2 },
+  { id: "night-owl", icon: "🦉", name: "Night Owl", desc: "Log after 10pm", check: (s) => s.nightLogs >= 1 },
+  { id: "early-bird", icon: "🐦", name: "Early Bird", desc: "Log before 7am", check: (s) => s.earlyLogs >= 1 },
+  { id: "period-tracker", icon: "🩸", name: "Cycle Aware", desc: "Log period data for the first time", check: (s) => s.periodLogs >= 1 },
+];
+
+const LEVELS = [
+  { level: 1, name: "Newcomer", xpNeeded: 0 },
+  { level: 2, name: "Explorer", xpNeeded: 50 },
+  { level: 3, name: "Tracker", xpNeeded: 150 },
+  { level: 4, name: "Pattern Finder", xpNeeded: 350 },
+  { level: 5, name: "Insightful", xpNeeded: 600 },
+  { level: 6, name: "Dedicated", xpNeeded: 1000 },
+  { level: 7, name: "Empowered", xpNeeded: 1500 },
+  { level: 8, name: "Advocate", xpNeeded: 2200 },
+  { level: 9, name: "Mentor", xpNeeded: 3000 },
+  { level: 10, name: "Vela Master", xpNeeded: 4000 },
+];
+
+function computeGamificationStats(logs) {
+  const streak = getStreak(logs);
+  const totalLogs = logs.length;
+  const uniqueSymptoms = new Set(logs.flatMap((l) => Object.keys(l.symptoms || {}))).size;
+  const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+  const moodLogs = logs.filter((l) => l.mood !== null && l.mood !== undefined).length;
+  const notesCount = logs.filter((l) => l.notes && l.notes.trim()).length;
+  const contextLogs = logs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null)).length;
+  const communityPosts = (() => { try { return JSON.parse(localStorage.getItem("vela_community_posts") || "[]").length; } catch { return 0; } })();
+  const aiChats = (() => { try { return JSON.parse(localStorage.getItem("vela_chat_messages") || "[]").filter((m) => m.role === "user").length; } catch { return 0; } })();
+  const weekendLogs = new Set(logs.filter((l) => { const d = new Date(l.date).getDay(); return d === 0 || d === 6; }).map((l) => new Date(l.date).getDay())).size;
+  const nightLogs = logs.filter((l) => new Date(l.date).getHours() >= 22).length;
+  const earlyLogs = logs.filter((l) => new Date(l.date).getHours() < 7).length;
+  const periodLogs = logs.filter((l) => l.context?.period && l.context.period !== "none").length;
+  return { streak, totalLogs, uniqueSymptoms, uniqueDays, moodLogs, notesCount, contextLogs, communityPosts, aiChats, weekendLogs, nightLogs, earlyLogs, periodLogs };
+}
+
+function computeXP(logs) {
+  let xp = 0;
+  xp += logs.length * 10; // 10 XP per log
+  const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+  xp += uniqueDays * 5; // 5 XP bonus per unique day
+  const streak = getStreak(logs);
+  xp += Math.min(streak, 60) * 3; // 3 XP per streak day (cap at 60)
+  const moodLogs = logs.filter((l) => l.mood !== null && l.mood !== undefined).length;
+  xp += moodLogs * 2; // 2 XP per mood log
+  const contextLogs = logs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null)).length;
+  xp += contextLogs * 3; // 3 XP per context log
+  const notesCount = logs.filter((l) => l.notes && l.notes.trim()).length;
+  xp += notesCount * 5; // 5 XP per note
+  const stats = computeGamificationStats(logs);
+  const earned = BADGES.filter((b) => b.check(stats));
+  xp += earned.length * 25; // 25 XP per badge
+  return xp;
+}
+
+function getLevel(xp) {
+  let current = LEVELS[0];
+  for (const lvl of LEVELS) {
+    if (xp >= lvl.xpNeeded) current = lvl;
+    else break;
+  }
+  const nextLevel = LEVELS.find((l) => l.xpNeeded > xp);
+  const xpToNext = nextLevel ? nextLevel.xpNeeded - xp : 0;
+  const xpInLevel = nextLevel ? xp - current.xpNeeded : 0;
+  const xpLevelRange = nextLevel ? nextLevel.xpNeeded - current.xpNeeded : 1;
+  const pct = nextLevel ? Math.round((xpInLevel / xpLevelRange) * 100) : 100;
+  return { ...current, xp, xpToNext, pct, isMax: !nextLevel };
+}
+
+// ─── Self-Experiments / Challenges ───────────────────────────────────────────
+
+const EXPERIMENTS = [
+  { id: "no-caffeine-7", title: "Caffeine-free week", desc: "Skip caffeine for 7 days and see how your symptoms respond", duration: 7, track: "caffeine", trackValue: false, icon: "☕", category: "triggers", xpReward: 50 },
+  { id: "exercise-7", title: "Move every day", desc: "Log any exercise for 7 consecutive days", duration: 7, track: "exercise", trackValue: true, icon: "🏃", category: "activity", xpReward: 50 },
+  { id: "sleep-hygiene-7", title: "Sleep before 10pm", desc: "Aim for 7+ hours of sleep for 7 nights", duration: 7, track: "sleepHours", trackValue: 7, icon: "🛏️", category: "sleep", xpReward: 50 },
+  { id: "mood-journal-7", title: "Daily mood check", desc: "Log your mood every day for a full week", duration: 7, track: "mood", trackValue: true, icon: "📓", category: "tracking", xpReward: 40 },
+  { id: "no-alcohol-14", title: "14-day alcohol reset", desc: "Skip alcohol for 2 weeks and compare your symptom patterns", duration: 14, track: "alcohol", trackValue: false, icon: "🍷", category: "triggers", xpReward: 75 },
+  { id: "stress-mgmt-7", title: "Low-stress week", desc: "Practice stress management — aim for stress level ≤3 for 7 days", duration: 7, track: "stress", trackValue: 3, icon: "🧘", category: "wellness", xpReward: 60 },
+  { id: "hydration-7", title: "Hydration challenge", desc: "Note your water intake daily for 7 days. Stay hydrated!", duration: 7, track: "notes", trackValue: "water", icon: "💧", category: "wellness", xpReward: 40 },
+  { id: "full-log-7", title: "Complete tracker", desc: "Log mood, symptoms, AND context every day for a week", duration: 7, track: "complete", trackValue: true, icon: "✅", category: "tracking", xpReward: 75 },
+];
+
+const DAILY_LESSONS = [
+  { id: "dl-1", title: "What happens during perimenopause?", text: "Perimenopause typically begins in your 40s and lasts 4-8 years. Estrogen fluctuates unpredictably — it doesn't just decline linearly. This is why symptoms can come and go.", xp: 10 },
+  { id: "dl-2", title: "Why tracking matters", text: "Research shows that women who consistently track symptoms have more productive doctor visits and receive more targeted treatment. Your data is your best advocate.", xp: 10 },
+  { id: "dl-3", title: "The brain-hormone connection", text: "Estrogen receptors exist throughout the brain. Fluctuating levels affect serotonin, dopamine, and norepinephrine — which is why mood, sleep, and cognition are all impacted.", xp: 10 },
+  { id: "dl-4", title: "Hot flashes: what's really happening", text: "Hot flashes result from changes in your hypothalamus (your body's thermostat). Narrowing of the thermoneutral zone means even small temperature changes trigger a heat-dissipation response.", xp: 10 },
+  { id: "dl-5", title: "Exercise and menopause", text: "Exercise has strong evidence for improving mood and cardiovascular health during menopause. While it may not reduce hot flashes directly, it improves overall quality of life significantly.", xp: 10 },
+  { id: "dl-6", title: "Sleep during menopause", text: "Up to 60% of menopausal women report sleep issues. CBT for insomnia (CBT-I) has strong evidence and is recommended as a first-line treatment by most guidelines.", xp: 10 },
+  { id: "dl-7", title: "Understanding your treatment options", text: "Menopause treatments range from lifestyle changes to hormone therapy. No single approach works for everyone — which is why tracking your individual response is so valuable.", xp: 10 },
+  { id: "dl-8", title: "Bone health after menopause", text: "Estrogen protects bone density. After menopause, bone loss accelerates — up to 20% in the first 5-7 years. Weight-bearing exercise and adequate calcium/vitamin D are key preventive strategies.", xp: 10 },
+  { id: "dl-9", title: "Cardiovascular health", text: "Heart disease risk increases after menopause as estrogen's protective effect on blood vessels diminishes. Regular exercise, healthy diet, and blood pressure monitoring become even more important.", xp: 10 },
+  { id: "dl-10", title: "The power of community", text: "Studies show that peer support reduces menopause-related distress. Knowing you're not alone in your experience has measurable psychological benefits. Connect with others who understand.", xp: 10 },
+  { id: "dl-11", title: "Cognitive changes are temporary", text: "Research from the SWAN study shows that cognitive difficulties during perimenopause typically resolve in postmenopause. Your brain is adapting, not declining.", xp: 10 },
+  { id: "dl-12", title: "Preparing for your doctor visit", text: "Bring data, not just feelings. Doctors respond to patterns: 'I've had hot flashes 4 out of 7 days, worse after caffeine' is more actionable than 'I've been having hot flashes.'", xp: 10 },
+  { id: "dl-13", title: "Menopause is not a disease", text: "Menopause is a natural biological transition. While symptoms can be challenging, framing it as a health transition rather than a medical condition supports better self-advocacy.", xp: 10 },
+  { id: "dl-14", title: "Your data tells a story", text: "After just 2 weeks of tracking, patterns emerge that would be invisible otherwise. Day-of-week effects, trigger correlations, and symptom clusters all become clear with consistent data.", xp: 10 },
+];
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const css = `
@@ -797,6 +939,7 @@ const css = `
     .note-chip, .symptom-filter, .comm-reaction-btn, .comm-header-btn,
     .comm-compose-input, .comm-compose-card, .comm-emoji-opt, .comm-tag-btn,
     .comm-sort-tab, .chat-text, .chat-chip, .chat-input, .digest-card,
+    .gamification-bar, .gam-badge, .exp-card, .lesson-card,
     .add-symptom-card, .add-symptom-input, .milestone-card {
       background: var(--card-bg) !important;
     }
@@ -1929,6 +2072,122 @@ const css = `
   .typing-dot:nth-child(2) { animation-delay: 0.2s; }
   .typing-dot:nth-child(3) { animation-delay: 0.4s; }
   @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  /* ─── Gamification ─── */
+  .gamification-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); }
+  .gam-level-badge { display: flex; flex-direction: column; align-items: center; min-width: 48px; }
+  .gam-level-num { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--clay); line-height: 1; }
+  .gam-level-name { font-size: 9px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .gam-xp-section { flex: 1; }
+  .gam-xp-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .gam-xp-bar { height: 100%; background: linear-gradient(90deg, var(--clay), var(--sage)); border-radius: 4px; transition: width 0.6s ease; }
+  .gam-xp-label { font-size: 10px; color: var(--ink-light); margin-top: 2px; }
+  .gam-streak { font-size: 14px; font-weight: 600; color: var(--clay); white-space: nowrap; }
+
+  .gam-profile { padding: 4px 0; }
+  .gam-profile-level { text-align: center; margin-bottom: 8px; }
+  .gam-big-level { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--clay); }
+  .gam-big-name { font-size: 13px; color: var(--ink-light); font-weight: 500; }
+  .gam-profile-stats { display: flex; justify-content: space-around; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .gam-ps { text-align: center; }
+  .gam-ps-val { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); }
+  .gam-ps-label { font-size: 11px; color: var(--ink-light); }
+
+  .gam-badges-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 10px; padding: 4px 0; }
+  .gam-badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-bottom: 4px; }
+  .gam-badge { text-align: center; padding: 10px 4px; border-radius: 12px; border: 1px solid var(--border); background: var(--cream); transition: all 0.2s; }
+  .gam-badge.earned { background: var(--sage-light); border-color: var(--sage); }
+  .gam-badge.locked { opacity: 0.45; }
+  .gam-badge-icon { font-size: 24px; margin-bottom: 4px; }
+  .gam-badge-name { font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+  .gam-badge-desc { font-size: 9px; color: var(--ink-light); line-height: 1.3; margin-top: 2px; }
+
+  @keyframes badgeEarned { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+  .gam-badge.earned { animation: badgeEarned 0.4s ease; }
+
+  .badge-toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--sage); color: white; padding: 10px 20px; border-radius: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.25); animation: toastSlide 0.4s ease, toastFade 0.4s ease 2.6s forwards; }
+  .badge-toast-icon { font-size: 24px; }
+  .badge-toast-text { font-weight: 500; }
+  @keyframes toastSlide { from { transform: translateX(-50%) translateY(-20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+  @keyframes toastFade { to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+
+  /* ─── Daily Lesson Card ─── */
+  .lesson-card { background: var(--sage-light); border-radius: 16px; margin: 12px 16px; padding: 16px; border: 1px solid var(--sage); }
+  .lesson-card.completed { opacity: 0.7; }
+  .lesson-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .lesson-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--sage); }
+  .lesson-xp { font-size: 12px; font-weight: 600; color: var(--sage); }
+  .lesson-title { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--ink); margin-bottom: 6px; }
+  .lesson-text { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+  .lesson-btn { width: 100%; margin-top: 10px; padding: 10px; background: var(--sage); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .lesson-btn:active { transform: scale(0.97); }
+
+  /* ─── Experiment Card ─── */
+  .exp-card { background: var(--card-bg); border-radius: 16px; margin: 12px 16px; padding: 16px; border: 1px solid var(--border); cursor: default; }
+  .exp-card.exp-start { cursor: pointer; border-style: dashed; opacity: 0.8; }
+  .exp-card.exp-start:active { opacity: 0.6; }
+  .exp-card.exp-complete { border-color: var(--sage); background: var(--sage-light); }
+  .exp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .exp-icon { font-size: 20px; }
+  .exp-label { font-size: 13px; font-weight: 500; color: var(--sage); }
+  .exp-title { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--ink); }
+  .exp-badge { font-size: 12px; font-weight: 600; color: var(--sage); margin-left: auto; }
+  .exp-desc { font-size: 12px; color: var(--ink-light); line-height: 1.4; margin-bottom: 10px; }
+  .exp-progress-row { display: flex; align-items: center; gap: 8px; }
+  .exp-progress-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .exp-progress-fill { height: 100%; background: var(--sage); border-radius: 3px; transition: width 0.4s ease; }
+  .exp-progress-label { font-size: 11px; color: var(--ink-light); white-space: nowrap; }
+  .exp-btn { width: 100%; margin-top: 10px; padding: 10px; background: var(--sage); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .exp-btn.exp-abandon { background: transparent; color: var(--ink-light); font-size: 12px; font-weight: 400; }
+  .exp-btn:active { transform: scale(0.97); }
+
+  /* ─── Period Overlay ─── */
+  .bar-period-dot { width: 6px; height: 6px; border-radius: 50%; background: #E07070; margin-top: 3px; }
+
+  /* ─── UI Polish & Animations ─── */
+  .screen { animation: screenFadeIn 0.3s ease; }
+  @keyframes screenFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .tip-card, .prediction-card, .weekly-summary, .insight-callout, .milestone-card,
+  .digest-card, .gamification-bar, .wellbeing-card, .trend-card, .patterns-card,
+  .comparison-card, .chart-container, .doctor-prep, .unlock-card {
+    animation: cardSlideIn 0.35s ease;
+  }
+  @keyframes cardSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .symptom-tile { transition: all 0.15s ease; }
+  .symptom-tile:active { transform: scale(0.94); }
+  .symptom-tile.active { animation: tileActivate 0.2s ease; }
+  @keyframes tileActivate { 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+  .ctx-pill { transition: all 0.15s ease; }
+  .ctx-pill:active { transform: scale(0.94); }
+  .ctx-pill.on { animation: pillActivate 0.2s ease; }
+  @keyframes pillActivate { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+  .wb-face { transition: all 0.15s ease; }
+  .wb-face:active { transform: scale(0.88); }
+  .wb-face.selected { animation: faceSelect 0.3s ease; }
+  @keyframes faceSelect { 0% { transform: scale(1); } 40% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+  .nav-tab { transition: all 0.2s ease; }
+  .nav-tab:active { transform: scale(0.92); }
+
+  .log-btn { transition: all 0.2s ease; }
+  .log-btn:active { transform: scale(0.96); }
+
+  .bar { transition: height 0.4s ease; }
+
+  .streak-badge { animation: streakPulse 2s ease infinite; }
+  @keyframes streakPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+
+  .gam-xp-bar { transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+
+  /* Staggered card animations */
+  .tip-card { animation-delay: 0.05s; animation-fill-mode: both; }
+  .prediction-card { animation-delay: 0.1s; animation-fill-mode: both; }
+  .gamification-bar { animation-delay: 0.0s; animation-fill-mode: both; }
+  .wellbeing-card { animation-delay: 0.15s; animation-fill-mode: both; }
 `;
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
@@ -2171,18 +2430,27 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
       <div className="tracker-header">
         <h2>{getGreeting()}</h2>
         <p>{today}{journeyStage ? ` · ${journeyStage}` : ""}</p>
-        {streak > 0 && (
-          <div className="streak-row">
-            <div className={`streak-badge${streak >= 7 ? " milestone" : ""}`}>
-              🔥 {streak}-day streak
-            </div>
-            {[7, 14, 30, 60].map((m) => (
-              <div key={m} className={`streak-milestone${streak >= m ? " earned" : ""}`}>
-                {streak >= m ? "✓" : m}
+        {(() => {
+          const xp = computeXP(logs);
+          const lvl = getLevel(xp);
+          return (
+            <div className="gamification-bar">
+              <div className="gam-level-badge">
+                <span className="gam-level-num">Lv.{lvl.level}</span>
+                <span className="gam-level-name">{lvl.name}</span>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="gam-xp-section">
+                <div className="gam-xp-bar-bg">
+                  <div className="gam-xp-bar" style={{ width: `${lvl.pct}%` }} />
+                </div>
+                <div className="gam-xp-label">{lvl.isMax ? "MAX" : `${lvl.xp} XP · ${lvl.xpToNext} to next`}</div>
+              </div>
+              {streak > 0 && (
+                <div className="gam-streak">🔥 {streak}</div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {(() => {
@@ -2221,6 +2489,100 @@ function TrackerScreen({ onLog, logs, profile, isPremium }) {
           <div className="tip-text">{tipText}</div>
         </div>
       )}
+
+      {/* Daily Micro-Lesson */}
+      {(() => {
+        const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]");
+        const dayIndex = Math.floor((new Date() - new Date(2025, 0, 1)) / 86400000) % DAILY_LESSONS.length;
+        const todayLesson = DAILY_LESSONS[dayIndex];
+        const completedToday = completedLessons.includes(new Date().toISOString().slice(0, 10));
+        return (
+          <div className={`lesson-card${completedToday ? " completed" : ""}`}>
+            <div className="lesson-header">
+              <div className="lesson-label">Daily insight</div>
+              <div className="lesson-xp">{completedToday ? "✓ Done" : `+${todayLesson.xp} XP`}</div>
+            </div>
+            <div className="lesson-title">{todayLesson.title}</div>
+            {!completedToday ? (
+              <>
+                <div className="lesson-text">{todayLesson.text}</div>
+                <button className="lesson-btn" onClick={() => {
+                  const updated = [...completedLessons, new Date().toISOString().slice(0, 10)];
+                  localStorage.setItem("vela_completed_lessons", JSON.stringify(updated.slice(-30)));
+                  haptic("Light");
+                  window.dispatchEvent(new Event("storage"));
+                  window.location.reload();
+                }}>Got it! +{todayLesson.xp} XP</button>
+              </>
+            ) : (
+              <div className="lesson-text" style={{ opacity: 0.6 }}>{todayLesson.text}</div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Active Experiment */}
+      {(() => {
+        const activeExp = JSON.parse(localStorage.getItem("vela_active_experiment") || "null");
+        if (!activeExp) {
+          return isPremium ? (
+            <div className="exp-card exp-start" onClick={() => {
+              const available = EXPERIMENTS.filter((e) => {
+                const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
+                return !completed.includes(e.id);
+              });
+              if (available.length === 0) return;
+              const exp = available[0];
+              localStorage.setItem("vela_active_experiment", JSON.stringify({ ...exp, startDate: new Date().toISOString(), daysCompleted: 0 }));
+              haptic("Medium");
+              window.location.reload();
+            }}>
+              <div className="exp-header">
+                <span className="exp-icon">🧪</span>
+                <span className="exp-label">Start an experiment</span>
+              </div>
+              <div className="exp-desc">Try a structured challenge and see how it affects your symptoms</div>
+            </div>
+          ) : null;
+        }
+        const daysSinceStart = Math.floor((new Date() - new Date(activeExp.startDate)) / 86400000);
+        const progress = Math.min(daysSinceStart, activeExp.duration);
+        const pct = Math.round((progress / activeExp.duration) * 100);
+        const isComplete = progress >= activeExp.duration;
+        return (
+          <div className={`exp-card${isComplete ? " exp-complete" : ""}`}>
+            <div className="exp-header">
+              <span className="exp-icon">{activeExp.icon}</span>
+              <span className="exp-title">{activeExp.title}</span>
+              {isComplete && <span className="exp-badge">🎉 Complete!</span>}
+            </div>
+            <div className="exp-desc">{activeExp.desc}</div>
+            <div className="exp-progress-row">
+              <div className="exp-progress-bg">
+                <div className="exp-progress-fill" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="exp-progress-label">Day {progress}/{activeExp.duration}</span>
+            </div>
+            {isComplete ? (
+              <button className="exp-btn" onClick={() => {
+                const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
+                completed.push(activeExp.id);
+                localStorage.setItem("vela_completed_experiments", JSON.stringify(completed));
+                localStorage.removeItem("vela_active_experiment");
+                haptic("Medium");
+                window.location.reload();
+              }}>Claim {activeExp.xpReward} XP & finish</button>
+            ) : (
+              <button className="exp-btn exp-abandon" onClick={() => {
+                if (window.confirm("End this experiment early?")) {
+                  localStorage.removeItem("vela_active_experiment");
+                  window.location.reload();
+                }
+              }}>End experiment</button>
+            )}
+          </div>
+        );
+      })()}
 
       {isPremium && (() => {
         const forecast = predictSymptoms(logs);
@@ -2551,7 +2913,8 @@ function MoodLineChart({ logs }) {
       .map((l) => l.mood);
     const avg = dayMoods.length > 0 ? dayMoods.reduce((a, b) => a + b, 0) / dayMoods.length : null;
     const label = range <= 7 ? ["S","M","T","W","T","F","S"][d.getDay()] : d.getDate().toString();
-    data.push({ mood: avg, label });
+    const hasPeriod = logs.some((l) => l.date.slice(0, 10) === dayStr && l.context?.period && l.context.period !== "none");
+    data.push({ mood: avg, label, hasPeriod });
   }
 
   const W = 340, H = 140, PL = 28, PR = 10, PT = 10, PB = 24;
@@ -2618,7 +2981,17 @@ function MoodLineChart({ logs }) {
         {points.filter((_, i) => range <= 7 || i % 5 === 0 || i === points.length - 1).map((p, i) => (
           <text key={i} x={p.x} y={H - 4} textAnchor="middle" fontSize="10" fill="#A89080">{p.label}</text>
         ))}
+        {/* Period markers */}
+        {data.map((d, i) => d.hasPeriod ? (
+          <circle key={`p-${i}`} cx={points[i].x} cy={H - 14} r="3" fill="#E07070" opacity="0.8" />
+        ) : null)}
       </svg>
+      {data.some((d) => d.hasPeriod) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E07070" }} />
+          <span style={{ fontSize: 10, color: "var(--ink-light)" }}>Period day</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -2836,7 +3209,8 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       (sum, l) => sum + Object.keys(l.symptoms || {}).length,
       0
     );
-    weekData.push({ day: DAY_NAMES[d.getDay()], count });
+    const hasPeriod = dayLogs.some((l) => l.context?.period && l.context.period !== "none");
+    weekData.push({ day: DAY_NAMES[d.getDay()], count, hasPeriod });
   }
   const maxCount = Math.max(...weekData.map((d) => d.count), 1);
 
@@ -3117,7 +3491,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
               <div className="trend-card">
                 <div className="trend-title">Symptom intensity this week</div>
                 <div className="chart-bars">
-                  {weekData.map(({ day, count }, i) => {
+                  {weekData.map(({ day, count, hasPeriod }, i) => {
                     const height = Math.round((count / maxCount) * 100);
                     return (
                       <div key={i} className="bar-wrap">
@@ -3126,10 +3500,17 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                           style={{ height: `${Math.max(height, 4)}%` }}
                         />
                         <div className="bar-day">{day}</div>
+                        {hasPeriod && <div className="bar-period-dot" />}
                       </div>
                     );
                   })}
                 </div>
+                {weekData.some((d) => d.hasPeriod) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, justifyContent: "flex-end" }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E07070" }} />
+                    <span style={{ fontSize: 10, color: "var(--ink-light)" }}>Period day</span>
+                  </div>
+                )}
               </div>
 
               {topSymptoms.length > 0 && (
@@ -3787,6 +4168,75 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           </div>
         </div>
       </div>
+
+      {(() => {
+        const stats = computeGamificationStats(logs);
+        const xp = computeXP(logs);
+        const lvl = getLevel(xp);
+        const earned = BADGES.filter((b) => b.check(stats));
+        const locked = BADGES.filter((b) => !b.check(stats));
+        return (
+          <div className="settings-section">
+            <div className="settings-section-label">Your progress</div>
+            <div className="settings-card">
+              <div className="gam-profile">
+                <div className="gam-profile-level">
+                  <div className="gam-big-level">Lv.{lvl.level}</div>
+                  <div className="gam-big-name">{lvl.name}</div>
+                </div>
+                <div className="gam-profile-stats">
+                  <div className="gam-ps"><div className="gam-ps-val">{xp}</div><div className="gam-ps-label">XP</div></div>
+                  <div className="gam-ps"><div className="gam-ps-val">{earned.length}</div><div className="gam-ps-label">badges</div></div>
+                  <div className="gam-ps"><div className="gam-ps-val">{stats.streak}</div><div className="gam-ps-label">streak</div></div>
+                </div>
+                {!lvl.isMax && (
+                  <div style={{ marginTop: 8 }}>
+                    <div className="gam-xp-bar-bg" style={{ height: 6 }}>
+                      <div className="gam-xp-bar" style={{ width: `${lvl.pct}%` }} />
+                    </div>
+                    <div className="gam-xp-label" style={{ fontSize: 11 }}>{lvl.xpToNext} XP to Level {lvl.level + 1}</div>
+                  </div>
+                )}
+                {isPremium && (
+                  <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: "1px solid var(--border)" }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>🛡️ Streak freezes</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-light)" }}>Protect your streak on off days</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--sage)" }}>{JSON.parse(localStorage.getItem("vela_streak_freeze_count") || "2")}</span>
+                      <button style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid var(--sage)", background: "transparent", color: "var(--sage)", fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
+                        onClick={() => {
+                          if (useStreakFreeze()) { haptic("Medium"); window.location.reload(); }
+                          else alert("No freezes available or already used today.");
+                        }}>Use today</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="settings-card" style={{ marginTop: 8 }}>
+              <div className="gam-badges-title">Badges ({earned.length}/{BADGES.length})</div>
+              <div className="gam-badges-grid">
+                {earned.map((b) => (
+                  <div key={b.id} className="gam-badge earned">
+                    <div className="gam-badge-icon">{b.icon}</div>
+                    <div className="gam-badge-name">{b.name}</div>
+                    <div className="gam-badge-desc">{b.desc}</div>
+                  </div>
+                ))}
+                {locked.map((b) => (
+                  <div key={b.id} className="gam-badge locked">
+                    <div className="gam-badge-icon">🔒</div>
+                    <div className="gam-badge-name">{b.name}</div>
+                    <div className="gam-badge-desc">{b.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="settings-section">
         <div className="settings-section-label">Reminders</div>
@@ -4464,6 +4914,7 @@ export default function App() {
     return JSON.parse(localStorage.getItem("vela_profile") || "null");
   });
   const [toast, setToast] = useState(false);
+  const [badgeToast, setBadgeToast] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
@@ -4499,11 +4950,25 @@ export default function App() {
     localStorage.setItem("vela_reminder_times", JSON.stringify(reminderTimes));
   }, [reminderTimes]);
 
+  function checkNewBadges(prevLogs, newLogs) {
+    const prevStats = computeGamificationStats(prevLogs);
+    const newStats = computeGamificationStats(newLogs);
+    const prevEarned = new Set(BADGES.filter((b) => b.check(prevStats)).map((b) => b.id));
+    const newEarned = BADGES.filter((b) => b.check(newStats) && !prevEarned.has(b.id));
+    if (newEarned.length > 0) {
+      haptic("Medium");
+      setBadgeToast(newEarned[0]);
+      setTimeout(() => setBadgeToast(null), 3000);
+    }
+  }
+
   function handleLog(entry) {
     const logEntry = { ...entry, date: new Date().toISOString() };
-    setLogs((prev) => [logEntry, ...prev]);
+    const newLogs = [logEntry, ...logs];
+    setLogs(newLogs);
     setToast(true);
     setTimeout(() => setToast(false), 2500);
+    setTimeout(() => checkNewBadges(logs, newLogs), 500);
   }
 
   function handleOnboardComplete(answers) {
@@ -4559,6 +5024,11 @@ export default function App() {
       localStorage.removeItem("vela_chat_messages");
       localStorage.removeItem("vela_last_digest_date");
       localStorage.removeItem("vela_custom_symptoms");
+      localStorage.removeItem("vela_completed_lessons");
+      localStorage.removeItem("vela_active_experiment");
+      localStorage.removeItem("vela_completed_experiments");
+      localStorage.removeItem("vela_streak_freezes");
+      localStorage.removeItem("vela_streak_freeze_count");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
@@ -4689,6 +5159,14 @@ export default function App() {
       <div className={`toast${toast ? " show" : ""}`}>
         Entry logged! Keep it up. 🌿
       </div>
+
+      {/* Badge Toast */}
+      {badgeToast && (
+        <div className="badge-toast">
+          <span className="badge-toast-icon">{badgeToast.icon}</span>
+          <span className="badge-toast-text">Badge unlocked: {badgeToast.name}!</span>
+        </div>
+      )}
     </div>
   );
 }
