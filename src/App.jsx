@@ -5017,6 +5017,38 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         );
       })()}
 
+      {(() => {
+        const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+        const p = getPersonalization(profile);
+        const hasExperiment = !!localStorage.getItem("vela_active_experiment");
+        const hasCBT = !!localStorage.getItem("vela_active_cbt");
+        const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]").length;
+        const steps = [];
+        if (uniqueDays < 7) steps.push({ icon: "📊", text: `Log ${7 - uniqueDays} more day${7 - uniqueDays > 1 ? "s" : ""} to unlock your first insights`, action: "today" });
+        if (uniqueDays >= 7 && uniqueDays < 14) steps.push({ icon: "🔬", text: "Check your Insights tab — your patterns are ready!", action: "insights" });
+        if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "🧪", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "today" });
+        if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "🧠", text: "Start a recommended CBT program", action: "today" });
+        if (completedLessons < 3) steps.push({ icon: "💡", text: "Complete today's daily insight for bonus XP", action: "today" });
+        if (p?.wantsDoctor && uniqueDays >= 14) steps.push({ icon: "👩‍⚕️", text: "Generate your doctor report from your 2 weeks of data", action: "export" });
+        if (p?.wantsCommunity) steps.push({ icon: "💬", text: "Join the community — you're not alone in this", action: "community" });
+        if (steps.length === 0) return null;
+        return (
+          <div className="settings-section">
+            <div className="settings-section-label">Suggested next steps</div>
+            <div className="settings-card">
+              {steps.slice(0, 3).map((s, i) => (
+                <div key={i} className="settings-row" style={{ cursor: "default" }}>
+                  <div className="sr-left">
+                    <span className="sr-icon">{s.icon}</span>
+                    <span className="sr-label">{s.text}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="settings-section">
         <div className="settings-section-label">Reminders</div>
         <div className="settings-card">
@@ -5595,10 +5627,17 @@ function CommunityScreen() {
       {!guidelinesSeen && (
         <div className="comm-guidelines">
           <div className="comm-guidelines-text">
-            <strong>Welcome to our community {"\u{1F33F}"}</strong>
-            <p>This is a safe, anonymous space. Be kind, be honest, and remember: every woman's experience is unique. Posts reflect personal experiences, not medical advice — always consult your healthcare provider before making treatment decisions.</p>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{"\u{1F33F}"}</div>
+            <strong>Welcome to our community</strong>
+            <p style={{ margin: "8px 0", lineHeight: 1.5 }}>Thousands of women are navigating this journey together. Here's how it works:</p>
+            <div style={{ textAlign: "left", fontSize: 13, lineHeight: 1.7 }}>
+              <div>{"\u{1F49A}"} <strong>Safe & anonymous</strong> — your identity is never shared</div>
+              <div>{"\u{1F91D}"} <strong>Be kind</strong> — every experience is valid</div>
+              <div>{"\u{1F4AC}"} <strong>Share what helps</strong> — your story could help someone else</div>
+              <div>{"\u{26A0}\uFE0F"} <strong>Not medical advice</strong> — always consult your provider</div>
+            </div>
           </div>
-          <button className="comm-guidelines-dismiss" onClick={() => { setGuidelinesSeen(true); haptic(); }}>Got it</button>
+          <button className="comm-guidelines-dismiss" onClick={() => { setGuidelinesSeen(true); haptic(); }}>Join the conversation</button>
         </div>
       )}
 
@@ -5746,20 +5785,27 @@ export default function App() {
     const logEntry = { ...entry, date: new Date().toISOString() };
     const newLogs = [logEntry, ...logs];
     setLogs(newLogs);
-    // Smart contextual toast messages
+    // Smart contextual toast messages — personalized by profile
     const uniqueDays = new Set(newLogs.map((l) => l.date.slice(0, 10))).size;
     const streak = getStreak(newLogs);
+    const p = getPersonalization(profile);
+    const concern = p?.topConcernNames?.[0];
+    const symptoms = Object.keys(entry.symptoms || {});
     let msg = "Entry logged! Keep it up. 🌿";
-    if (uniqueDays === 1) msg = "First entry logged! You're on your way. 🌱";
-    else if (uniqueDays === 3) msg = "3 days logged! Patterns are starting to form. 📊";
-    else if (uniqueDays === 7) msg = "7 days! Tap Insights to see your first patterns. ✨";
+    if (uniqueDays === 1) msg = concern ? `First entry logged! Vela is now learning your ${concern} patterns. 🌱` : "First entry logged! You're on your way. 🌱";
+    else if (uniqueDays === 3) msg = concern ? `3 days in! I'm starting to see your ${concern} rhythm. 📊` : "3 days logged! Patterns are starting to form. 📊";
+    else if (uniqueDays === 7) msg = concern ? `7 days! Your ${concern} insights are ready — tap Insights. ✨` : "7 days! Tap Insights to see your first patterns. ✨";
     else if (uniqueDays === 14) msg = "2 weeks of data! Your insights are getting powerful. 🔬";
     else if (streak >= 7 && streak % 7 === 0) msg = `${streak}-day streak! You're building a powerful health picture. 🔥`;
-    else if (Object.keys(entry.symptoms || {}).length >= 3) msg = "Detailed entry logged! More data = better insights. 💡";
+    else if (symptoms.length >= 3) {
+      const matched = concern && symptoms.some((s) => s.toLowerCase().includes(concern.toLowerCase()));
+      msg = matched ? `Tracking your ${concern} + ${symptoms.length - 1} more — great detail! 💡` : "Detailed entry logged! More data = better insights. 💡";
+    }
     else if (entry.notes && entry.notes.length > 20) msg = "Great notes! These details help spot patterns. 📝";
+    else if (entry.energy !== null && entry.energy !== undefined && entry.mood !== null && entry.mood !== undefined) msg = "Mood + energy logged — building your full picture. 🌟";
     setToastMsg(msg);
     setToast(true);
-    setTimeout(() => setToast(false), 3000);
+    setTimeout(() => setToast(false), 3500);
     setTimeout(() => checkNewBadges(logs, newLogs), 500);
   }
 
