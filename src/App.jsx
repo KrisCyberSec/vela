@@ -4939,7 +4939,7 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
 
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
-function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime }) {
+function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime, onNavigate }) {
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
   const guidanceLabels = ["Daily check-ins & reminders", "Weekly summaries", "Only when I ask", "Let the app decide"];
   const guidancePref = profile && profile[3] !== undefined && profile[3] !== null ? profile[3] : 3;
@@ -5221,7 +5221,11 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
       </button>
 
       <div className="settings-footer">
-        <p>Vela v1.0.0</p>
+        <p onClick={() => {
+          const count = parseInt(sessionStorage.getItem("_debug_taps") || "0") + 1;
+          sessionStorage.setItem("_debug_taps", String(count));
+          if (count >= 5) { sessionStorage.removeItem("_debug_taps"); onNavigate && onNavigate("debug"); }
+        }} style={{ cursor: "default", userSelect: "none" }}>Vela v1.0.0</p>
         <p style={{ marginTop: 4 }}>
           Questions? <a href="mailto:support@velahealth.app">support@velahealth.app</a>
         </p>
@@ -6044,6 +6048,7 @@ export default function App() {
               await scheduleReminders(profile[3] ?? 3, updated);
             }
           }}
+          onNavigate={setScreen}
         />
       )}
       {onboarded && screen === "edit-question" && editingQuestion !== null && (
@@ -6053,6 +6058,144 @@ export default function App() {
           onSave={handleSaveQuestion}
           onBack={handleBackFromEdit}
         />
+      )}
+
+      {/* Debug Panel */}
+      {onboarded && screen === "debug" && (
+        <div className="screen active" style={{ padding: "20px 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h2 style={{ margin: 0 }}>Gamification Debugger</h2>
+            <button style={{ background: "var(--sage)", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }} onClick={() => setScreen("settings")}>Back</button>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">TRIGGER LEVEL-UP CELEBRATIONS</div>
+            <div className="settings-card" style={{ padding: 12 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {LEVELS.map((lvl) => (
+                  <button key={lvl.level} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 80 }}
+                    onClick={() => { haptic("Heavy"); setLevelUp({ level: lvl.level, name: lvl.name, unlock: lvl.unlock }); }}>
+                    <strong>Lv.{lvl.level}</strong>
+                    <span style={{ fontSize: 11, color: "var(--ink-light)" }}>{lvl.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">TRIGGER BADGE TOASTS</div>
+            <div className="settings-card" style={{ padding: 12 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {BADGES.slice(0, 12).map((b) => (
+                  <button key={b.id} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                    onClick={() => { haptic("Medium"); setBadgeToast(b); setTimeout(() => setBadgeToast(null), 3000); }}>
+                    <span>{b.icon}</span> {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">STREAK MULTIPLIERS</div>
+            <div className="settings-card" style={{ padding: 16 }}>
+              {[
+                { days: 1, label: "1 day" },
+                { days: 5, label: "5 days" },
+                { days: 7, label: "7 days" },
+                { days: 14, label: "14 days" },
+                { days: 30, label: "30 days" },
+                { days: 60, label: "60 days" },
+              ].map((s) => (
+                <div key={s.days} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                  <span>🔥 {s.label} streak</span>
+                  <span style={{ fontWeight: 600, color: getStreakMultiplier(s.days) > 1 ? "var(--gold)" : "var(--ink-light)" }}>{getStreakMultiplier(s.days)}x XP</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">XP BREAKDOWN</div>
+            <div className="settings-card" style={{ padding: 16, fontSize: 13 }}>
+              {[
+                { label: "Log an entry", xp: "10 XP" },
+                { label: "Unique day bonus", xp: "5 XP" },
+                { label: "Streak day (cap 60)", xp: "3 XP" },
+                { label: "Log mood", xp: "2 XP" },
+                { label: "Log context", xp: "3 XP" },
+                { label: "Add notes", xp: "5 XP" },
+                { label: "Earn a badge", xp: "25 XP" },
+                { label: "Daily insight", xp: "10 XP" },
+                { label: "Complete experiment", xp: "50 XP" },
+                { label: "Complete CBT program", xp: "100-150 XP" },
+              ].map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                  <span>{item.label}</span>
+                  <span style={{ fontWeight: 600, color: "var(--sage)" }}>{item.xp}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">LEVEL PROGRESSION</div>
+            <div className="settings-card" style={{ padding: 16 }}>
+              {LEVELS.map((lvl, i) => {
+                const next = LEVELS[i + 1];
+                const range = next ? `${lvl.xpNeeded} – ${next.xpNeeded - 1} XP` : `${lvl.xpNeeded}+ XP`;
+                return (
+                  <div key={lvl.level} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < LEVELS.length - 1 ? "1px solid var(--border)" : "none", fontSize: 13 }}>
+                    <div>
+                      <strong>Lv.{lvl.level}</strong> <span style={{ color: "var(--ink-light)" }}>{lvl.name}</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 12, color: "var(--ink-light)" }}>{range}</div>
+                      {lvl.unlock && <div style={{ fontSize: 11, color: "var(--gold)" }}>🔓 {lvl.unlock}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">SIMULATE LOG TOAST</div>
+            <div className="settings-card" style={{ padding: 12 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {[
+                  { label: "Basic log", msg: "Entry logged! Keep it up. 🌿 +15 XP" },
+                  { label: "First entry", msg: "First entry logged! Vela is now learning your hot flashes patterns. 🌱 +20 XP" },
+                  { label: "Day 7", msg: "7 days! Your hot flashes insights are ready — tap Insights. ✨ +20 XP" },
+                  { label: "With streak 1.5x", msg: "Entry logged! Keep it up. 🌿 +23 XP (1.5x streak bonus!)" },
+                  { label: "With streak 3x", msg: "Entry logged! Keep it up. 🌿 +45 XP (3x streak bonus!)" },
+                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more — great detail! 💡 +25 XP" },
+                ].map((t, i) => (
+                  <button key={i} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
+                    onClick={() => { setToastMsg(t.msg); setToast(true); setTimeout(() => setToast(false), 3500); }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">ALL BADGES ({BADGES.length})</div>
+            <div className="settings-card" style={{ padding: 12 }}>
+              <div className="gam-badges-grid">
+                {BADGES.map((b) => (
+                  <div key={b.id} className="gam-badge earned" style={{ cursor: "pointer" }} onClick={() => { haptic("Medium"); setBadgeToast(b); setTimeout(() => setBadgeToast(null), 3000); }}>
+                    <div className="gam-badge-icon">{b.icon}</div>
+                    <div className="gam-badge-name">{b.name}</div>
+                    <div className="gam-badge-desc">{b.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast */}
