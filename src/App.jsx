@@ -599,10 +599,14 @@ function analyzeSymptomTrend(logs, symptomName) {
     const days = (now - d) / 86400000;
     return days > 14 && days <= 28;
   });
-  const countIn = (arr) => arr.filter((l) => (l.symptoms || []).some((s) => s.toLowerCase().includes(symptomName.toLowerCase()))).length;
+  const hasSymptom = (l) => Object.keys(l.symptoms || {}).some((s) => s.toLowerCase().includes(symptomName.toLowerCase()));
+  const countIn = (arr) => arr.filter(hasSymptom).length;
   const sevIn = (arr) => {
     let total = 0, count = 0;
-    arr.forEach((l) => { if ((l.symptoms || []).some((s) => s.toLowerCase().includes(symptomName.toLowerCase()))) { total += (l.severity || 5); count++; } });
+    arr.forEach((l) => {
+      const match = Object.keys(l.symptoms || {}).find((s) => s.toLowerCase().includes(symptomName.toLowerCase()));
+      if (match) { total += (l.severities?.[match] || 5); count++; }
+    });
     return count > 0 ? total / count : 0;
   };
   const recentCount = countIn(recent);
@@ -614,10 +618,21 @@ function analyzeSymptomTrend(logs, symptomName) {
 }
 
 function analyzeTriggerImpact(logs, triggerName) {
-  const withTrigger = logs.filter((l) => (l.triggers || []).some((t) => t.toLowerCase().includes(triggerName.toLowerCase())));
-  const without = logs.filter((l) => !(l.triggers || []).some((t) => t.toLowerCase().includes(triggerName.toLowerCase())));
-  const avgSymptoms = (arr) => arr.length === 0 ? 0 : arr.reduce((s, l) => s + (l.symptoms || []).length, 0) / arr.length;
-  const avgMood = (arr) => { const m = arr.filter((l) => l.mood); return m.length === 0 ? 0 : m.reduce((s, l) => s + l.mood, 0) / m.length; };
+  const lower = triggerName.toLowerCase();
+  const hasTrigger = (l) => {
+    const ctx = l.context || {};
+    if (lower === "caffeine" || lower === "alcohol" || lower === "smoking") return ctx.triggers && ctx.triggers[lower];
+    if (lower === "exercise") return ctx.triggers?.exercise;
+    if (lower === "poor sleep" || lower === "sleep") return ctx.sleep === "poor" || ctx.sleep === "terrible";
+    if (lower === "stress") return ctx.stress === "high" || ctx.stress === "extreme";
+    if (lower === "sugar" || lower === "spicy") return ctx.triggers?.[lower];
+    return false;
+  };
+  const withTrigger = logs.filter(hasTrigger);
+  const without = logs.filter((l) => !hasTrigger(l));
+  const avgSymptoms = (arr) => arr.length === 0 ? 0 : arr.reduce((s, l) => s + Object.keys(l.symptoms || {}).length, 0) / arr.length;
+  const avgMood = (arr) => { const m = arr.filter((l) => l.mood !== null && l.mood !== undefined); return m.length === 0 ? 0 : m.reduce((s, l) => s + l.mood, 0) / m.length; };
+  const avgEnergy = (arr) => { const e = arr.filter((l) => l.energy !== null && l.energy !== undefined); return e.length === 0 ? null : Math.round(e.reduce((s, l) => s + l.energy, 0) / e.length * 10) / 10; };
   return {
     triggerName,
     daysWithTrigger: withTrigger.length,
@@ -626,6 +641,8 @@ function analyzeTriggerImpact(logs, triggerName) {
     avgSymptomsWithout: Math.round(avgSymptoms(without) * 10) / 10,
     avgMoodWith: Math.round(avgMood(withTrigger) * 10) / 10,
     avgMoodWithout: Math.round(avgMood(without) * 10) / 10,
+    avgEnergyWith: avgEnergy(withTrigger),
+    avgEnergyWithout: avgEnergy(without),
     impact: avgSymptoms(withTrigger) > avgSymptoms(without) ? "worsens" : avgSymptoms(withTrigger) < avgSymptoms(without) ? "helps" : "neutral"
   };
 }
@@ -635,16 +652,20 @@ function analyzeOverallTrend(logs) {
   const recent = logs.filter((l) => (now - new Date(l.date)) / 86400000 <= 14);
   const prev = logs.filter((l) => { const d = (now - new Date(l.date)) / 86400000; return d > 14 && d <= 28; });
   const avg = (arr, fn) => arr.length === 0 ? 0 : arr.reduce((s, l) => s + fn(l), 0) / arr.length;
-  const recentSymptoms = avg(recent, (l) => (l.symptoms || []).length);
-  const prevSymptoms = avg(prev, (l) => (l.symptoms || []).length);
-  const recentMood = avg(recent.filter((l) => l.mood), (l) => l.mood);
-  const prevMood = avg(prev.filter((l) => l.mood), (l) => l.mood);
+  const recentSymptoms = avg(recent, (l) => Object.keys(l.symptoms || {}).length);
+  const prevSymptoms = avg(prev, (l) => Object.keys(l.symptoms || {}).length);
+  const recentMood = avg(recent.filter((l) => l.mood !== null && l.mood !== undefined), (l) => l.mood);
+  const prevMood = avg(prev.filter((l) => l.mood !== null && l.mood !== undefined), (l) => l.mood);
+  const recentEnergy = avg(recent.filter((l) => l.energy !== null && l.energy !== undefined), (l) => l.energy);
+  const prevEnergy = avg(prev.filter((l) => l.energy !== null && l.energy !== undefined), (l) => l.energy);
   const direction = recentSymptoms < prevSymptoms && recentMood >= prevMood ? "improving" : recentSymptoms > prevSymptoms || recentMood < prevMood ? "worse" : "stable";
   return {
     recentSymptoms: Math.round(recentSymptoms * 10) / 10,
     prevSymptoms: Math.round(prevSymptoms * 10) / 10,
     recentMood: Math.round(recentMood * 10) / 10,
     prevMood: Math.round(prevMood * 10) / 10,
+    recentEnergy: Math.round(recentEnergy * 10) / 10,
+    prevEnergy: Math.round(prevEnergy * 10) / 10,
     direction,
     recentDays: recent.length,
     prevDays: prev.length
@@ -653,16 +674,18 @@ function analyzeOverallTrend(logs) {
 
 function analyzeBestWorstDays(logs) {
   const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const buckets = DOW.map(() => ({ moods: [], symptoms: [] }));
+  const buckets = DOW.map(() => ({ moods: [], symptoms: [], energies: [] }));
   logs.forEach((l) => {
     const day = new Date(l.date).getDay();
-    if (l.mood) buckets[day].moods.push(l.mood);
-    buckets[day].symptoms.push((l.symptoms || []).length);
+    if (l.mood !== null && l.mood !== undefined) buckets[day].moods.push(l.mood);
+    if (l.energy !== null && l.energy !== undefined) buckets[day].energies.push(l.energy);
+    buckets[day].symptoms.push(Object.keys(l.symptoms || {}).length);
   });
   const stats = DOW.map((name, i) => ({
     day: name,
     avgMood: buckets[i].moods.length > 0 ? Math.round(buckets[i].moods.reduce((a, b) => a + b, 0) / buckets[i].moods.length * 10) / 10 : null,
     avgSymptoms: buckets[i].symptoms.length > 0 ? Math.round(buckets[i].symptoms.reduce((a, b) => a + b, 0) / buckets[i].symptoms.length * 10) / 10 : null,
+    avgEnergy: buckets[i].energies.length > 0 ? Math.round(buckets[i].energies.reduce((a, b) => a + b, 0) / buckets[i].energies.length * 10) / 10 : null,
     entries: buckets[i].symptoms.length
   })).filter((s) => s.entries > 0);
   const best = [...stats].sort((a, b) => (b.avgMood || 0) - (a.avgMood || 0))[0];
@@ -675,20 +698,24 @@ function analyzeRecentPattern(logs) {
   const week = logs.filter((l) => (now - new Date(l.date)) / 86400000 <= 7);
   if (week.length === 0) return null;
   const symptomCounts = {};
-  const triggerCounts = {};
-  let moodSum = 0, moodCount = 0, bestDay = null, worstDay = null;
+  const contextCounts = {};
+  let moodSum = 0, moodCount = 0, energySum = 0, energyCount = 0, bestDay = null, worstDay = null;
   week.forEach((l) => {
-    (l.symptoms || []).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; });
-    (l.triggers || []).forEach((t) => { triggerCounts[t] = (triggerCounts[t] || 0) + 1; });
-    if (l.mood) {
+    Object.keys(l.symptoms || {}).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; });
+    const ctx = l.context || {};
+    if (ctx.sleep) contextCounts[`Sleep: ${ctx.sleep}`] = (contextCounts[`Sleep: ${ctx.sleep}`] || 0) + 1;
+    if (ctx.stress) contextCounts[`Stress: ${ctx.stress}`] = (contextCounts[`Stress: ${ctx.stress}`] || 0) + 1;
+    if (ctx.triggers) Object.keys(ctx.triggers).filter((k) => ctx.triggers[k]).forEach((t) => { contextCounts[t] = (contextCounts[t] || 0) + 1; });
+    if (l.mood !== null && l.mood !== undefined) {
       moodSum += l.mood; moodCount++;
       if (!bestDay || l.mood > bestDay.mood) bestDay = { date: l.date, mood: l.mood };
       if (!worstDay || l.mood < worstDay.mood) worstDay = { date: l.date, mood: l.mood };
     }
+    if (l.energy !== null && l.energy !== undefined) { energySum += l.energy; energyCount++; }
   });
   const topSymptoms = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
-  const topTriggers = Object.entries(triggerCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
-  return { daysLogged: week.length, avgMood: moodCount > 0 ? Math.round(moodSum / moodCount * 10) / 10 : null, topSymptoms, topTriggers, bestDay, worstDay };
+  const topContext = Object.entries(contextCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }));
+  return { daysLogged: week.length, avgMood: moodCount > 0 ? Math.round(moodSum / moodCount * 10) / 10 : null, avgEnergy: energyCount > 0 ? Math.round(energySum / energyCount * 10) / 10 : null, topSymptoms, topContext, bestDay, worstDay };
 }
 
 function generateDoctorSummary(logs, profile) {
@@ -819,7 +846,7 @@ function generateResponse(handler, logs, profile) {
   let msg = `Here's your week so far (${data.daysLogged} days logged):\n\n`;
   if (data.avgMood) msg += `Mood: ${data.avgMood}/10 average\n`;
   if (data.topSymptoms.length > 0) msg += `Top symptoms: ${data.topSymptoms.map((s) => `${s.name} (${s.count}x)`).join(", ")}\n`;
-  if (data.topTriggers.length > 0) msg += `Active triggers: ${data.topTriggers.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
+  if (data.topContext && data.topContext.length > 0) msg += `Context factors: ${data.topContext.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
   if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })} (mood: ${data.bestDay.mood})`;
   return msg + stageNote;
 }
@@ -830,18 +857,22 @@ function generateWeeklyDigest(logs, profile) {
   const lastWeek = logs.filter((l) => { const d = (now - new Date(l.date)) / 86400000; return d > 7 && d <= 14; });
   if (thisWeek.length < 2) return null;
 
-  const avgMood = (arr) => { const m = arr.filter((l) => l.mood); return m.length === 0 ? null : Math.round(m.reduce((s, l) => s + l.mood, 0) / m.length * 10) / 10; };
+  const avgMood = (arr) => { const m = arr.filter((l) => l.mood !== null && l.mood !== undefined); return m.length === 0 ? null : Math.round(m.reduce((s, l) => s + l.mood, 0) / m.length * 10) / 10; };
+  const avgEnergy = (arr) => { const e = arr.filter((l) => l.energy !== null && l.energy !== undefined); return e.length === 0 ? null : Math.round(e.reduce((s, l) => s + l.energy, 0) / e.length * 10) / 10; };
   const thisMood = avgMood(thisWeek);
   const lastMood = avgMood(lastWeek);
-  const moodDelta = thisMood && lastMood ? Math.round((thisMood - lastMood) * 10) / 10 : null;
+  const moodDelta = thisMood !== null && lastMood !== null ? Math.round((thisMood - lastMood) * 10) / 10 : null;
+  const thisEnergy = avgEnergy(thisWeek);
+  const lastEnergy = avgEnergy(lastWeek);
+  const energyDelta = thisEnergy !== null && lastEnergy !== null ? Math.round((thisEnergy - lastEnergy) * 10) / 10 : null;
 
   const correlations = analyzeCorrelations(logs);
   const spotlight = correlations.length > 0 ? correlations[0] : null;
 
   const symptomCounts = {};
-  thisWeek.forEach((l) => (l.symptoms || []).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; }));
+  thisWeek.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; }));
   const prevSymptomCounts = {};
-  lastWeek.forEach((l) => (l.symptoms || []).forEach((s) => { prevSymptomCounts[s] = (prevSymptomCounts[s] || 0) + 1; }));
+  lastWeek.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { prevSymptomCounts[s] = (prevSymptomCounts[s] || 0) + 1; }));
   const symptomTrends = Object.entries(symptomCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
@@ -856,8 +887,9 @@ function generateWeeklyDigest(logs, profile) {
 
   let bestDayEntry = null;
   thisWeek.forEach((l) => {
-    const score = (l.mood || 5) - (l.symptoms || []).length * 0.5;
-    if (!bestDayEntry || score > bestDayEntry.score) bestDayEntry = { date: l.date, mood: l.mood, symptoms: (l.symptoms || []).length, score };
+    const mood = l.mood !== null && l.mood !== undefined ? l.mood : 5;
+    const score = mood - Object.keys(l.symptoms || {}).length * 0.5;
+    if (!bestDayEntry || score > bestDayEntry.score) bestDayEntry = { date: l.date, mood: l.mood, symptoms: Object.keys(l.symptoms || {}).length, score };
   });
 
   const digestData = { thisMood, moodDelta, triggerReport, trend: analyzeOverallTrend(logs), bestDay: analyzeBestWorstDays(logs).best, avgMood: thisMood };
@@ -869,6 +901,8 @@ function generateWeeklyDigest(logs, profile) {
     daysLogged: thisWeek.length,
     avgMood: thisMood,
     moodDelta,
+    avgEnergy: thisEnergy,
+    energyDelta,
     spotlight,
     symptomTrends,
     triggerReport: triggerReport.filter((t) => t.daysWithTrigger >= 2),
@@ -2468,6 +2502,8 @@ const css = `
   .gam-xp-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
   .gam-xp-bar { height: 100%; background: linear-gradient(90deg, var(--clay), var(--sage)); border-radius: 4px; transition: width 0.6s ease; }
   .gam-xp-label { font-size: 10px; color: var(--ink-light); margin-top: 2px; }
+  .xp-gain-flash { color: var(--sage); font-weight: 700; animation: xpFlash 2s ease forwards; }
+  @keyframes xpFlash { 0% { opacity: 0; transform: translateY(4px); } 15% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }
   .gam-streak { font-size: 14px; font-weight: 600; color: var(--clay); white-space: nowrap; }
 
   .gam-profile { padding: 4px 0; }
@@ -2697,6 +2733,8 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
   const [energy, setEnergy] = useState(null);
   const [lessonDone, setLessonDone] = useState(false);
   const [xpTick, setXpTick] = useState(0);
+  const [xpGain, setXpGain] = useState(0);
+  const prevXpRef = useRef(null);
 
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
 
@@ -2826,8 +2864,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
           <div className="personalized-welcome">{personalization.stageMessage}</div>
         )}
         {(() => {
+          void xpTick; // ensure re-render reads fresh localStorage
           const xp = computeXP(logs);
           const lvl = getLevel(xp);
+          // Track XP gains for flash animation
+          if (prevXpRef.current === null) prevXpRef.current = xp;
+          const gained = xp - prevXpRef.current;
+          if (gained > 0 && gained !== xpGain) {
+            setTimeout(() => { prevXpRef.current = xp; setXpGain(0); }, 2000);
+            if (xpGain === 0) setTimeout(() => setXpGain(gained), 0);
+          }
           return (
             <div className="gamification-bar">
               <div className="gam-level-badge">
@@ -2836,9 +2882,12 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
               </div>
               <div className="gam-xp-section">
                 <div className="gam-xp-bar-bg">
-                  <div className="gam-xp-bar" style={{ width: `${lvl.pct}%` }} />
+                  <div className="gam-xp-bar" style={{ width: `${lvl.pct}%`, transition: "width 0.6s ease" }} />
                 </div>
-                <div className="gam-xp-label">{lvl.isMax ? "MAX" : `${lvl.xp} XP · ${lvl.xpToNext} to next`}</div>
+                <div className="gam-xp-label">
+                  {xpGain > 0 && <span className="xp-gain-flash">+{xpGain} XP </span>}
+                  {lvl.isMax ? "MAX" : `${lvl.xp} XP · ${lvl.xpToNext} to next`}
+                </div>
               </div>
               {streak > 0 && (
                 <div className="gam-streak">🔥 {streak}</div>
