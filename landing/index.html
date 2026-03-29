@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vela — Your Menopause Companion</title>
+  <meta name="description" content="Track perimenopause and menopause symptoms, discover personal patterns, and walk into your doctor's office prepared. All data stays on your device." />
+  <meta name="keywords" content="menopause, perimenopause, symptom tracker, hot flashes, hormone health, women's health" />
+  <meta property="og:title" content="Vela — Your Menopause Companion" />
+  <meta property="og:description" content="Track symptoms. See patterns. Your data never leaves your device." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://velahealth.app" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --clay: #C4856C;
+      --clay-light: #F5E6DE;
+      --sage: #7A9E87;
+      --sage-light: #E8F0EA;
+      --sage-dark: #5A7E67;
+      --cream: #FAF6F1;
+      --ink: #2C1F17;
+      --ink-mid: #6B5347;
+      --ink-light: #9A8578;
+      --gold: #D4A853;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      color: var(--clay);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a {
+      font-size: 14px; color: var(--ink-mid); text-decoration: none; font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--ink); }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(36px, 6vw, 56px);
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--clay);
+    }
+    .hero-sub {
+      font-size: 18px;
+      color: var(--ink-mid);
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+    .hero-cta {
+      display: inline-block;
+      background: var(--ink);
+      color: var(--cream);
+      padding: 16px 36px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .hero-cta:hover { transform: translateY(-2px); opacity: 0.9; }
+    .hero-badge {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--ink-light);
+    }
+
+    /* ── FEATURES ── */
+    .features {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 28px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    .feature-icon { font-size: 32px; margin-bottom: 16px; }
+    .feature-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .feature-text {
+      font-size: 15px;
+      color: var(--ink-mid);
+      line-height: 1.6;
+    }
+
+    /* ── PRIVACY SECTION ── */
+    .privacy-section {
+      background: var(--ink);
+      color: var(--cream);
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .privacy-section h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 16px;
+    }
+    .privacy-section p {
+      font-size: 17px;
+      color: rgba(250,246,241,0.7);
+      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .privacy-badges {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+    .privacy-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .privacy-badge-icon { font-size: 28px; }
+    .privacy-badge-text { font-size: 13px; font-weight: 500; color: rgba(250,246,241,0.8); }
+
+    /* ── HOW IT WORKS ── */
+    .how-section {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .how-section h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 48px;
+    }
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+      text-align: center;
+    }
+    .how-step-number {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--sage-light);
+      color: var(--sage-dark);
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .how-step-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .how-step-text {
+      font-size: 14px;
+      color: var(--ink-mid);
+      line-height: 1.6;
+    }
+
+    /* ── PRICING ── */
+    .pricing-section {
+      background: var(--sage-light);
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .pricing-section h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 8px;
+    }
+    .pricing-sub {
+      font-size: 16px;
+      color: var(--ink-mid);
+      margin-bottom: 40px;
+    }
+    .pricing-cards {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .pricing-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 28px;
+      min-width: 280px;
+      flex: 1;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .pricing-card.featured { border-color: var(--sage); }
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--sage);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 20px;
+    }
+    .pricing-plan { font-size: 14px; font-weight: 600; color: var(--ink-mid); margin-bottom: 8px; }
+    .pricing-price {
+      font-family: 'DM Serif Display', serif;
+      font-size: 36px;
+      color: var(--ink);
+    }
+    .pricing-price span { font-size: 16px; color: var(--ink-mid); font-family: 'DM Sans', sans-serif; }
+    .pricing-monthly { font-size: 14px; color: var(--ink-light); margin-top: 4px; margin-bottom: 16px; }
+    .pricing-features { list-style: none; text-align: left; }
+    .pricing-features li {
+      font-size: 14px; color: var(--ink-mid); padding: 6px 0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pricing-features li::before { content: "\2713"; color: var(--sage); font-weight: 700; }
+    .pricing-free {
+      font-size: 13px; color: var(--ink-light); margin-top: 32px;
+    }
+    .pricing-free strong { color: var(--ink); }
+
+    /* ── EMAIL SIGNUP ── */
+    .signup-section {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .signup-section h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 4vw, 36px);
+      margin-bottom: 12px;
+    }
+    .signup-section p {
+      font-size: 16px;
+      color: var(--ink-mid);
+      margin-bottom: 28px;
+    }
+    .signup-form {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+    .signup-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: 'DM Sans', sans-serif;
+      background: white;
+      color: var(--ink);
+    }
+    .signup-input:focus { outline: none; border-color: var(--sage); }
+    .signup-input::placeholder { color: var(--ink-light); }
+    .signup-btn {
+      padding: 14px 28px;
+      background: var(--clay);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .signup-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+    .signup-note { font-size: 12px; color: var(--ink-light); margin-top: 12px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding: 40px 24px;
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: var(--clay);
+    }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a {
+      font-size: 13px;
+      color: var(--ink-light);
+      text-decoration: none;
+    }
+    .footer-links a:hover { color: var(--ink); }
+    .footer-disclaimer {
+      width: 100%;
+      font-size: 12px;
+      color: var(--ink-light);
+      margin-top: 8px;
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      .hero { padding: 40px 20px 60px; }
+      .signup-form { flex-direction: column; }
+      .signup-btn { width: 100%; }
+      .pricing-cards { flex-direction: column; align-items: center; }
+      .pricing-card { min-width: unset; width: 100%; max-width: 340px; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">Vela</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#signup">Get notified</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Your body,<br /><em>finally understood.</em></h1>
+    <p class="hero-sub">
+      Track perimenopause and menopause symptoms, discover your personal patterns, and walk into your doctor's office prepared.
+    </p>
+    <a href="#signup" class="hero-cta">Get notified when we launch</a>
+    <p class="hero-badge">Coming soon to the App Store</p>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="feature-card">
+      <div class="feature-icon">30s</div>
+      <div class="feature-title">Track in under 30 seconds</div>
+      <div class="feature-text">
+        Log mood, energy, and 44 menopause-specific symptoms with a tap. Track sleep, stress, caffeine, exercise, and period. Add your own custom symptoms.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">See patterns you'd miss alone</div>
+      <div class="feature-text">
+        Automatic correlation detection between triggers and symptoms. Day-of-week analysis. Week-over-week trends. Vela connects dots you can't see on your own.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">Walk in prepared</div>
+      <div class="feature-text">
+        Generate a shareable doctor visit report with symptom frequency, severity trends, and structured talking points. Turn "I've been feeling bad" into real data.
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <h2>Your first week with Vela</h2>
+    <div class="how-steps">
+      <div>
+        <div class="how-step-number">1</div>
+        <div class="how-step-title">Days 1-3</div>
+        <div class="how-step-text">Build your baseline. Log how you feel each day — it takes under 30 seconds.</div>
+      </div>
+      <div>
+        <div class="how-step-number">2</div>
+        <div class="how-step-title">Days 4-6</div>
+        <div class="how-step-text">Patterns start forming. Early stats appear. Vela begins connecting your symptoms to triggers.</div>
+      </div>
+      <div>
+        <div class="how-step-number">3</div>
+        <div class="how-step-title">Day 7</div>
+        <div class="how-step-text">Your personal insights are revealed. See what your data says about your body — patterns you'd never spot alone.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section class="privacy-section">
+    <h2>Your data. Your device. Period.</h2>
+    <p>
+      Vela stores everything locally on your device. We never see, upload, or share your health data. No account required. No cloud. No exceptions.
+    </p>
+    <div class="privacy-badges">
+      <div class="privacy-badge">
+        <div class="privacy-badge-icon">📱</div>
+        <div class="privacy-badge-text">On-device only</div>
+      </div>
+      <div class="privacy-badge">
+        <div class="privacy-badge-icon">🚫</div>
+        <div class="privacy-badge-text">No cloud uploads</div>
+      </div>
+      <div class="privacy-badge">
+        <div class="privacy-badge-icon">🔒</div>
+        <div class="privacy-badge-text">No tracking SDKs</div>
+      </div>
+      <div class="privacy-badge">
+        <div class="privacy-badge-icon">👤</div>
+        <div class="privacy-badge-text">No account needed</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing-section" id="pricing">
+    <h2>Simple, honest pricing</h2>
+    <p class="pricing-sub">Track for free. Understand with Premium.</p>
+    <div class="pricing-cards">
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Best value</div>
+        <div class="pricing-plan">Annual</div>
+        <div class="pricing-price">$49.99<span>/year</span></div>
+        <div class="pricing-monthly">$4.17/mo — save 31%</div>
+        <ul class="pricing-features">
+          <li>AI-powered symptom predictions</li>
+          <li>Ask Vela — on-device health companion</li>
+          <li>Smart weekly digest</li>
+          <li>Doctor visit PDF reports</li>
+          <li>Deep trend analysis & charts</li>
+          <li>CBT programs for hot flashes, sleep & anxiety</li>
+          <li>7-day free trial</li>
+        </ul>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-plan">Monthly</div>
+        <div class="pricing-price">$5.99<span>/mo</span></div>
+        <div class="pricing-monthly">Cancel anytime</div>
+        <ul class="pricing-features">
+          <li>All premium features</li>
+          <li>7-day free trial</li>
+          <li>No commitment</li>
+        </ul>
+      </div>
+    </div>
+    <p class="pricing-free"><strong>Free forever:</strong> symptom tracking, mood & energy logging, daily insights, community, and basic patterns.</p>
+  </section>
+
+  <!-- EMAIL SIGNUP -->
+  <section class="signup-section" id="signup">
+    <h2>Be the first to know</h2>
+    <p>Get notified when Vela launches on the App Store.</p>
+    <form class="signup-form" onsubmit="handleSignup(event)">
+      <input type="email" class="signup-input" placeholder="Your email address" required />
+      <button type="submit" class="signup-btn">Notify me</button>
+    </form>
+    <p class="signup-note">No spam. One email on launch day. That's it.</p>
+    <p class="signup-note" id="signup-success" style="display:none; color: var(--sage-dark); font-weight: 600; margin-top: 16px;">
+      You're on the list! We'll email you on launch day.
+    </p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Vela</div>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="mailto:support@velahealth.app">Contact</a>
+    </div>
+    <div class="footer-disclaimer">
+      Vela is not medical advice. Always consult your healthcare provider for medical decisions.
+    </div>
+  </footer>
+
+  <script>
+    // Simple email collection — stores in localStorage for now.
+    // Replace with a real backend (Mailchimp, ConvertKit, etc.) before launch.
+    function handleSignup(e) {
+      e.preventDefault();
+      const email = e.target.querySelector('input').value;
+      const list = JSON.parse(localStorage.getItem('vela_waitlist') || '[]');
+      if (!list.includes(email)) {
+        list.push(email);
+        localStorage.setItem('vela_waitlist', JSON.stringify(list));
+      }
+      e.target.style.display = 'none';
+      document.getElementById('signup-success').style.display = 'block';
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  </script>
+
+</body>
+</html>
