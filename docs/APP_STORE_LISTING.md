@@ -117,7 +117,7 @@ Secondary: Medical
 - Vela offers deeper on-device AI analysis.
 
 ### vs. Caria
-- Caria costs $59.99/year. Vela is $39.99/year.
+- Caria costs $59.99/year. Vela is $49.99/year.
 - Caria focuses on expert content. Vela focuses on YOUR data patterns.
 - Vela's AI companion answers questions about YOUR specific symptoms.
 

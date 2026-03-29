@@ -3,16 +3,16 @@
 ## Pricing Structure
 | Plan | Price | Per Month | Trial |
 |------|-------|-----------|-------|
-| Annual | $39.99/year | $3.33/mo | 7-day free |
-| Monthly | $4.99/month | $4.99/mo | 7-day free |
+| Annual | $49.99/year | $4.17/mo | 7-day free |
+| Monthly | $5.99/month | $5.99/mo | 7-day free |
 
 **Apple's cut:** 30% Year 1, 15% Year 2+ (Small Business Program eligible < $1M revenue)
 
 **Net revenue per subscriber:**
 | Plan | Gross | Apple Cut (30%) | Net Year 1 | Apple Cut (15%) | Net Year 2+ |
 |------|-------|-----------------|------------|-----------------|-------------|
-| Annual | $39.99 | $12.00 | $28.00 | $6.00 | $34.00 |
-| Monthly | $59.88/yr | $17.96 | $41.92 | $8.98 | $50.90 |
+| Annual | $49.99 | $15.00 | $35.00 | $7.50 | $42.50 |
+| Monthly | $71.88/yr | $21.56 | $50.32 | $10.78 | $61.10 |
 
 ---
 
@@ -32,14 +32,14 @@
 - 70% Annual / 30% Monthly (industry standard for health apps with annual discount)
 
 ### Blended ARPU (Average Revenue Per User who converts)
-- Year 1: (0.70 x $28.00) + (0.30 x $41.92) = **$32.18** net/year
-- Year 2+: (0.70 x $34.00) + (0.30 x $50.90) = **$39.07** net/year
+- Year 1: (0.70 x $35.00) + (0.30 x $50.32) = **$39.60** net/year
+- Year 2+: (0.70 x $42.50) + (0.30 x $61.10) = **$48.08** net/year
 
 ### Customer Lifetime Value (LTV)
 - Average subscription duration (health apps): 8-14 months
-- Conservative (8 mo): $32.18 x (8/12) = **$21.45**
-- Moderate (11 mo): $32.18 x (11/12) = **$29.50**
-- Optimistic (14 mo): $32.18 + $39.07 x (2/12) = **$38.69**
+- Conservative (8 mo): $39.60 x (8/12) = **$26.40**
+- Moderate (11 mo): $39.60 x (11/12) = **$36.30**
+- Optimistic (14 mo): $39.60 + $48.08 x (2/12) = **$47.61**
 
 ---
 
@@ -105,17 +105,14 @@
 | Balance (menopause) | $49.99/year | Consumer subscription |
 | Flo (period tracker) | $49.99/year | Consumer subscription |
 | Clue Plus | $39.99/year | Consumer subscription |
+| **Vela** | **$49.99/year** | **Consumer subscription** |
 
-**Assessment:** $39.99/year is **competitive but potentially underpriced**. Vela offers on-device AI analysis, doctor reports, CBT programs, and symptom predictions — more than most competitors. Consider:
+**Assessment:** $49.99/year positions Vela at parity with Balance and Flo, still $10/year under Caria. Justified by on-device AI, doctor reports, CBT programs, and 60 daily insights.
 
-- **Current price ($39.99):** Lower barrier, higher conversion potential. Good for launch.
-- **Premium price ($49.99):** Still under Caria/Balance. Could test after establishing reviews.
-- **Recommendation:** Launch at $39.99 to build user base and reviews. Raise to $49.99 after reaching 100+ reviews and 4.5+ rating. Grandfather early subscribers.
-
-### Monthly pricing at $4.99
-- Effective annual rate: $59.88 (50% premium over annual)
-- This is standard and encourages annual commitment
-- No changes recommended
+### Monthly pricing at $5.99
+- Effective annual rate: $71.88 (44% premium over annual)
+- Strong incentive to choose annual (save 31%)
+- Competitive with market rates
 
 ---
 
@@ -149,7 +146,7 @@
 **Break-even:** ~4 annual subscribers/month covers fixed costs. Achievable within Month 1.
 
 **Real break-even (including your time):**
-If valuing founder time at $5,000/month → need ~178 annual subscribers or ~$475 MRR (net). Achievable by Month 6-8 in Scenario B.
+If valuing founder time at $5,000/month → need ~143 annual subscribers or ~$475 MRR (net). Achievable by Month 5-7 in Scenario B.
 
 ---
 

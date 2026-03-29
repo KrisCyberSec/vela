@@ -6,7 +6,7 @@
  * 2. Create a RevenueCat account at https://www.revenuecat.com
  * 3. Add your iOS app in RevenueCat, paste the shared secret from App Store Connect
  * 4. Create an entitlement called "premium"
- * 5. Create an offering called "default" with $4.99/mo and $39.99/yr subscriptions
+ * 5. Create an offering called "default" with $5.99/mo and $49.99/yr subscriptions
  * 6. Replace RC_API_KEY below with your RevenueCat Apple API key
  */
 

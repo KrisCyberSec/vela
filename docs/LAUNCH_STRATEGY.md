@@ -106,7 +106,7 @@ Tech: Simple static HTML/CSS. Host on GitHub Pages or Netlify (free).
 | Reddit/Community | $0 | $0 |
 | Influencer | $1.00 | $8-15 |
 
-**Maximum allowable CPA:** $21.45 (conservative LTV). Anything below this is profitable.
+**Maximum allowable CPA:** $26.40 (conservative LTV). Anything below this is profitable.
 
 ---
 

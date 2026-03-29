@@ -5544,23 +5544,23 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
             className={`paywall-plan${plan === "annual" ? " selected" : ""}`}
             onClick={() => setPlan("annual")}
           >
-            <div className="plan-save">Save 33%</div>
+            <div className="plan-save">Save 31%</div>
             <div className="plan-period">Annual</div>
-            <div className="plan-price">$39.99<span>/year</span></div>
-            <div className="plan-monthly">$3.33/mo</div>
+            <div className="plan-price">$49.99<span>/year</span></div>
+            <div className="plan-monthly">$4.17/mo</div>
           </button>
           <button
             className={`paywall-plan${plan === "monthly" ? " selected" : ""}`}
             onClick={() => setPlan("monthly")}
           >
             <div className="plan-period">Monthly</div>
-            <div className="plan-price">$4.99<span>/mo</span></div>
+            <div className="plan-price">$5.99<span>/mo</span></div>
             <div className="plan-monthly">&nbsp;</div>
           </button>
         </div>
 
         <button className="paywall-cta" onClick={() => onSubscribe(plan)}>
-          {plan === "annual" ? "Try free for 7 days — $39.99/year" : "Try free for 7 days — $4.99/month"}
+          {plan === "annual" ? "Try free for 7 days — $49.99/year" : "Try free for 7 days — $5.99/month"}
         </button>
         <div className="paywall-price">Cancel anytime during your trial. Your data stays on your device — always.</div>
         <button className="paywall-restore" onClick={onRestore}>
