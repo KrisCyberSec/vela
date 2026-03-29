@@ -13,7 +13,7 @@ const SYMPTOM_CATEGORIES = [
   { key: "common", label: "Most common" },
   { key: "mood", label: "Mood & cognitive" },
   { key: "physical", label: "Physical" },
-  { key: "intimate", label: "Intimate health" },
+  { key: "intimate", label: "Intimate" },
   { key: "digestive", label: "Digestive" },
   { key: "other", label: "Other" },
 ];
@@ -125,6 +125,14 @@ function getGreeting() {
   return "Good evening";
 }
 
+// Helper: get YYYY-MM-DD in local timezone (avoids UTC date shift bug)
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function getStreak(logs) {
   if (logs.length === 0) return 0;
   let streak = 0;
@@ -133,7 +141,7 @@ function getStreak(logs) {
   for (let i = 0; i <= 120; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d);
     const hasLog = logs.some((l) => l.date.slice(0, 10) === dayStr);
     const isFrozen = freezes.includes(dayStr);
     if (hasLog) streak++;
@@ -144,8 +152,8 @@ function getStreak(logs) {
   return streak;
 }
 
-function useStreakFreeze() {
-  const today = new Date().toISOString().slice(0, 10);
+function applyStreakFreeze() {
+  const today = localDateStr(new Date());
   const freezes = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freezes") || "[]"); } catch { return []; } })();
   if (freezes.includes(today)) return false; // already frozen today
   const available = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freeze_count") || "0"); } catch { return 0; } })();
@@ -197,7 +205,7 @@ function getPersonalization(profile) {
     6: ["stress-mgmt-7", "exercise-7", "sleep-hygiene-7"],
     7: ["stress-mgmt-7", "no-caffeine-7", "exercise-7"],
   };
-  const expPriority = concerns.flatMap((c) => concernToExp[c] || []);
+  const expPriority = [...new Set(concerns.flatMap((c) => concernToExp[c] || []))].slice(0, 3);
 
   // Stage-aware greeting subtitles
   const stageMessages = [
@@ -237,6 +245,21 @@ function getPersonalization(profile) {
     topConcernNames,
     companionGreeting,
   };
+}
+
+function computeEarlyStats(logs) {
+  if (logs.length === 0) return null;
+  const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+  const moodLogs = logs.filter((l) => l.mood !== null && l.mood !== undefined);
+  const avgMood = moodLogs.length > 0 ? moodLogs.reduce((s, l) => s + l.mood, 0) / moodLogs.length : null;
+  const energyLogs = logs.filter((l) => l.energy !== null && l.energy !== undefined);
+  const avgEnergy = energyLogs.length > 0 ? energyLogs.reduce((s, l) => s + l.energy, 0) / energyLogs.length : null;
+  const symptomCounts = {};
+  logs.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; }));
+  const sortedSymptoms = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]);
+  const topSymptom = sortedSymptoms[0] || null;
+  const uniqueSymptomCount = sortedSymptoms.length;
+  return { uniqueDays, avgMood, avgEnergy, topSymptom, uniqueSymptomCount, symptomCounts };
 }
 
 function analyzePatterns(logs) {
@@ -460,6 +483,24 @@ function analyzeCorrelations(logs) {
   }
 
   return insights.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+function getBestInsight(logs, profile) {
+  const patterns = analyzePatterns(logs);
+  if (patterns.length > 0) return { type: "pattern", text: patterns[0], icon: "💡" };
+  const correlations = analyzeCorrelations(logs);
+  if (correlations.length > 0) return { type: "correlation", text: correlations[0].text, icon: correlations[0].icon };
+  const stats = computeEarlyStats(logs);
+  if (stats && stats.topSymptom) {
+    const [name, count] = stats.topSymptom;
+    const p = getPersonalization(profile);
+    const concern = p?.topConcernNames?.[0];
+    if (concern && name.toLowerCase().includes(concern.toLowerCase().split(" ")[0])) {
+      return { type: "stat", text: `${name} appeared in ${count} of your entries — it's your most frequent symptom, and the one you told us concerned you most.`, icon: "🎯" };
+    }
+    return { type: "stat", text: `${name} appeared in ${count} of your entries — your most frequent symptom this week.`, icon: "📊" };
+  }
+  return { type: "generic", text: "You've built a solid foundation of data. Your patterns will sharpen with each day you log.", icon: "🌱" };
 }
 
 // ─── Smart Reminders ─────────────────────────────────────────────────────────
@@ -741,7 +782,12 @@ const SUGGESTED_QUESTIONS = [
   "Which day of the week is best for me?",
   "What should I tell my doctor?",
   "How is my sleep affecting me?",
-  "What patterns do you see?"
+  "What patterns do you see?",
+  "How does stress affect my symptoms?",
+  "What's my most common symptom?",
+  "How does exercise help me?",
+  "Am I sleeping better or worse?",
+  "What triggers my hot flashes?",
 ];
 
 const PERSONALIZED_TIPS = [
@@ -752,6 +798,12 @@ const PERSONALIZED_TIPS = [
   { match: (d) => d.trend?.direction === "worse", tip: "Your symptoms have been a bit more intense lately. This is normal — menopause isn't linear. Consider tracking what changed recently and discussing with your healthcare provider." },
   { match: (d) => d.bestDay?.avgMood >= 7, tip: `Your best days tend to be ${d => d.bestDay?.day}s. Try scheduling important tasks or self-care activities on those days when you tend to feel your best.` },
   { match: (d) => d.avgMood < 5, tip: "Your mood has been lower than usual. Remember: hormonal changes directly affect neurotransmitters. Be gentle with yourself, and consider talking to your healthcare provider if it persists." },
+  { match: (d) => d.triggerReport?.some((t) => t.impact === "helps" && t.triggerName.includes("sleep")), tip: "Better sleep nights = fewer symptoms in your data. Sleep quality is one of the strongest levers for managing menopause symptoms. Prioritize those bedtime routines." },
+  { match: (d) => d.trend?.avgSymptoms > 3, tip: "You're logging more symptoms than average lately. Consider what's changed — stress, diet, sleep? Small adjustments often have outsized effects." },
+  { match: (d) => d.weekInReview?.daysLogged >= 6, tip: "You logged almost every day this week — that consistency is what makes Vela's analysis powerful. Your patterns are sharper than most users' at this stage." },
+  { match: (d) => d.weekInReview?.daysLogged <= 3, tip: "You logged fewer days this week. Even a 30-second entry on busy days helps. Gaps in data make patterns harder to spot." },
+  { match: (d) => d.symptomTrends?.some((s) => s.direction === "down"), tip: "At least one of your symptoms is trending down. That's real progress. Keep doing what you're doing and watch if the trend continues." },
+  { match: (d) => d.bestDay?.symptoms === 0, tip: "You had a symptom-free day this week! Look at what was different — sleep, activity, stress level — and see if you can recreate those conditions." },
   { match: () => true, tip: "Consistency in tracking helps spot patterns faster. Even on good days, a quick log helps Vela understand your full picture." }
 ];
 
@@ -788,7 +840,7 @@ function generateResponse(handler, logs, profile) {
     const data = analyzeSymptomTrend(logs, handler.param);
     if (data.recentCount === 0 && data.prevCount === 0) return `I haven't seen ${handler.param} in your recent logs. That's actually great news! If it does come up, I'll be tracking it.`;
     const trendWord = data.trend === "increasing" ? "more frequently" : data.trend === "decreasing" ? "less often — that's encouraging!" : "at about the same rate";
-    return `Looking at your ${handler.param} pattern: you've logged it ${data.recentCount} times in the last 2 weeks, compared to ${data.prevCount} the 2 weeks before. It's appearing ${trendWord}${stageNote} ${data.recentSev > 0 ? `Average severity has been around ${data.recentSev}/10.` : ""}`;
+    return `Looking at your ${handler.param} pattern: you've logged it ${data.recentCount} times in the last 2 weeks, compared to ${data.prevCount} the 2 weeks before. It's appearing ${trendWord}${stageNote}`;
   }
 
   if (handler.handler === "triggerImpact") {
@@ -850,16 +902,19 @@ function generateResponse(handler, logs, profile) {
   const data = analyzeRecentPattern(logs);
   if (!data) return concern ? `I don't have any data from this week yet. Log how your ${concern} is today and I'll start building your picture!` : "I don't have any data from this week yet. Log how you're feeling today and I'll start building your picture!";
   let msg = `Here's your week so far (${data.daysLogged} days logged):\n\n`;
-  if (data.avgMood !== null) msg += `Mood: ${data.avgMood}/10 average\n`;
-  if (data.avgEnergy !== null) msg += `Energy: ${["Depleted", "Low", "Moderate", "Good", "Energized"][data.avgEnergy] || data.avgEnergy}/4 average\n`;
+  if (data.avgMood !== null) msg += `Mood: ${data.avgMood}/4 average (${data.avgMood >= 3.5 ? "great" : data.avgMood >= 2.5 ? "good" : data.avgMood >= 1.5 ? "okay" : "tough"})\n`;
+  if (data.avgEnergy !== null) msg += `Energy: ${["Depleted", "Low", "Moderate", "Good", "Energized"][Math.round(data.avgEnergy)] || "Moderate"} average\n`;
   if (data.topSymptoms.length > 0) {
     msg += `Top symptoms: ${data.topSymptoms.map((s) => `${s.name} (${s.count}x)`).join(", ")}\n`;
     if (concern && data.topSymptoms.some((s) => s.name.toLowerCase().includes(concern.toLowerCase()))) {
       msg += `\n📌 Your ${concern} appeared ${data.topSymptoms.find((s) => s.name.toLowerCase().includes(concern.toLowerCase())).count} times this week.\n`;
     }
   }
-  if (data.topContext && data.topContext.length > 0) msg += `Context factors: ${data.topContext.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
-  if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })} (mood: ${data.bestDay.mood})`;
+  if (data.topContext && data.topContext.length > 0) {
+    const filtered = data.topContext.filter((t) => !t.name.startsWith("Stress:") && !t.name.startsWith("Sleep:"));
+    if (filtered.length > 0) msg += `Context: ${filtered.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
+  }
+  if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })} ${["😞","😕","😐","🙂","😊"][data.bestDay.mood] || ""}`;
   msg += stageNote + energyNote;
   return msg;
 }
@@ -1075,6 +1130,14 @@ const EXPERIMENTS = [
   { id: "stress-mgmt-7", title: "Low-stress week", desc: "Practice stress management — aim for stress level ≤3 for 7 days", duration: 7, track: "stress", trackValue: 3, icon: "🧘", category: "wellness", xpReward: 60 },
   { id: "hydration-7", title: "Hydration challenge", desc: "Note your water intake daily for 7 days. Stay hydrated!", duration: 7, track: "notes", trackValue: "water", icon: "💧", category: "wellness", xpReward: 40 },
   { id: "full-log-7", title: "Complete tracker", desc: "Log mood, symptoms, AND context every day for a week", duration: 7, track: "complete", trackValue: true, icon: "✅", category: "tracking", xpReward: 75 },
+  { id: "morning-light-7", title: "Morning light exposure", desc: "Get outside within 30 minutes of waking for 7 days", duration: 7, track: "notes", trackValue: "morning light", icon: "🌅", category: "wellness", xpReward: 50 },
+  { id: "no-screens-7", title: "Screen-free evenings", desc: "No screens 1 hour before bed for 7 nights", duration: 7, track: "notes", trackValue: "no screens", icon: "📵", category: "sleep", xpReward: 50 },
+  { id: "protein-7", title: "Protein at every meal", desc: "Include protein at breakfast, lunch, and dinner for 7 days", duration: 7, track: "notes", trackValue: "protein", icon: "🥩", category: "nutrition", xpReward: 50 },
+  { id: "breathing-7", title: "Paced breathing practice", desc: "Practice 5 minutes of slow breathing daily for 7 days", duration: 7, track: "notes", trackValue: "breathing", icon: "🫁", category: "wellness", xpReward: 50 },
+  { id: "sugar-free-14", title: "14-day sugar reset", desc: "Reduce added sugars for 2 weeks and track symptom changes", duration: 14, track: "notes", trackValue: "low sugar", icon: "🍬", category: "triggers", xpReward: 75 },
+  { id: "strength-7", title: "Strength training week", desc: "Do 3+ resistance training sessions this week", duration: 7, track: "exercise", trackValue: true, icon: "💪", category: "activity", xpReward: 60 },
+  { id: "gratitude-7", title: "Gratitude journal", desc: "Write one thing you're grateful for in your notes each day", duration: 7, track: "notes", trackValue: "grateful", icon: "🙏", category: "wellness", xpReward: 40 },
+  { id: "cool-bedroom-7", title: "Cool bedroom challenge", desc: "Keep your bedroom at 65-68°F for 7 nights and track sleep quality", duration: 7, track: "notes", trackValue: "cool room", icon: "❄️", category: "sleep", xpReward: 50 },
 ];
 
 const DAILY_LESSONS = [
@@ -1092,6 +1155,52 @@ const DAILY_LESSONS = [
   { id: "dl-12", title: "Preparing for your doctor visit", text: "Bring data, not just feelings. Doctors respond to patterns: 'I've had hot flashes 4 out of 7 days, worse after caffeine' is more actionable than 'I've been having hot flashes.'", xp: 10 },
   { id: "dl-13", title: "Menopause is not a disease", text: "Menopause is a natural biological transition. While symptoms can be challenging, framing it as a health transition rather than a medical condition supports better self-advocacy.", xp: 10 },
   { id: "dl-14", title: "Your data tells a story", text: "After just 2 weeks of tracking, patterns emerge that would be invisible otherwise. Day-of-week effects, trigger correlations, and symptom clusters all become clear with consistent data.", xp: 10 },
+  { id: "dl-15", title: "Stress and your symptoms", text: "Cortisol and estrogen share metabolic pathways. When stress rises, it can amplify hot flashes, disrupt sleep, and worsen brain fog. Stress management isn't just nice to have — it's a symptom strategy.", xp: 10 },
+  { id: "dl-16", title: "The gut-hormone axis", text: "Your gut microbiome contains the 'estrobolome' — bacteria that metabolize estrogen. Gut health directly influences hormone levels. A diverse, fiber-rich diet supports both digestion and hormonal balance.", xp: 10 },
+  { id: "dl-17", title: "Why symptoms cluster", text: "Hot flashes, night sweats, and poor sleep often appear together because they share a root cause: hypothalamic sensitivity to estrogen changes. Treating one often improves the others.", xp: 10 },
+  { id: "dl-18", title: "Magnesium: the unsung hero", text: "Magnesium supports 300+ enzymatic reactions including sleep regulation, mood stability, and muscle relaxation. Many women in midlife are deficient. Foods like dark leafy greens, nuts, and seeds are excellent sources.", xp: 10 },
+  { id: "dl-19", title: "The anxiety-hormone link", text: "Progesterone has a calming effect via GABA receptors. As progesterone drops in perimenopause, anxiety often increases — even in women with no prior history. This is biochemical, not 'just stress.'", xp: 10 },
+  { id: "dl-20", title: "Weight changes in midlife", text: "Shifting estrogen levels promote fat redistribution toward the abdomen. This isn't about willpower — it's hormonal. Resistance training is the most evidence-backed strategy for maintaining metabolic health.", xp: 10 },
+  { id: "dl-21", title: "Your thyroid matters too", text: "Thyroid disorders become more common in midlife and share symptoms with menopause: fatigue, weight gain, brain fog, mood changes. If symptoms persist despite treatment, ask your doctor to check your thyroid.", xp: 10 },
+  { id: "dl-22", title: "Night sweats vs. hot flashes", text: "Night sweats are hot flashes that happen during sleep, but they're uniquely disruptive because they fragment sleep cycles. Cooling bedding, breathable fabrics, and a cool bedroom (65-68°F) can make a real difference.", xp: 10 },
+  { id: "dl-23", title: "Alcohol and menopause", text: "Even moderate alcohol intake can trigger hot flashes, disrupt sleep architecture, and worsen anxiety. Many women find that reducing alcohol is one of the most impactful lifestyle changes they can make.", xp: 10 },
+  { id: "dl-24", title: "Caffeine: friend or foe?", text: "Caffeine can worsen hot flashes and anxiety in some women, while others tolerate it well. The key is tracking YOUR response. Try noting caffeine intake alongside symptoms for two weeks to see your pattern.", xp: 10 },
+  { id: "dl-25", title: "Brain fog is real", text: "fMRI studies show measurable changes in brain activity patterns during perimenopause. Working memory and verbal fluency are most affected. The good news: these changes typically reverse in postmenopause.", xp: 10 },
+  { id: "dl-26", title: "The pelvic floor connection", text: "Declining estrogen affects pelvic floor muscles, contributing to urinary urgency, incontinence, and sexual discomfort. Pelvic floor physiotherapy has strong evidence and is available without a referral in many areas.", xp: 10 },
+  { id: "dl-27", title: "Vitamin D and menopause", text: "Vitamin D supports bone health, immune function, and mood regulation. Post-menopause, adequate vitamin D becomes critical. Most guidelines recommend 600-1000 IU daily, though many experts suggest higher doses.", xp: 10 },
+  { id: "dl-28", title: "Meditation and vasomotor symptoms", text: "Mindfulness meditation has been shown to reduce the perceived severity of hot flashes by 22% in clinical trials. It may not reduce frequency, but it changes your brain's response to the discomfort.", xp: 10 },
+  { id: "dl-29", title: "Hormone therapy: myths vs. evidence", text: "Modern hormone therapy is considered safe for most women under 60 or within 10 years of menopause. The 2002 WHI study created widespread fear, but re-analysis shows the risks were overstated for younger women.", xp: 10 },
+  { id: "dl-30", title: "Joint pain and estrogen", text: "Estrogen has anti-inflammatory properties. As levels drop, joint pain, stiffness, and even frozen shoulder become more common. This is often misattributed to aging rather than recognized as a menopause symptom.", xp: 10 },
+  { id: "dl-31", title: "The power of routine", text: "Consistent daily rhythms — sleep, meals, exercise — help stabilize your circadian clock, which is disrupted by hormonal changes. Regularity doesn't have to be rigid, but predictability helps your body adapt.", xp: 10 },
+  { id: "dl-32", title: "Sexual health in menopause", text: "Vaginal dryness affects up to 50% of postmenopausal women, but only 25% seek treatment. Local estrogen therapy is effective and carries minimal systemic risk. Don't suffer in silence — this is treatable.", xp: 10 },
+  { id: "dl-33", title: "Iron and energy", text: "If you're still having periods in perimenopause, heavy or irregular bleeding can deplete iron stores. Low ferritin (even in 'normal' range) causes fatigue, brain fog, and restless legs. Ask your doctor to test ferritin specifically.", xp: 10 },
+  { id: "dl-34", title: "Your heart rate and hormones", text: "Heart palpitations during menopause are common and usually benign — caused by estrogen fluctuations affecting the electrical system of the heart. However, always report new palpitations to your doctor to rule out other causes.", xp: 10 },
+  { id: "dl-35", title: "Protein needs increase", text: "After 40, muscle mass declines ~1% per year without intervention. Increasing protein intake to 1.2-1.6g per kg of body weight, combined with resistance training, helps maintain muscle, bone density, and metabolic rate.", xp: 10 },
+  { id: "dl-36", title: "The social brain", text: "Social connection isn't just nice — it's medicine. Loneliness activates the same stress pathways as physical pain. Women with strong social networks report fewer menopause symptoms and better overall wellbeing.", xp: 10 },
+  { id: "dl-37", title: "Skin changes in menopause", text: "Collagen declines ~30% in the first 5 years after menopause. Skin becomes thinner, drier, and less elastic. Sunscreen, moisturizers with hyaluronic acid, and retinoids can help. Estrogen therapy also supports skin health.", xp: 10 },
+  { id: "dl-38", title: "Why mornings matter", text: "Morning light exposure within 30 minutes of waking helps regulate melatonin and cortisol rhythms. This single habit can improve sleep quality, mood, and energy — three common menopause complaints — simultaneously.", xp: 10 },
+  { id: "dl-39", title: "Perimenopause can start early", text: "While average onset is 47, perimenopause can begin in the late 30s. Early symptoms are often dismissed as 'just stress.' If you're under 45 with cycle changes, mood shifts, or new symptoms, it's worth discussing with your doctor.", xp: 10 },
+  { id: "dl-40", title: "Hair changes and hormones", text: "Thinning hair is reported by up to 50% of women during menopause. The shift in estrogen-to-androgen ratio affects hair follicles. Iron, biotin, and managing stress can help. Significant hair loss warrants medical evaluation.", xp: 10 },
+  { id: "dl-41", title: "Omega-3 fatty acids", text: "Omega-3s (EPA and DHA) have anti-inflammatory effects that may reduce joint pain, support cardiovascular health, and improve mood. Fatty fish, walnuts, and flaxseed are good sources. Consider supplementation if intake is low.", xp: 10 },
+  { id: "dl-42", title: "The second spring", text: "In Traditional Chinese Medicine, post-menopause is called the 'Second Spring' — a time of renewed energy and wisdom. Many women report feeling more confident, focused, and authentic after the transition completes.", xp: 10 },
+  { id: "dl-43", title: "Blood sugar and symptoms", text: "Blood sugar instability worsens hot flashes, mood swings, and energy crashes. Pairing carbs with protein, eating regular meals, and reducing refined sugars can stabilize glucose — and often reduces symptom severity.", xp: 10 },
+  { id: "dl-44", title: "Strength training is essential", text: "Resistance training is the single most important exercise modality in midlife. It preserves bone density, maintains muscle mass, boosts metabolism, improves insulin sensitivity, and supports mood. Aim for 2-3 sessions per week.", xp: 10 },
+  { id: "dl-45", title: "Dry eyes and mouth", text: "Estrogen maintains moisture in mucous membranes throughout the body. Dry eyes, dry mouth, and even dry skin are common but often overlooked menopause symptoms. Lubricating drops and staying hydrated help.", xp: 10 },
+  { id: "dl-46", title: "Cognitive strategies that help", text: "For brain fog: write things down immediately, use timers and reminders, batch similar tasks, and give yourself grace. These aren't crutches — they're smart adaptations while your brain adjusts to new hormone levels.", xp: 10 },
+  { id: "dl-47", title: "The rage is real", text: "Intense irritability or sudden rage episodes can occur in perimenopause due to estrogen-serotonin interactions. This doesn't mean something is wrong with you — it means your neurochemistry is shifting. Name it, don't shame it.", xp: 10 },
+  { id: "dl-48", title: "Breathing techniques for hot flashes", text: "Paced breathing (slow, deep breaths at 6-8 per minute) can reduce hot flash intensity by up to 50% in studies. Practice when you're calm so it becomes automatic when a flash hits. Inhale 5 seconds, exhale 7 seconds.", xp: 10 },
+  { id: "dl-49", title: "Phytoestrogens: do they work?", text: "Plant estrogens from soy, flaxseed, and red clover have modest evidence for reducing hot flashes. They're most effective in women who produce equol (a gut metabolite). Results vary significantly between individuals.", xp: 10 },
+  { id: "dl-50", title: "Sleep hygiene essentials", text: "Keep your bedroom cool (65-68°F), dark, and quiet. Avoid screens 1 hour before bed. Maintain consistent sleep/wake times. Limit caffeine after noon. These basics work better than any supplement for most women.", xp: 10 },
+  { id: "dl-51", title: "When to see a specialist", text: "If your symptoms significantly impact daily life, consider a menopause specialist or NAMS-certified provider. General practitioners receive an average of zero hours of menopause training in medical school.", xp: 10 },
+  { id: "dl-52", title: "Tinnitus and menopause", text: "Ringing in the ears can be triggered by estrogen fluctuations affecting the inner ear. It's more common in perimenopause than many realize. Stress reduction, adequate sleep, and limiting caffeine may help.", xp: 10 },
+  { id: "dl-53", title: "Your libido is not broken", text: "Changes in desire are common and multifactorial: hormonal shifts, vaginal dryness, fatigue, body image changes, and relationship dynamics all play roles. This is treatable and worth discussing with your healthcare provider.", xp: 10 },
+  { id: "dl-54", title: "The inflammation connection", text: "Estrogen is anti-inflammatory. As it declines, systemic inflammation increases — contributing to joint pain, fatigue, brain fog, and cardiovascular risk. Anti-inflammatory foods (berries, leafy greens, fatty fish) can help.", xp: 10 },
+  { id: "dl-55", title: "Progesterone and sleep", text: "Progesterone promotes sleep via GABA receptors. Its decline in perimenopause often precedes estrogen decline, which is why sleep problems can be the first symptom women notice — sometimes years before hot flashes.", xp: 10 },
+  { id: "dl-56", title: "You're not imagining things", text: "Gaslighting in healthcare is real. If a doctor dismisses your symptoms as 'just aging' or 'just stress,' seek another opinion. Your symptoms have physiological explanations and evidence-based treatments exist.", xp: 10 },
+  { id: "dl-57", title: "Restless legs and iron", text: "Restless leg syndrome increases during menopause. Low iron/ferritin is a common trigger. Magnesium before bed and regular exercise also help. If it's disrupting sleep, it's worth treating.", xp: 10 },
+  { id: "dl-58", title: "Dental health and hormones", text: "Declining estrogen affects gum tissue and saliva production, increasing risk of gum disease and tooth decay. Regular dental visits and good oral hygiene become even more important during and after menopause.", xp: 10 },
+  { id: "dl-59", title: "The 30-day effect", text: "Most lifestyle interventions take 2-4 weeks to show measurable results. If you've started a new habit, give it a full month before judging its impact. Your tracking data will show you the truth.", xp: 10 },
+  { id: "dl-60", title: "You are the expert on you", text: "No study, app, or doctor knows your body better than you do. Track your experience, trust your observations, bring your data to appointments, and advocate for yourself. You deserve care that takes you seriously.", xp: 10 },
 ];
 
 const CBT_PROGRAMS = [
@@ -1259,9 +1368,11 @@ const css = `
     .gamification-bar, .gam-badge, .exp-card, .lesson-card,
     .add-symptom-card, .add-symptom-input, .milestone-card,
     .symptom-cat-tab, .active-symptom-chip, .energy-chip,
-    .cbt-card, .cbt-program-item, .cbt-lesson-done-btn, .nudge-card {
+    .cbt-card, .cbt-program-item, .cbt-lesson-done-btn, .nudge-card,
+    .reveal-card, .reflection-card {
       background: var(--card-bg) !important;
     }
+    .reveal-premium { background: linear-gradient(145deg, #1a2420 0%, #0f1714 100%) !important; border-color: rgba(143,184,155,0.25) !important; }
     .milestone-card { border-color: var(--sage-light) !important; background: var(--sage-light) !important; }
     .chat-bubble.user .chat-text { background: var(--clay) !important; }
     .digest-spotlight { background: var(--sage-light) !important; }
@@ -1323,7 +1434,7 @@ const css = `
   .nav-tabs {
     display: flex;
     gap: 4px;
-    background: white;
+    background: var(--card-bg);
     border-radius: 20px;
     padding: 4px;
     border: 1px solid var(--border);
@@ -1364,7 +1475,7 @@ const css = `
 
   .q-card {
     margin: 16px 16px 0;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 20px;
     border: 1px solid var(--border);
@@ -1407,18 +1518,53 @@ const css = `
   .onboard-btn {
     margin: 16px 16px 0;
     padding: 15px;
-    background: var(--clay);
+    background: var(--clay-dark);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     font-family: 'DM Sans', sans-serif;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   }
-  .onboard-btn:hover { background: var(--clay-dark); }
-  .onboard-btn:disabled { background: #D4B5A8; cursor: default; }
+  .onboard-btn:hover { background: var(--clay); }
+  .onboard-btn:disabled { background: var(--border); color: var(--ink-light); cursor: default; box-shadow: none; }
+
+  /* ── ONBOARD COMPLETE ── */
+  .onboard-complete {
+    padding: 40px 24px 24px; text-align: center;
+    animation: revealFade 0.5s ease;
+  }
+  .onboard-complete-icon { font-size: 48px; margin-bottom: 16px; }
+  .onboard-complete-title {
+    font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .onboard-complete-text {
+    font-size: 15px; color: var(--ink-mid); line-height: 1.55; margin-bottom: 24px;
+  }
+  .onboard-plan {
+    background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 16px 18px; text-align: left; margin-bottom: 20px;
+  }
+  .onboard-plan-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--sage-dark); margin-bottom: 12px;
+  }
+  .onboard-plan-step {
+    display: flex; gap: 12px; align-items: baseline; padding: 6px 0;
+    border-top: 1px solid var(--border);
+  }
+  .onboard-plan-step:first-of-type { border-top: none; }
+  .onboard-plan-day {
+    font-size: 12px; font-weight: 600; color: var(--clay); white-space: nowrap; min-width: 56px;
+  }
+  .onboard-plan-desc { font-size: 13px; color: var(--ink); line-height: 1.4; }
+  .onboard-complete-sub {
+    font-size: 13px; color: var(--ink-light); margin-bottom: 20px;
+  }
 
   /* ── TRACKER ── */
   .tracker-header { padding: 16px 24px 0; }
@@ -1482,7 +1628,7 @@ const css = `
   .energy-chip {
     flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
     padding: 10px 4px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
-    background: white; cursor: pointer; transition: all 0.15s; gap: 4px;
+    background: var(--card-bg); cursor: pointer; transition: all 0.15s; gap: 4px;
   }
   .energy-chip:active { transform: scale(0.94); }
   .energy-chip.active { border-color: var(--sage); background: var(--sage-light); }
@@ -1493,7 +1639,7 @@ const css = `
   .symptoms-section { margin: 14px 16px 0; }
   .symptom-filter {
     width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--ink); background: white;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--card-bg);
     margin-bottom: 8px; outline: none;
   }
   .symptom-filter:focus { border-color: var(--clay); }
@@ -1517,7 +1663,7 @@ const css = `
   .symptom-cat-tabs::-webkit-scrollbar { display: none; }
   .symptom-cat-tab {
     flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
-    font-family: 'DM Sans', sans-serif; border: 1.5px solid var(--border); background: white;
+    font-family: 'DM Sans', sans-serif; border: 1.5px solid var(--border); background: var(--card-bg);
     color: var(--ink-light); cursor: pointer; transition: all 0.15s; white-space: nowrap;
   }
   .symptom-cat-tab:active { transform: scale(0.96); }
@@ -1527,7 +1673,7 @@ const css = `
 
   .symptom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .symptom-tile {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius-sm);
     padding: 12px;
     border: 1.5px solid var(--border);
@@ -1562,7 +1708,7 @@ const css = `
   .ctx-stepper { display: flex; align-items: center; gap: 12px; }
   .ctx-step-btn {
     width: 32px; height: 32px; border-radius: 50%;
-    background: white; border: 1.5px solid var(--border);
+    background: var(--card-bg); border: 1.5px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; font-weight: 600; color: var(--ink);
     cursor: pointer; transition: all 0.15s; user-select: none;
@@ -1573,7 +1719,7 @@ const css = `
   .ctx-dots { display: flex; gap: 8px; }
   .ctx-dot {
     width: 32px; height: 32px; border-radius: 50%;
-    background: white; border: 1.5px solid var(--border);
+    background: var(--card-bg); border: 1.5px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; font-weight: 500; color: var(--ink-light);
     cursor: pointer; transition: all 0.15s;
@@ -1582,7 +1728,7 @@ const css = `
   .ctx-pills { display: flex; gap: 8px; margin-top: 12px; }
   .ctx-pill {
     flex: 1; padding: 10px 8px; border-radius: 10px;
-    background: white; border: 1.5px solid var(--border);
+    background: var(--card-bg); border: 1.5px solid var(--border);
     text-align: center; font-size: 13px; font-weight: 500;
     color: var(--ink); cursor: pointer; transition: all 0.15s;
   }
@@ -1591,7 +1737,7 @@ const css = `
   .notes-area { margin: 14px 16px 0; }
   .notes-input {
     width: 100%;
-    background: white;
+    background: var(--card-bg);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 12px 14px;
@@ -1608,7 +1754,7 @@ const css = `
   .note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .note-chip {
     font-size: 12px; padding: 5px 10px; border-radius: 14px; cursor: pointer;
-    border: 1px solid var(--border); color: var(--ink-mid); background: white;
+    border: 1px solid var(--border); color: var(--ink-mid); background: var(--card-bg);
     font-family: 'DM Sans', sans-serif; transition: all 0.15s;
   }
   .note-chip.on { background: var(--sage-light); border-color: var(--sage); color: var(--sage-dark); }
@@ -1657,7 +1803,7 @@ const css = `
 
   .trend-card {
     margin: 12px 16px 0;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 18px;
     border: 1px solid var(--border);
@@ -1716,10 +1862,11 @@ const css = `
 
   .unlock-card {
     margin: 12px 16px 0;
-    background: var(--ink);
+    background: #2C1F17;
     border-radius: var(--radius);
     padding: 20px;
-    color: white;
+    color: #F0E8E2;
+    border: 1px solid rgba(212, 168, 83, 0.2);
   }
   .unlock-tag {
     font-size: 11px;
@@ -1730,11 +1877,11 @@ const css = `
     margin-bottom: 8px;
   }
   .unlock-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 6px; }
-  .unlock-body { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; margin-bottom: 14px; }
+  .unlock-body { font-size: 13px; color: rgba(240,232,226,0.7); line-height: 1.5; margin-bottom: 14px; }
   .unlock-btn {
     padding: 11px 20px;
     background: var(--gold);
-    color: var(--ink);
+    color: #2C1F17;
     border: none;
     border-radius: var(--radius-sm);
     font-size: 13px;
@@ -1750,13 +1897,19 @@ const css = `
   .history-header p { font-size: 13px; color: var(--ink-light); margin-top: 2px; }
 
   .history-empty {
-    margin: 40px 16px;
+    margin: 60px 24px;
     text-align: center;
     color: var(--ink-light);
     font-size: 14px;
     line-height: 1.6;
   }
-  .history-empty span { font-size: 32px; display: block; margin-bottom: 8px; }
+  .history-empty-cta {
+    display: inline-block; padding: 12px 28px; background: var(--clay);
+    color: white; border: none; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .history-empty-cta:hover { background: var(--clay-dark); }
 
   .history-day { margin: 14px 16px 0; }
   .history-day-label {
@@ -1768,7 +1921,7 @@ const css = `
     margin-bottom: 8px;
   }
   .history-entry {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius-sm);
     padding: 14px 16px;
     border: 1px solid var(--border);
@@ -1797,7 +1950,7 @@ const css = `
   /* ── MOOD TREND ── */
   .mood-trend {
     margin: 12px 16px 0;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 16px 18px;
     border: 1px solid var(--border);
@@ -1818,6 +1971,39 @@ const css = `
     margin-bottom: 8px;
   }
   .paywall-hero p { font-size: 14px; color: var(--ink-mid); line-height: 1.5; }
+
+  .paywall-plans {
+    display: flex; gap: 10px; margin-bottom: 20px;
+  }
+  .paywall-plan {
+    flex: 1; padding: 16px 12px; border-radius: var(--radius);
+    border: 2px solid var(--border); background: var(--card-bg);
+    cursor: pointer; text-align: center; position: relative;
+    font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  }
+  .paywall-plan.selected {
+    border-color: var(--clay); background: rgba(196,145,115,0.08);
+  }
+  .plan-save {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--sage); color: white; font-size: 10px; font-weight: 600;
+    padding: 2px 10px; border-radius: 10px; text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .plan-period { font-size: 13px; font-weight: 500; color: var(--ink-mid); margin-bottom: 4px; }
+  .plan-price { font-size: 22px; font-weight: 600; color: var(--ink); }
+  .plan-price span { font-size: 13px; font-weight: 400; color: var(--ink-mid); }
+  .plan-monthly { font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+
+  .paywall-lead {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px; margin-bottom: 20px;
+    background: rgba(122,158,135,0.1); border: 1px solid rgba(122,158,135,0.25);
+    border-radius: var(--radius);
+  }
+  .pw-lead-icon { font-size: 28px; flex-shrink: 0; }
+  .pw-lead-text strong { display: block; font-size: 15px; color: var(--ink); margin-bottom: 4px; }
+  .pw-lead-text span { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
 
   .paywall-features { margin-bottom: 20px; }
   .pw-feature {
@@ -1915,7 +2101,7 @@ const css = `
     letter-spacing: 0.06em; color: var(--ink-light); margin-bottom: 8px;
   }
   .settings-card {
-    background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden;
+    background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden;
   }
   .settings-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -1930,7 +2116,7 @@ const css = `
   .sr-arrow { font-size: 14px; color: var(--ink-light); }
 
   .settings-danger-btn {
-    margin: 20px 16px 0; padding: 13px; background: white; border: 1.5px solid #E8C0B0;
+    margin: 20px 16px 0; padding: 13px; background: var(--card-bg); border: 1.5px solid #E8C0B0;
     border-radius: var(--radius-sm); font-size: 14px; color: var(--clay-dark);
     cursor: pointer; font-family: 'DM Sans', sans-serif; width: calc(100% - 32px);
     text-align: center;
@@ -1948,15 +2134,15 @@ const css = `
   .reminder-time-input {
     font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink);
     border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
-    background: white; outline: none;
+    background: var(--card-bg); outline: none;
   }
   .reminder-time-input:focus { border-color: var(--clay); }
 
   /* SVG Charts */
-  .chart-container { margin: 12px 16px 0; background: white; border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); }
+  .chart-container { margin: 12px 16px 0; background: var(--card-bg); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); }
   .chart-container svg { width: 100%; height: auto; display: block; }
   .chart-toggle { display: flex; gap: 4px; }
-  .chart-toggle-btn { font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 12px; border: 1px solid var(--border); background: white; color: var(--ink-light); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .chart-toggle-btn { font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--ink-light); cursor: pointer; font-family: 'DM Sans', sans-serif; }
   .chart-toggle-btn.active { background: var(--clay); color: white; border-color: var(--clay); }
   .heatmap-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; justify-content: flex-end; }
   .heatmap-legend-label { font-size: 10px; color: var(--ink-light); }
@@ -1973,12 +2159,14 @@ const css = `
   .comm-header p { color: var(--ink-mid); font-size: 14px; margin-top: 4px; line-height: 1.5; }
 
   .comm-stat-bar {
-    display: flex; gap: 12px; margin: 16px 16px 0; padding: 14px 16px;
+    margin: 16px 16px 0; padding: 16px 20px;
     background: linear-gradient(135deg, var(--sage), var(--sage-dark)); border-radius: var(--radius);
+    text-align: center;
   }
-  .comm-stat { flex: 1; text-align: center; }
-  .comm-stat-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: white; }
-  .comm-stat-label { font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .comm-banner-text {
+    font-family: 'DM Serif Display', serif; font-size: 16px;
+    color: white; line-height: 1.4;
+  }
 
   .comm-topics { margin-top: 16px; }
   .comm-topic-row {
@@ -2081,7 +2269,7 @@ const css = `
   .comm-guidelines-text p { font-size: 12px; color: var(--ink-mid); line-height: 1.5; margin-top: 4px; }
   .comm-guidelines-dismiss {
     align-self: flex-end; font-size: 12px; font-weight: 500; color: var(--sage-dark);
-    background: white; border: 1px solid var(--sage); border-radius: var(--radius-sm);
+    background: var(--card-bg); border: 1px solid var(--sage); border-radius: var(--radius-sm);
     padding: 6px 16px; cursor: pointer; font-family: 'DM Sans', sans-serif;
   }
 
@@ -2118,7 +2306,7 @@ const css = `
   .comm-compose-input {
     width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px;
-    resize: none; background: white; color: var(--ink); box-sizing: border-box;
+    resize: none; background: var(--card-bg); color: var(--ink); box-sizing: border-box;
   }
   .comm-compose-input:focus { outline: none; border-color: var(--clay); }
   .comm-compose-counter { text-align: right; font-size: 11px; color: var(--ink-light); margin-top: 4px; }
@@ -2145,7 +2333,7 @@ const css = `
   .comm-emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; }
   .comm-emoji-opt {
     font-size: 22px; width: 40px; height: 40px; border: 1px solid var(--border);
-    border-radius: var(--radius-sm); background: white; cursor: pointer;
+    border-radius: var(--radius-sm); background: var(--card-bg); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .comm-emoji-opt:active { transform: scale(0.9); }
@@ -2154,7 +2342,7 @@ const css = `
   .comm-tag-picker { display: flex; flex-wrap: wrap; gap: 6px; }
   .comm-tag-btn {
     font-size: 12px; padding: 4px 10px; border-radius: 12px;
-    border: 1px solid var(--border); background: white; color: var(--ink-mid);
+    border: 1px solid var(--border); background: var(--card-bg); color: var(--ink-mid);
     cursor: pointer; font-family: 'DM Sans', sans-serif;
   }
   .comm-tag-btn:active { opacity: 0.7; }
@@ -2178,7 +2366,7 @@ const css = `
   .streak-milestone {
     width: 26px; height: 26px; border-radius: 50%; font-size: 10px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--border); color: var(--ink-light); background: white;
+    border: 1.5px solid var(--border); color: var(--ink-light); background: var(--card-bg);
   }
   .streak-milestone.earned {
     background: var(--sage); border-color: var(--sage); color: white; font-size: 11px;
@@ -2186,7 +2374,7 @@ const css = `
 
   /* ── WEEKLY SUMMARY ── */
   .weekly-summary {
-    margin: 14px 16px 0; background: white; border-radius: var(--radius);
+    margin: 14px 16px 0; background: var(--card-bg); border-radius: var(--radius);
     padding: 16px 18px; border: 1px solid var(--border);
   }
   .ws-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
@@ -2274,11 +2462,38 @@ const css = `
   }
   .pred-text { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
   .pred-text strong { color: var(--ink); }
+  .pred-teaser { cursor: pointer; }
+  .pred-teaser:active { transform: scale(0.98); }
+  .pred-teaser-body { display: flex; flex-direction: column; align-items: center; padding: 12px 0 4px; gap: 8px; }
+  .pred-teaser-icon { font-size: 28px; }
+  .pred-teaser-text { font-size: 14px; color: var(--ink); font-weight: 500; text-align: center; }
+  .pred-teaser-unlock {
+    font-size: 12px; font-weight: 600; color: var(--gold);
+    display: flex; align-items: center; gap: 4px; margin-top: 4px;
+  }
+  .pred-teaser-lock { font-size: 11px; }
+
+  /* ── REFLECTION CARD ── */
+  .reflection-card {
+    margin: 10px 16px 0; padding: 12px 16px;
+    background: var(--card-bg); border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .reflection-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-light); margin-bottom: 6px;
+  }
+  .reflection-content { display: flex; align-items: center; gap: 8px; }
+  .reflection-mood { font-size: 20px; }
+  .reflection-text { font-size: 13px; color: var(--ink); }
+  .reflection-compare {
+    font-size: 12px; color: var(--sage-dark); margin-top: 6px; font-weight: 500;
+  }
 
   /* ── PATTERNS CARD ── */
   .patterns-card {
     margin: 14px 16px 0;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 18px 20px;
     border: 1px solid var(--border);
@@ -2295,7 +2510,7 @@ const css = `
   /* ── COMPARISON CARD ── */
   .comparison-card {
     margin: 14px 16px 0;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 18px 20px;
     border: 1px solid var(--border);
@@ -2319,7 +2534,7 @@ const css = `
   /* ── DOCTOR PREP CARD ── */
   .doctor-prep {
     margin: 14px 16px 0;
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 18px 20px;
     border: 1px solid var(--border);
@@ -2338,13 +2553,14 @@ const css = `
   .ask-vela-btn.locked { background: var(--card-bg); color: var(--ink-light); border: 1px solid var(--border); }
   .ask-vela-avatar { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-family: 'DM Serif Display', serif; font-size: 13px; }
   .ask-vela-lock { font-size: 12px; }
+  .ask-vela-premium-tag { font-size: 10px; background: var(--gold); color: #2C1F17; padding: 1px 6px; border-radius: 8px; font-weight: 600; letter-spacing: 0.02em; }
 
   /* ─── AI Companion Chat ─── */
-  .companion-container { display: flex; flex-direction: column; height: calc(100vh - 180px); margin: 0 16px; }
+  .companion-container { display: flex; flex-direction: column; min-height: calc(100vh - 200px); margin: 0 16px; }
   .companion-header { display: flex; align-items: center; gap: 10px; padding: 12px 0 8px; }
   .companion-name { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--ink); }
   .companion-sub { font-size: 11px; color: var(--ink-light); }
-  .chat-messages { flex: 1; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 12px; }
+  .chat-messages { flex: 1; min-height: 200px; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 12px; }
   .chat-bubble { display: flex; gap: 8px; max-width: 90%; animation: fadeInUp 0.25s ease; }
   .chat-bubble.assistant { align-self: flex-start; }
   .chat-bubble.user { align-self: flex-end; flex-direction: row-reverse; }
@@ -2501,6 +2717,107 @@ const css = `
   .milestone-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
   .milestone-bar { height: 100%; background: var(--sage); border-radius: 3px; transition: width 0.6s ease; }
   .milestone-label { font-size: 11px; color: var(--ink-light); }
+
+  /* Early Stats */
+  .early-stats { display: flex; flex-direction: column; gap: 5px; margin: 10px 0 4px; padding: 8px 10px; background: rgba(122,158,135,0.1); border-radius: 10px; }
+  .early-stat { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink); }
+  .early-stat-icon { font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+  .early-stat-text { font-weight: 500; }
+
+  /* Post-Log Celebration */
+  .post-log-celebration {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 90; animation: fadeIn 0.3s ease;
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  }
+  .celebration-card {
+    background: var(--card-bg); border-radius: 20px; padding: 28px 24px;
+    text-align: center; max-width: 300px; width: 85%;
+    animation: celebPop 0.4s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .celebration-icon { font-size: 44px; margin-bottom: 10px; }
+  .celebration-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); margin-bottom: 6px; }
+  .celebration-mood { font-size: 24px; margin-bottom: 8px; }
+  .celebration-text { font-size: 13px; color: var(--ink-light); line-height: 1.5; margin-bottom: 12px; }
+  .celebration-streak { font-size: 13px; font-weight: 600; color: var(--clay); margin-bottom: 10px; }
+  .celebration-progress { margin-top: 8px; }
+  @keyframes celebPop { 0% { opacity: 0; transform: scale(0.85); } 50% { transform: scale(1.03); } 100% { opacity: 1; transform: scale(1); } }
+
+  /* ── INSIGHTS REVEAL ── */
+  .reveal-container {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: calc(100vh - 240px); padding: 24px 20px; text-align: center;
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+  }
+  .reveal-card {
+    background: var(--card-bg); border-radius: var(--radius); padding: 32px 24px;
+    max-width: 340px; width: 100%; border: 1px solid var(--border);
+    animation: revealFade 0.5s ease;
+  }
+  .reveal-intro { padding: 40px 24px; }
+  .reveal-icon { font-size: 48px; margin-bottom: 16px; }
+  .reveal-heading {
+    font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .reveal-body { font-size: 14px; color: var(--ink); line-height: 1.55; margin-bottom: 8px; }
+  .reveal-body-light { font-size: 13px; color: var(--ink-light); line-height: 1.5; }
+  .reveal-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--sage-dark); margin-bottom: 14px;
+  }
+  .reveal-insight-icon { font-size: 36px; margin-bottom: 12px; }
+  .reveal-insight-text { font-size: 15px; color: var(--ink); line-height: 1.55; }
+  .reveal-pattern { padding: 28px 24px; }
+  .reveal-mood-row {
+    display: flex; justify-content: space-around; margin: 16px 0;
+    background: rgba(122,158,135,0.08); border-radius: 12px; padding: 12px 8px;
+  }
+  .reveal-mood-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .reveal-mood-emoji { font-size: 20px; height: 28px; display: flex; align-items: center; }
+  .reveal-mood-label { font-size: 10px; color: var(--ink-light); font-weight: 500; }
+  .reveal-top-symptoms { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+  .reveal-mini-label { font-size: 11px; color: var(--ink-light); font-weight: 500; }
+  .reveal-symptom-chip {
+    font-size: 12px; padding: 3px 10px; border-radius: 10px;
+    background: var(--clay-light); color: var(--clay-dark); font-weight: 500;
+  }
+  .reveal-best-day { margin-top: 10px; font-size: 13px; color: var(--ink); }
+  .reveal-premium {
+    background: linear-gradient(145deg, #2d3a35 0%, #1a2420 100%);
+    border: 1px solid rgba(122,158,135,0.3); color: var(--cream);
+  }
+  .reveal-premium .reveal-heading { color: var(--cream); }
+  .reveal-premium .reveal-label { color: var(--sage-light); }
+  .reveal-premium-features {
+    display: flex; flex-direction: column; gap: 10px; margin: 18px 0 20px;
+    text-align: left;
+  }
+  .reveal-pf { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: rgba(240,232,226,0.85); line-height: 1.4; }
+  .reveal-cta {
+    width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
+    background: var(--gold); color: #1a2420; font-size: 15px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .reveal-cta:active { opacity: 0.85; }
+  .reveal-skip-premium {
+    margin-top: 14px; font-size: 13px; color: rgba(240,232,226,0.5);
+    cursor: pointer;
+  }
+  .reveal-skip-premium:active { color: rgba(240,232,226,0.7); }
+  .reveal-dots { display: flex; gap: 8px; margin-top: 24px; }
+  .reveal-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); transition: all 0.3s ease;
+  }
+  .reveal-dot.active { background: var(--sage); width: 20px; border-radius: 4px; }
+  .reveal-skip {
+    margin-top: 16px; font-size: 13px; color: var(--ink-light); cursor: pointer;
+  }
+  .reveal-skip:active { color: var(--ink); }
+  @keyframes revealFade { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+
   @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ─── Animation Polish ─── */
@@ -2564,6 +2881,13 @@ const css = `
   .gam-badge.earned { background: var(--sage-light); border-color: var(--sage); }
   .gam-badge.locked { opacity: 0.45; }
   .gam-badge-icon { font-size: 24px; margin-bottom: 4px; }
+  .milestones-expand {
+    width: 100%; margin-top: 10px; padding: 10px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: transparent; color: var(--ink-light);
+    font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: color 0.15s;
+  }
+  .milestones-expand:hover { color: var(--ink); }
   .gam-badge-name { font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.2; }
   .gam-badge-desc { font-size: 9px; color: var(--ink-light); line-height: 1.3; margin-top: 2px; }
 
@@ -2608,6 +2932,36 @@ const css = `
   .lesson-btn { width: 100%; margin-top: 10px; padding: 10px; background: var(--sage); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .lesson-btn:active { transform: scale(0.97); }
 
+  /* Insight Library */
+  .insight-library {
+    margin: 12px 16px 0; background: var(--card-bg); border-radius: var(--radius);
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .insight-library-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; cursor: pointer;
+  }
+  .insight-library-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .insight-library-sub { font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+  .insight-library-toggle { font-size: 12px; color: var(--ink-light); }
+  .insight-library-list { padding: 0 16px 14px; }
+  .insight-library-item { border-bottom: 1px solid var(--border); }
+  .insight-library-item:last-of-type { border-bottom: none; }
+  .insight-library-item summary {
+    padding: 10px 0; font-size: 13px; font-weight: 500; color: var(--ink);
+    cursor: pointer; list-style: none;
+  }
+  .insight-library-item summary::marker { display: none; }
+  .insight-library-item summary::-webkit-details-marker { display: none; }
+  .insight-library-item p {
+    font-size: 13px; color: var(--ink-mid); line-height: 1.5;
+    padding: 0 0 10px; margin: 0;
+  }
+  .insight-library-more {
+    text-align: center; font-size: 12px; color: var(--ink-light);
+    padding: 10px 0 0; font-style: italic;
+  }
+
   /* ─── Experiment Card ─── */
   .exp-card { background: var(--card-bg); border-radius: 16px; margin: 12px 16px; padding: 16px; border: 1px solid var(--border); cursor: default; }
   .exp-card.exp-start { cursor: pointer; border-style: dashed; opacity: 0.8; }
@@ -2626,6 +2980,7 @@ const css = `
   .exp-btn { width: 100%; margin-top: 10px; padding: 10px; background: var(--sage); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
   .exp-btn.exp-abandon { background: transparent; color: var(--ink-light); font-size: 12px; font-weight: 400; }
   .exp-btn:active { transform: scale(0.97); }
+  .exp-result { font-size: 13px; color: var(--sage); line-height: 1.5; margin: 10px 0 4px; padding: 10px; background: var(--sage-light); border-radius: 10px; }
 
   /* ─── Period Overlay ─── */
   .bar-period-dot { width: 6px; height: 6px; border-radius: 50%; background: #E07070; margin-top: 3px; }
@@ -2684,9 +3039,10 @@ function OnboardingScreen({ onComplete }) {
   const [selected, setSelected] = useState(null);
   const [multiSelected, setMultiSelected] = useState([]);
   const [transitioning, setTransitioning] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
 
   const q = QUESTIONS[qIndex];
-  const progress = ((qIndex + 1) / QUESTIONS.length) * 100;
+  const progress = showComplete ? 100 : ((qIndex + 1) / QUESTIONS.length) * 100;
   const isLast = qIndex === QUESTIONS.length - 1;
   const isMulti = !!q.multi;
 
@@ -2705,7 +3061,8 @@ function OnboardingScreen({ onComplete }) {
 
   function handleNext() {
     if (isLast) {
-      onComplete(answers);
+      setShowComplete(true);
+      haptic("Medium");
     } else {
       setTransitioning(true);
       setTimeout(() => {
@@ -2724,6 +3081,49 @@ function OnboardingScreen({ onComplete }) {
   }
 
   const canContinue = isMulti ? multiSelected.length > 0 : selected !== null;
+
+  // Personalized completion screen
+  if (showComplete) {
+    const journeyLabels = ["regular cycles", "perimenopause", "postmenopause", "surgical menopause"];
+    const stage = journeyLabels[answers[0]] || "your journey";
+    const concernNames = ["hot flashes", "sleep", "mood", "brain fog", "joint pain", "weight", "intimate health", "heart health"];
+    const topConcerns = (answers[1] || []).slice(0, 2).map((i) => concernNames[i]).filter(Boolean);
+
+    return (
+      <div className="screen active">
+        <div className="onboard-complete">
+          <div className="onboard-complete-icon">✨</div>
+          <h2 className="onboard-complete-title">You're all set</h2>
+          <p className="onboard-complete-text">
+            Vela is personalized for {stage}
+            {topConcerns.length > 0 ? `, with a focus on ${topConcerns.join(" and ")}` : ""}.
+          </p>
+
+          <div className="onboard-plan">
+            <div className="onboard-plan-title">Your first week</div>
+            <div className="onboard-plan-step">
+              <span className="onboard-plan-day">Days 1-3</span>
+              <span className="onboard-plan-desc">Build your baseline — log how you feel daily</span>
+            </div>
+            <div className="onboard-plan-step">
+              <span className="onboard-plan-day">Days 4-6</span>
+              <span className="onboard-plan-desc">Patterns start forming — early stats appear</span>
+            </div>
+            <div className="onboard-plan-step">
+              <span className="onboard-plan-day">Day 7</span>
+              <span className="onboard-plan-desc">Your personal insights are revealed</span>
+            </div>
+          </div>
+
+          <p className="onboard-complete-sub">Each entry takes under 30 seconds.</p>
+
+          <button className="onboard-btn" onClick={() => onComplete(answers)}>
+            Log my first entry →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="screen active">
@@ -2774,7 +3174,7 @@ function OnboardingScreen({ onComplete }) {
 
 // ─── Tracker Screen ───────────────────────────────────────────────────────────
 
-function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
+function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPaywall }) {
   const [mood, setMood] = useState(null);
   const [activeSymptoms, setActiveSymptoms] = useState({});
   const [severities, setSeverities] = useState({});
@@ -2799,6 +3199,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
   const [xpTick, setXpTick] = useState(0);
   const [xpGain, setXpGain] = useState(0);
   const prevXpRef = useRef(null);
+  const [showCelebration, setShowCelebration] = useState(null);
 
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
 
@@ -2861,21 +3262,29 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
       "Joint pain affects up to 50% of women during menopause. Tracking severity helps identify what aggravates or relieves it.",
       "Estrogen has anti-inflammatory properties — declining levels can increase joint stiffness and pain during perimenopause.",
       "Low-impact exercise like swimming and yoga can reduce menopausal joint pain. Log activity alongside symptoms to see what helps.",
+      "Omega-3 fatty acids from fish, walnuts, and flaxseed have anti-inflammatory properties that may help with joint discomfort.",
+      "Morning stiffness that improves with movement is characteristic of menopause-related joint pain. Gentle stretching on waking can help.",
     ],
     5: [
       "Hormonal shifts can slow metabolism and increase abdominal bloating. Tracking helps distinguish patterns from daily variation.",
       "Many women gain 5-8 lbs during the menopausal transition. Strength training helps maintain muscle mass and metabolism.",
       "Bloating often correlates with dietary triggers. Note what you ate to identify connections in your logs.",
+      "Increasing protein to 1.2-1.6g per kg of body weight supports muscle preservation and metabolic health during menopause.",
+      "Blood sugar stability matters: pairing carbs with protein or healthy fats reduces energy crashes and may reduce cravings.",
     ],
     6: [
       "Vaginal dryness affects over 50% of postmenopausal women. Tracking helps you discuss treatment options with your doctor.",
       "Declining estrogen affects libido through both physical and neurological pathways. Your logs capture the full picture.",
       "Many effective treatments exist for menopausal intimate symptoms. Consistent tracking strengthens conversations with your provider.",
+      "Local estrogen therapy (creams, rings, tablets) is effective for vaginal dryness with minimal systemic absorption. Ask your provider.",
+      "Pelvic floor physiotherapy can help with urinary symptoms and sexual discomfort. It's available without referral in many areas.",
     ],
     7: [
       "Heart palpitations during perimenopause can be related to hormonal fluctuations. Always discuss new or worsening palpitations with your doctor to rule out cardiac causes.",
       "Palpitations often coincide with hot flashes or anxiety. Your combined logs help your doctor evaluate the pattern.",
       "If palpitations are frequent, prolonged, or accompanied by dizziness or chest pain, seek medical evaluation promptly. Your log data helps your provider assess the pattern.",
+      "Caffeine, alcohol, and stress can worsen palpitations. Tracking these alongside heart symptoms helps identify your personal triggers.",
+      "Deep, slow breathing when palpitations occur can activate your vagus nerve and help restore a normal heart rhythm.",
     ],
   };
   const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
@@ -2904,6 +3313,81 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
   function handleLog() {
     if (!canLog) return;
     haptic("Medium");
+
+    // Capture celebration data before clearing state
+    const entrySymptoms = Object.keys(activeSymptoms);
+    const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size + (logs.some((l) => l.date.slice(0, 10) === localDateStr(new Date())) ? 0 : 1);
+    const currentStreak = getStreak(logs);
+    const stats = computeEarlyStats(logs);
+    const daysLeft = Math.max(0, 7 - uniqueDays);
+    const p = getPersonalization(profile);
+    const concern = p?.topConcernNames?.[0];
+
+    let celebTitle = "Entry logged!";
+    let celebText = "";
+    let celebIcon = "✓";
+
+    if (uniqueDays === 1) {
+      celebTitle = "Your journey begins!";
+      celebText = "6 more days until your first pattern report.";
+      celebIcon = "🌱";
+    } else if (uniqueDays === 2) {
+      celebTitle = "Day 2 — building your baseline";
+      celebText = concern
+        ? `Vela is now watching your ${concern} patterns. 5 more days to insights.`
+        : "Building your baseline. 5 more days to insights.";
+      celebIcon = "📊";
+    } else if (uniqueDays === 3) {
+      celebTitle = "Early patterns forming";
+      celebText = stats?.topSymptom
+        ? `Your most logged symptom so far: ${stats.topSymptom[0]}. 4 more days for deeper analysis.`
+        : "Your data is starting to tell a story. 4 more days to go.";
+      celebIcon = "🔍";
+    } else if (uniqueDays >= 4 && uniqueDays < 7) {
+      celebTitle = `${daysLeft} day${daysLeft !== 1 ? "s" : ""} to insights`;
+      celebText = concern
+        ? `Almost there! Vela will reveal what triggers your ${concern}.`
+        : "Almost there! Your personalized patterns are taking shape.";
+      celebIcon = "🌟";
+    } else if (uniqueDays === 7) {
+      celebTitle = "Insights unlocked!";
+      celebText = "Your first week is complete. Head to Insights to see your patterns.";
+      celebIcon = "✨";
+    } else {
+      // Streak milestone celebrations
+      if (currentStreak === 30) {
+        celebTitle = "30-day streak!";
+        celebText = "A full month of tracking. You now have powerful data about your body's patterns. This is the kind of consistency that changes how you manage your health.";
+        celebIcon = "👑";
+      } else if (currentStreak === 21) {
+        celebTitle = "21-day streak!";
+        celebText = "Three weeks strong. Research shows it takes 21 days to form a habit — tracking is now part of your routine.";
+        celebIcon = "🏆";
+      } else if (currentStreak === 14) {
+        celebTitle = "14-day streak!";
+        celebText = "Two solid weeks! Vela can now compare week-over-week trends and spot patterns that shorter tracking misses.";
+        celebIcon = "⭐";
+      } else if (currentStreak >= 3) {
+        celebTitle = `${currentStreak}-day streak!`;
+        celebIcon = "🔥";
+      }
+      if (![14, 21, 30].includes(currentStreak)) {
+        celebText = entrySymptoms.length > 0
+          ? `Logged ${entrySymptoms.length} symptom${entrySymptoms.length !== 1 ? "s" : ""}. Your pattern clarity keeps improving.`
+          : "Every entry sharpens your insights.";
+      }
+    }
+
+    setShowCelebration({
+      title: celebTitle,
+      text: celebText,
+      icon: celebIcon,
+      streak: currentStreak,
+      uniqueDays,
+      symptomCount: entrySymptoms.length,
+      moodEmoji: mood !== null ? MOODS[mood] : null,
+    });
+
     onLog({ mood, energy, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
     setMood(null);
     setEnergy(null);
@@ -2917,6 +3401,8 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
     setExercise(null);
     setPeriodLogged(null);
     setPeriodFlow(null);
+
+    setTimeout(() => setShowCelebration(null), 4500);
   }
 
   return (
@@ -2950,22 +3436,92 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         const concernHint = personalization?.topConcernNames?.length > 0
           ? personalization.topConcernNames[0]
           : "symptom";
-        const milestones = [
-          { day: 0, title: "Welcome to Vela", text: `Log your first entry below — start with how you're feeling and any ${concernHint} you notice today.`, icon: "🌱" },
-          { day: 1, title: "Day 1 complete!", text: `Great start! Come back tomorrow — tracking ${concernHint} consistently is the fastest way to spot what helps.`, icon: "✨" },
-          { day: 2, title: "2 days tracked", text: `You're building momentum. Vela is already learning your ${concernHint} patterns.`, icon: "📊" },
-          { day: 3, title: "3 days in!", text: "Halfway to your first weekly insight. Your data is starting to tell a story — keep going!", icon: "🌿" },
-          { day: 4, title: "4 days strong", text: `Vela is finding connections in your data. A few more days reveals what triggers your ${concernHint}.`, icon: "🔍" },
-          { day: 5, title: "5 days tracked", text: "Almost there! Two more days and Vela generates your first personalized insights.", icon: "🌟" },
-          { day: 6, title: "6 days — so close!", text: "One more day unlocks your full weekly summary, trend charts, and pattern analysis!", icon: "🎯" },
-        ];
-        const m = milestones[uniqueDays] || milestones[0];
+        const stats = uniqueDays >= 1 ? computeEarlyStats(logs) : null;
+        const topName = stats?.topSymptom?.[0];
+        const topCount = stats?.topSymptom?.[1];
+        const avgMoodEmoji = stats?.avgMood !== null && stats?.avgMood !== undefined
+          ? MOODS[Math.round(stats.avgMood)] : null;
+
+        let title, text, icon;
+        if (uniqueDays === 0) {
+          title = "Welcome to Vela";
+          text = `Log your first entry below — start with how you're feeling and any ${concernHint} you notice today.`;
+          icon = "🌱";
+        } else if (uniqueDays === 1) {
+          title = "Day 1 complete!";
+          text = topName
+            ? `You logged ${topName}. Come back tomorrow — consistent tracking reveals what triggers it.`
+            : `Great start! Come back tomorrow — tracking ${concernHint} consistently is the fastest way to spot what helps.`;
+          icon = "✨";
+        } else if (uniqueDays === 2) {
+          title = "2 days tracked";
+          const parts = [];
+          if (topName) parts.push(`${topName} logged ${topCount}x`);
+          if (avgMoodEmoji) parts.push(`average mood ${avgMoodEmoji}`);
+          text = parts.length > 0
+            ? `So far: ${parts.join(", ")}. Vela is learning your rhythm.`
+            : `You're building momentum. Vela is already learning your ${concernHint} patterns.`;
+          icon = "📊";
+        } else if (uniqueDays === 3) {
+          title = "3 days in!";
+          text = topName
+            ? `You've logged ${topName} ${topCount} time${topCount !== 1 ? "s" : ""}. 4 more days and I'll tell you what triggers it.`
+            : "Halfway to your first weekly insight. Your data is starting to tell a story — keep going!";
+          icon = "🌿";
+        } else if (uniqueDays === 4) {
+          title = "4 days strong";
+          text = topName
+            ? `${stats.uniqueSymptomCount > 1 ? `${stats.uniqueSymptomCount} symptoms tracked. ` : ""}Vela is finding connections. 3 more days reveals what triggers your ${topName.toLowerCase()}.`
+            : `Vela is finding connections in your data. A few more days reveals what triggers your ${concernHint}.`;
+          icon = "🔍";
+        } else if (uniqueDays === 5) {
+          title = "5 days tracked";
+          text = avgMoodEmoji
+            ? `Your average mood so far: ${avgMoodEmoji}. Two more days and Vela generates your first personalized insights.`
+            : "Almost there! Two more days and Vela generates your first personalized insights.";
+          icon = "🌟";
+        } else {
+          title = "6 days — so close!";
+          text = topName
+            ? `Tomorrow unlocks pattern analysis for your ${topName.toLowerCase()}, trend charts, and your full weekly summary!`
+            : "One more day unlocks your full weekly summary, trend charts, and pattern analysis!";
+          icon = "🎯";
+        }
+
         return (
           <div className="milestone-card">
-            <div className="milestone-icon">{m.icon}</div>
+            <div className="milestone-icon">{icon}</div>
             <div className="milestone-content">
-              <div className="milestone-title">{m.title}</div>
-              <div className="milestone-text">{m.text}</div>
+              <div className="milestone-title">{title}</div>
+              <div className="milestone-text">{text}</div>
+              {uniqueDays >= 2 && stats && (
+                <div className="early-stats">
+                  {stats.avgMood !== null && (
+                    <div className="early-stat">
+                      <span className="early-stat-icon">{MOODS[Math.round(stats.avgMood)]}</span>
+                      <span className="early-stat-text">Avg mood: {["Rough", "Low", "Okay", "Good", "Great"][Math.round(stats.avgMood)]}</span>
+                    </div>
+                  )}
+                  {stats.topSymptom && (
+                    <div className="early-stat">
+                      <span className="early-stat-icon">📋</span>
+                      <span className="early-stat-text">Most logged: {stats.topSymptom[0]} ({stats.topSymptom[1]}x)</span>
+                    </div>
+                  )}
+                  {stats.uniqueSymptomCount > 1 && (
+                    <div className="early-stat">
+                      <span className="early-stat-icon">📊</span>
+                      <span className="early-stat-text">{stats.uniqueSymptomCount} different symptoms tracked</span>
+                    </div>
+                  )}
+                  {stats.avgEnergy !== null && (
+                    <div className="early-stat">
+                      <span className="early-stat-icon">⚡</span>
+                      <span className="early-stat-text">Avg energy: {["Depleted", "Low", "Moderate", "Good", "Energized"][Math.round(stats.avgEnergy)]}</span>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="milestone-progress">
                 <div className="milestone-bar-bg">
                   <div className="milestone-bar" style={{ width: `${(uniqueDays / 7) * 100}%` }} />
@@ -2973,6 +3529,38 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
                 <div className="milestone-label">{uniqueDays}/7 days to first insights</div>
               </div>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* "Last week, this day" reflection */}
+      {(() => {
+        const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+        if (uniqueDays < 8) return null;
+        const today = new Date();
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        const lastWeekStr = localDateStr(lastWeek);
+        const lastWeekLogs = logs.filter((l) => l.date.slice(0, 10) === lastWeekStr);
+        if (lastWeekLogs.length === 0) return null;
+        const lwMood = lastWeekLogs.find((l) => l.mood !== null && l.mood !== undefined);
+        const lwSymptoms = [...new Set(lastWeekLogs.flatMap((l) => Object.keys(l.symptoms || {})))];
+        const lwDayName = lastWeek.toLocaleDateString("en-US", { weekday: "long" });
+        return (
+          <div className="reflection-card">
+            <div className="reflection-label">Last {lwDayName}</div>
+            <div className="reflection-content">
+              {lwMood && <span className="reflection-mood">{MOODS[lwMood.mood]}</span>}
+              {lwSymptoms.length > 0
+                ? <span className="reflection-text">{lwSymptoms.length} symptom{lwSymptoms.length !== 1 ? "s" : ""}: {lwSymptoms.slice(0, 3).join(", ")}{lwSymptoms.length > 3 ? ` +${lwSymptoms.length - 3}` : ""}</span>
+                : <span className="reflection-text">No symptoms logged</span>
+              }
+            </div>
+            {lwMood && mood !== null && mood !== undefined && (
+              <div className="reflection-compare">
+                {mood > lwMood.mood ? "Feeling better today" : mood < lwMood.mood ? "Tougher day today" : "Similar to last week"}
+              </div>
+            )}
           </div>
         );
       })()}
@@ -3002,13 +3590,13 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
             </div>
           );
         }
-        if (uniqueDays >= 14 && uniqueDays <= 21 && !hasExperiment && !hasCBT && lvl.level >= 3 && !localStorage.getItem("vela_experiment_nudge_dismissed")) {
+        if (uniqueDays >= 14 && uniqueDays <= 21 && !hasExperiment && !hasCBT && !localStorage.getItem("vela_experiment_nudge_dismissed")) {
           return (
             <div className="nudge-card">
               <div className="nudge-icon">🧪</div>
               <div className="nudge-content">
                 <div className="nudge-title">Ready to experiment?</div>
-                <div className="nudge-text">{concern ? `You've unlocked experiments! Try one targeting your ${concern} and see what changes.` : "You've unlocked self-experiments. Try a structured challenge and track the impact."}</div>
+                <div className="nudge-text">{concern ? `Try an experiment targeting your ${concern} — head to Insights to browse options.` : "Try a self-experiment — head to Insights to browse structured challenges."}</div>
               </div>
               <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_experiment_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
             </div>
@@ -3085,7 +3673,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
                 <div className="nudge-icon">🧪</div>
                 <div className="nudge-content">
                   <div className="nudge-title">Ready to try something?</div>
-                  <div className="nudge-text">Based on your {personalization.topConcernNames.length > 0 ? personalization.topConcernNames[0] : "symptom"} concerns, try an experiment or CBT program below.</div>
+                  <div className="nudge-text">Based on your {personalization.topConcernNames.length > 0 ? personalization.topConcernNames[0] : "symptom"} concerns, check out experiments and CBT programs in your Insights tab.</div>
                 </div>
                 <div className="nudge-dismiss" onClick={(e) => { e.stopPropagation(); localStorage.setItem("vela_relief_nudge_dismissed", "1"); setXpTick((t) => t + 1); }}>×</div>
               </div>
@@ -3108,7 +3696,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]");
         const dayIndex = Math.floor((new Date() - new Date(2025, 0, 1)) / 86400000) % DAILY_LESSONS.length;
         const todayLesson = DAILY_LESSONS[dayIndex];
-        const completedToday = lessonDone || completedLessons.includes(new Date().toISOString().slice(0, 10));
+        const completedToday = lessonDone || completedLessons.includes(localDateStr(new Date()));
         if (lessonDone) {
           return (
             <div className="lesson-card completed" style={{ animation: "cardSlideIn 0.3s ease" }}>
@@ -3131,7 +3719,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
               <>
                 <div className="lesson-text">{todayLesson.text}</div>
                 <button className="lesson-btn" onClick={() => {
-                  const updated = [...completedLessons, new Date().toISOString().slice(0, 10)];
+                  const updated = [...completedLessons, localDateStr(new Date())];
                   localStorage.setItem("vela_completed_lessons", JSON.stringify(updated.slice(-30)));
                   haptic("Medium");
                   setLessonDone(true);
@@ -3145,80 +3733,12 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
         );
       })()}
 
-      {/* Active Experiment */}
-      {(() => {
-        const activeExp = JSON.parse(localStorage.getItem("vela_active_experiment") || "null");
-        if (!activeExp) {
-          return (
-            <div className="exp-card exp-start" onClick={() => {
-              const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
-              let available = EXPERIMENTS.filter((e) => !completed.includes(e.id));
-              // Sort by user's concern-based priority
-              if (personalization?.expPriority?.length > 0) {
-                available.sort((a, b) => {
-                  const aIdx = personalization.expPriority.indexOf(a.id);
-                  const bIdx = personalization.expPriority.indexOf(b.id);
-                  return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
-                });
-              }
-              if (available.length === 0) return;
-              const exp = available[0];
-              localStorage.setItem("vela_active_experiment", JSON.stringify({ ...exp, startDate: new Date().toISOString(), daysCompleted: 0 }));
-              haptic("Medium");
-              setXpTick((t) => t + 1);
-            }}>
-              <div className="exp-header">
-                <span className="exp-icon">🧪</span>
-                <span className="exp-label">Start an experiment</span>
-              </div>
-              <div className="exp-desc">Try a structured challenge and see how it affects your symptoms</div>
-            </div>
-          );
-        }
-        const daysSinceStart = Math.floor((new Date() - new Date(activeExp.startDate)) / 86400000);
-        const progress = Math.min(daysSinceStart, activeExp.duration);
-        const pct = Math.round((progress / activeExp.duration) * 100);
-        const isComplete = progress >= activeExp.duration;
-        return (
-          <div className={`exp-card${isComplete ? " exp-complete" : ""}`}>
-            <div className="exp-header">
-              <span className="exp-icon">{activeExp.icon}</span>
-              <span className="exp-title">{activeExp.title}</span>
-              {isComplete && <span className="exp-badge">🎉 Complete!</span>}
-            </div>
-            <div className="exp-desc">{activeExp.desc}</div>
-            <div className="exp-progress-row">
-              <div className="exp-progress-bg">
-                <div className="exp-progress-fill" style={{ width: `${pct}%` }} />
-              </div>
-              <span className="exp-progress-label">Day {progress}/{activeExp.duration}</span>
-            </div>
-            {isComplete ? (
-              <button className="exp-btn" onClick={() => {
-                const completed = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
-                completed.push(activeExp.id);
-                localStorage.setItem("vela_completed_experiments", JSON.stringify(completed));
-                localStorage.removeItem("vela_active_experiment");
-                haptic("Medium");
-                setXpTick((t) => t + 1);
-              }}>Complete experiment</button>
-            ) : (
-              <button className="exp-btn exp-abandon" onClick={() => {
-                if (window.confirm("End this experiment early?")) {
-                  localStorage.removeItem("vela_active_experiment");
-                  setXpTick((t) => t + 1);
-                }
-              }}>End experiment</button>
-            )}
-          </div>
-        );
-      })()}
 
-      {isPremium && (() => {
+      {(() => {
         const forecast = predictSymptoms(logs);
         if (forecast.predictions.length === 0 && forecast.moodForecast === null) return null;
         const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
-        return (
+        if (isPremium) return (
           <div className="prediction-card">
             <div className="pred-header">
               <div className="pred-label">Today's forecast</div>
@@ -3246,6 +3766,24 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
               </div>
             )}
             {forecast.tip && <div className="pred-tip">{forecast.tip}</div>}
+          </div>
+        );
+        // Free user teaser
+        return (
+          <div className="prediction-card pred-teaser" onClick={onShowPaywall}>
+            <div className="pred-header">
+              <div className="pred-label">Today's forecast</div>
+              <div className="pred-day">{dayName}</div>
+            </div>
+            <div className="pred-teaser-body">
+              <div className="pred-teaser-icon">🔮</div>
+              <div className="pred-teaser-text">
+                Vela found {forecast.predictions.length} symptom prediction{forecast.predictions.length !== 1 ? "s" : ""} for today
+              </div>
+              <div className="pred-teaser-unlock">
+                <span className="pred-teaser-lock">🔒</span> Unlock forecasts
+              </div>
+            </div>
           </div>
         );
       })()}
@@ -3394,8 +3932,8 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
           <span className="ctx-label">🛏️ Sleep</span>
           <div className="ctx-stepper">
             <div className="ctx-step-btn" onClick={() => setSleepHours((h) => h === null ? 6.5 : Math.max(0, h - 0.5))}>−</div>
-            <span className={`ctx-value${sleepHours === null ? " unset" : ""}`}>
-              {sleepHours === null ? "—" : `${sleepHours}h`}
+            <span className={`ctx-value${sleepHours === null ? " unset" : ""}`} onClick={() => { if (sleepHours === null) setSleepHours(7); }}>
+              {sleepHours === null ? "Tap to set" : `${sleepHours} hrs`}
             </span>
             <div className="ctx-step-btn" onClick={() => setSleepHours((h) => h === null ? 7.5 : Math.min(12, h + 0.5))}>+</div>
           </div>
@@ -3453,6 +3991,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
       </div>
 
       <div className="notes-area">
+        <div className="section-label" style={{ padding: "0 0 6px" }}>Quick tags</div>
         <div className="note-chips">
           {["Bad night", "Stressful day", "Skipped meds", "Felt great", "Period started"].map((chip) => (
             <div key={chip} className={`note-chip${notes.includes(chip) ? " on" : ""}`} onClick={() => {
@@ -3479,13 +4018,36 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate }) {
 
       <div className="disclaimer">Vela is not medical advice. Always consult your healthcare provider.</div>
       <div className="disclaimer" style={{ marginTop: 4 }}>🔒 Your data stays on your device. Always.</div>
+
+      {showCelebration && (
+        <div className="post-log-celebration" onClick={() => setShowCelebration(null)}>
+          <div className="celebration-card">
+            <div className="celebration-icon">{showCelebration.icon}</div>
+            <div className="celebration-title">{showCelebration.title}</div>
+            {showCelebration.moodEmoji && (
+              <div className="celebration-mood">{showCelebration.moodEmoji}</div>
+            )}
+            <div className="celebration-text">{showCelebration.text}</div>
+            {showCelebration.streak > 1 && (
+              <div className="celebration-streak">🔥 {showCelebration.streak}-day streak</div>
+            )}
+            {showCelebration.uniqueDays < 7 && (
+              <div className="celebration-progress">
+                <div className="milestone-bar-bg">
+                  <div className="milestone-bar" style={{ width: `${(showCelebration.uniqueDays / 7) * 100}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── History Screen ──────────────────────────────────────────────────────────
 
-function HistoryScreen({ logs, isPremium, onShowPaywall }) {
+function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
   if (logs.length === 0) {
     return (
       <div className="screen active">
@@ -3494,8 +4056,10 @@ function HistoryScreen({ logs, isPremium, onShowPaywall }) {
           <p>Your logged entries</p>
         </div>
         <div className="history-empty">
-          <span>📝</span>
-          No entries yet. Log your first day on the Today tab.
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📖</div>
+          <div style={{ fontSize: 16, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>Your story starts today</div>
+          <div style={{ marginBottom: 16 }}>Each entry builds a picture of your patterns. After 7 days, Vela starts connecting the dots.</div>
+          <button className="history-empty-cta" onClick={() => onNavigate("tracker")}>Log your first entry</button>
         </div>
       </div>
     );
@@ -3513,7 +4077,7 @@ function HistoryScreen({ logs, isPremium, onShowPaywall }) {
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoff = sevenDaysAgo.toISOString().slice(0, 10);
+  const cutoff = localDateStr(sevenDaysAgo);
   const visibleDays = isPremium ? sortedDays : sortedDays.filter((d) => d >= cutoff);
   const lockedDays = isPremium ? [] : sortedDays.filter((d) => d < cutoff);
 
@@ -3593,7 +4157,7 @@ function MoodLineChart({ logs }) {
   for (let i = range - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d);
     const dayMoods = logs
       .filter((l) => l.date.slice(0, 10) === dayStr && l.mood !== null && l.mood !== undefined)
       .map((l) => l.mood);
@@ -3688,7 +4252,7 @@ function SymptomHeatmap({ logs }) {
   for (let i = 27; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d);
     const dayLogs = logs.filter((l) => l.date.slice(0, 10) === dayStr);
     const count = dayLogs.reduce((sum, l) => sum + Object.keys(l.symptoms || {}).length, 0);
     days.push({ date: d, count, dow: d.getDay() });
@@ -3830,9 +4394,168 @@ function SleepSymptomScatter({ logs }) {
   );
 }
 
+// ─── Insight Library (browse past daily insights) ────────────────────────────
+
+function InsightLibrary() {
+  const [expanded, setExpanded] = useState(false);
+  const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]");
+  const dayIndex = Math.floor((new Date() - new Date(2025, 0, 1)) / 86400000) % DAILY_LESSONS.length;
+
+  // Show the last 5 insights (by cycling backwards from today's index)
+  const recentInsights = [];
+  for (let i = 1; i <= 5; i++) {
+    const idx = ((dayIndex - i) + DAILY_LESSONS.length) % DAILY_LESSONS.length;
+    recentInsights.push(DAILY_LESSONS[idx]);
+  }
+
+  if (completedLessons.length === 0) return null; // Don't show until they've read at least one
+
+  return (
+    <div className="insight-library">
+      <div className="insight-library-header" onClick={() => setExpanded(!expanded)}>
+        <div>
+          <div className="insight-library-title">💡 Daily Insights</div>
+          <div className="insight-library-sub">{DAILY_LESSONS.length} evidence-based lessons</div>
+        </div>
+        <span className="insight-library-toggle">{expanded ? "▾" : "▸"}</span>
+      </div>
+      {expanded && (
+        <div className="insight-library-list">
+          {recentInsights.map((lesson, i) => (
+            <details key={lesson.id} className="insight-library-item">
+              <summary>{lesson.title}</summary>
+              <p>{lesson.text}</p>
+            </details>
+          ))}
+          <div className="insight-library-more">
+            Insights refresh daily — check back tomorrow for more
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Insights Screen ──────────────────────────────────────────────────────────
 
+function InsightsReveal({ logs, profile, moodData, topSymptoms, recentLogs, revealStep, onNext, onSkip, onShowPaywall }) {
+  const insight = getBestInsight(logs, profile);
+  const p = getPersonalization(profile);
+
+  const byDate = {};
+  recentLogs.forEach((l) => {
+    const d = l.date.slice(0, 10);
+    if (!byDate[d]) byDate[d] = { symptoms: 0, mood: null, date: d };
+    byDate[d].symptoms += Object.keys(l.symptoms || {}).length;
+    if (l.mood !== null && l.mood !== undefined) byDate[d].mood = l.mood;
+  });
+  const days = Object.values(byDate);
+  const bestDay = days.sort((a, b) => {
+    const scoreA = (a.mood ?? 2) - a.symptoms * 0.5;
+    const scoreB = (b.mood ?? 2) - b.symptoms * 0.5;
+    return scoreB - scoreA;
+  })[0];
+
+  const steps = [
+    <div className="reveal-card reveal-intro" key="intro">
+      <div className="reveal-icon">✨</div>
+      <h3 className="reveal-heading">Here's what Vela found</h3>
+      <p className="reveal-body">
+        You logged for 7 days{p?.topConcernNames?.length > 0
+          ? ` — and Vela has been analyzing your ${p.topConcernNames.join(" and ")} patterns behind the scenes.`
+          : ` — and Vela has been finding patterns in your data behind the scenes.`}
+      </p>
+      <p className="reveal-body-light">Tap to see your personal insights.</p>
+    </div>,
+
+    <div className="reveal-card reveal-pattern" key="pattern">
+      <div className="reveal-label">Your #1 pattern</div>
+      <div className="reveal-insight-icon">{insight.icon}</div>
+      <p className="reveal-insight-text">{insight.text}</p>
+      {insight.type === "pattern" && (
+        <p className="reveal-body-light">This is the strongest signal Vela found in your first week.</p>
+      )}
+    </div>,
+
+    <div className="reveal-card reveal-summary" key="summary">
+      <div className="reveal-label">Your week at a glance</div>
+      <div className="reveal-mood-row">
+        {moodData.map((d, i) => (
+          <div key={i} className="reveal-mood-day">
+            <div className="reveal-mood-emoji">{d.mood !== null ? MOODS[d.mood] : "·"}</div>
+            <div className="reveal-mood-label">{d.day}</div>
+          </div>
+        ))}
+      </div>
+      {topSymptoms.length > 0 && (
+        <div className="reveal-top-symptoms">
+          <span className="reveal-mini-label">Most frequent:</span>
+          {topSymptoms.slice(0, 3).map((s, i) => (
+            <span key={i} className="reveal-symptom-chip">{s.name} ({s.days}d)</span>
+          ))}
+        </div>
+      )}
+      {bestDay && (
+        <div className="reveal-best-day">
+          <span className="reveal-mini-label">Best day: </span>
+          <span>{new Date(bestDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}</span>
+          {bestDay.mood !== null && <span> {MOODS[bestDay.mood]}</span>}
+        </div>
+      )}
+    </div>,
+
+    <div className="reveal-card reveal-premium" key="premium">
+      <div className="reveal-label">This is just the beginning</div>
+      <h3 className="reveal-heading" style={{ fontSize: 18 }}>Imagine knowing why</h3>
+      <p className="reveal-body" style={{ color: "rgba(240,232,226,0.7)" }}>
+        You've seen what 7 days reveals. Premium goes deeper — triggers, predictions, and a personal health companion.
+      </p>
+      <div className="reveal-premium-features">
+        <div className="reveal-pf">🔮 <span>Deeper patterns — what triggers your worst days</span></div>
+        <div className="reveal-pf">🤖 <span>Ask Vela — your personal health companion</span></div>
+        <div className="reveal-pf">📄 <span>Doctor reports — walk in prepared, get taken seriously</span></div>
+        <div className="reveal-pf">📊 <span>Weekly digest — what happened, what helped, what to watch</span></div>
+      </div>
+      <button className="reveal-cta" onClick={(e) => { e.stopPropagation(); onShowPaywall(); }}>
+        Try free for 7 days
+      </button>
+      <div className="reveal-skip-premium" onClick={(e) => { e.stopPropagation(); onNext(); }}>
+        Continue to insights →
+      </div>
+    </div>,
+  ];
+
+  return (
+    <div className="reveal-container" onClick={revealStep < 3 ? onNext : undefined}>
+      {steps[revealStep]}
+      <div className="reveal-dots">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={`reveal-dot${i === revealStep ? " active" : ""}`} />
+        ))}
+      </div>
+      {revealStep < 3 && (
+        <div className="reveal-skip" onClick={(e) => { e.stopPropagation(); onSkip(); }}>
+          Skip
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
+  const [revealStep, setRevealStep] = useState(0);
+  const [showReveal, setShowReveal] = useState(() => {
+    if (localStorage.getItem("vela_insights_revealed")) return false;
+    const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+    return uniqueDays >= 7;
+  });
+
+  function completeReveal() {
+    localStorage.setItem("vela_insights_revealed", "1");
+    setShowReveal(false);
+    haptic("Medium");
+  }
+
   const [showCompanion, setShowCompanion] = useState(false);
   const [chatMessages, setChatMessages] = useState(() => {
     try { return JSON.parse(localStorage.getItem("vela_chat_messages")) || []; } catch { return []; }
@@ -3854,6 +4577,10 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   });
   const [showCBTList, setShowCBTList] = useState(false);
   const [expandedLesson, setExpandedLesson] = useState(null);
+  const [showExpList, setShowExpList] = useState(false);
+  const [activeExp, setActiveExp] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vela_active_experiment")); } catch { return null; }
+  });
 
   const handleQuestion = (text) => {
     if (!text.trim() || isTyping) return;
@@ -3892,7 +4619,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d);
     const dayLogs = recentLogs.filter(
       (l) => l.date.slice(0, 10) === dayStr
     );
@@ -3945,7 +4672,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d);
     const dayMoods = recentLogs
       .filter((l) => l.date.slice(0, 10) === dayStr && l.mood !== null && l.mood !== undefined)
       .map((l) => l.mood);
@@ -3970,14 +4697,26 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             </button>
           ) : (
             <button className="ask-vela-btn locked" onClick={onShowPaywall}>
-              <span className="ask-vela-lock">🔒</span>
               Ask Vela
+              <span className="ask-vela-premium-tag">Premium</span>
             </button>
           )}
         </div>
       </div>
 
-      {showCompanion && isPremium ? (
+      {showReveal ? (
+        <InsightsReveal
+          logs={logs}
+          profile={profile}
+          moodData={moodData}
+          topSymptoms={topSymptoms}
+          recentLogs={recentLogs}
+          revealStep={revealStep}
+          onNext={() => { if (revealStep < 3) { setRevealStep(revealStep + 1); haptic("Light"); } else completeReveal(); }}
+          onSkip={completeReveal}
+          onShowPaywall={onShowPaywall}
+        />
+      ) : showCompanion && isPremium ? (
         <div className="companion-container">
           <div className="companion-header">
             <div className="chat-avatar"><span>V</span></div>
@@ -4129,8 +4868,8 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                     <div className="digest-section-label">Your best day</div>
                     <div className="digest-section-text">
                       {new Date(digest.bestDay.date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-                      {digest.bestDay.mood && ` · Mood: ${digest.bestDay.mood}/10`}
-                      {` · ${digest.bestDay.symptoms} symptoms`}
+                      {digest.bestDay.mood !== null && digest.bestDay.mood !== undefined && ` · Mood: ${["😞","😕","😐","🙂","😊"][digest.bestDay.mood] || digest.bestDay.mood}`}
+                      {` · ${digest.bestDay.symptoms} symptom${digest.bestDay.symptoms !== 1 ? "s" : ""}`}
                     </div>
                   </div>
                 )}
@@ -4372,7 +5111,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       )}
 
       {/* ─── CBT Programs Section ─── */}
-      {(
+      {!showReveal && !showCompanion && (
         <div className="cbt-section">
           {activeCBT ? (() => {
             const program = CBT_PROGRAMS.find((p) => p.id === activeCBT.programId);
@@ -4546,7 +5285,151 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         </div>
       )}
 
-      {isPremium ? (
+      {/* ─── Experiments Section ─── */}
+      {!showReveal && !showCompanion && (() => {
+        const personalization = getPersonalization(profile);
+        const completedIds = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
+
+        if (activeExp) {
+          const daysSinceStart = Math.floor((new Date() - new Date(activeExp.startDate)) / 86400000);
+          const progress = Math.min(daysSinceStart, activeExp.duration);
+          const pct = Math.round((progress / activeExp.duration) * 100);
+          const isComplete = progress >= activeExp.duration;
+
+          // Build results summary from logs during experiment
+          const expStart = new Date(activeExp.startDate);
+          const expLogs = logs.filter((l) => new Date(l.date) >= expStart);
+          const priorLogs = logs.filter((l) => new Date(l.date) < expStart).slice(-14);
+          let resultText = null;
+          if (isComplete && expLogs.length >= 3 && priorLogs.length >= 3) {
+            const avgMood = (arr) => {
+              const valid = arr.filter((l) => l.mood !== null && l.mood !== undefined);
+              return valid.length > 0 ? valid.reduce((s, l) => s + l.mood, 0) / valid.length : null;
+            };
+            const avgSymptoms = (arr) => {
+              const valid = arr.filter((l) => l.symptoms && Object.keys(l.symptoms).length > 0);
+              return valid.length > 0 ? valid.reduce((s, l) => s + Object.keys(l.symptoms).length, 0) / valid.length : null;
+            };
+            const moodBefore = avgMood(priorLogs);
+            const moodDuring = avgMood(expLogs);
+            const symBefore = avgSymptoms(priorLogs);
+            const symDuring = avgSymptoms(expLogs);
+            const parts = [];
+            if (moodBefore !== null && moodDuring !== null) {
+              const diff = moodDuring - moodBefore;
+              if (diff > 0.3) parts.push("Your mood improved during this experiment");
+              else if (diff < -0.3) parts.push("Your mood dipped slightly during this period");
+              else parts.push("Your mood stayed steady");
+            }
+            if (symBefore !== null && symDuring !== null) {
+              const diff = symDuring - symBefore;
+              if (diff < -0.3) parts.push("you reported fewer symptoms");
+              else if (diff > 0.3) parts.push("symptom count increased slightly");
+              else parts.push("symptom frequency was about the same");
+            }
+            if (parts.length > 0) resultText = parts[0] + (parts[1] ? " — " + parts[1] + "." : ".");
+          }
+
+          return (
+            <div className="cbt-section">
+              <div className={`exp-card${isComplete ? " exp-complete" : ""}`}>
+                <div className="exp-header">
+                  <span className="exp-icon">{activeExp.icon}</span>
+                  <span className="exp-title">{activeExp.title}</span>
+                  {isComplete && <span className="exp-badge">Complete!</span>}
+                </div>
+                <div className="exp-desc">{activeExp.desc}</div>
+                <div className="exp-progress-row">
+                  <div className="exp-progress-bg">
+                    <div className="exp-progress-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="exp-progress-label">Day {progress}/{activeExp.duration}</span>
+                </div>
+                {isComplete ? (
+                  <div>
+                    {resultText && <div className="exp-result">{resultText}</div>}
+                    <button className="exp-btn" onClick={() => {
+                      const updated = [...completedIds, activeExp.id];
+                      localStorage.setItem("vela_completed_experiments", JSON.stringify(updated));
+                      localStorage.removeItem("vela_active_experiment");
+                      setActiveExp(null);
+                      haptic("Medium");
+                    }}>Finish experiment</button>
+                  </div>
+                ) : (
+                  <button className="exp-btn exp-abandon" onClick={() => {
+                    if (window.confirm("End this experiment early?")) {
+                      localStorage.removeItem("vela_active_experiment");
+                      setActiveExp(null);
+                    }
+                  }}>End experiment</button>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // No active experiment — show browse
+        return (
+          <div className="cbt-section">
+            <div className="cbt-card">
+              <div className="cbt-card-header">
+                <span className="cbt-card-icon">🧪</span>
+                <div>
+                  <div className="cbt-card-title">Self-Experiments</div>
+                  <div className="cbt-card-sub">Try a structured challenge and see how it affects your symptoms</div>
+                </div>
+              </div>
+              {!showExpList ? (
+                <button className="cbt-btn" onClick={() => setShowExpList(true)}>Browse experiments</button>
+              ) : (
+                <div className="cbt-program-list">
+                  {(() => {
+                    let experiments = [...EXPERIMENTS];
+                    if (personalization?.expPriority?.length > 0) {
+                      experiments.sort((a, b) => {
+                        const aComp = completedIds.includes(a.id) ? 1 : 0;
+                        const bComp = completedIds.includes(b.id) ? 1 : 0;
+                        if (aComp !== bComp) return aComp - bComp;
+                        const aIdx = personalization.expPriority.indexOf(a.id);
+                        const bIdx = personalization.expPriority.indexOf(b.id);
+                        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+                      });
+                    } else {
+                      experiments.sort((a, b) => (completedIds.includes(a.id) ? 1 : 0) - (completedIds.includes(b.id) ? 1 : 0));
+                    }
+                    return experiments.map((exp) => {
+                      const isDone = completedIds.includes(exp.id);
+                      const isRecommended = !isDone && personalization?.expPriority?.includes(exp.id);
+                      return (
+                        <div key={exp.id} className={`cbt-program-item${isRecommended ? " recommended" : ""}${isDone ? " completed" : ""}`} onClick={() => {
+                          const newExp = { ...exp, startDate: new Date().toISOString(), daysCompleted: 0 };
+                          localStorage.setItem("vela_active_experiment", JSON.stringify(newExp));
+                          setActiveExp(newExp);
+                          setShowExpList(false);
+                          haptic("Medium");
+                        }}>
+                          <div className="cbt-program-icon">{exp.icon}</div>
+                          <div className="cbt-program-info">
+                            {isDone && <div className="cbt-completed-badge">✓ Completed — tap to try again</div>}
+                            {isRecommended && <div className="cbt-recommended-badge">Recommended for you</div>}
+                            <div className="cbt-program-name">{exp.title}</div>
+                            <div className="cbt-program-meta">{exp.duration} days</div>
+                            <div className="cbt-program-desc">{exp.desc}</div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                  <button className="cbt-btn cbt-abandon" onClick={() => setShowExpList(false)}>Cancel</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {!showReveal && !showCompanion && (isPremium ? (
         <div className="doctor-prep">
           <div className="dp-title">Doctor visit prep</div>
           {(() => {
@@ -4586,15 +5469,18 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           </button>
         </div>
       ) : (
+        <>
+        <InsightLibrary />
         <div className="unlock-card">
           <div className="unlock-tag">Premium</div>
-          <div className="unlock-title">Unlock the full picture</div>
+          <div className="unlock-title">Understand why, not just what</div>
           <div className="unlock-body">
-            Trend charts, pattern detection, symptom predictions, doctor visit prep, and unlimited history.
+            See patterns in your symptoms, prep for doctor visits with a shareable PDF report, and get personalized guidance.
           </div>
-          <button className="unlock-btn" onClick={onShowPaywall}>Unlock for $14.99/mo</button>
+          <button className="unlock-btn" onClick={onShowPaywall}>Try free for 7 days</button>
         </div>
-      )}
+        </>
+      ))}
     </div>
   );
 }
@@ -4602,14 +5488,12 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
 // ─── Paywall Screen ──────────────────────────────────────────────────────────
 
 function PaywallScreen({ onClose, onSubscribe, onRestore }) {
+  const [plan, setPlan] = useState("annual");
   const features = [
-    { icon: "📊", title: "Trends & monthly comparisons", desc: "Symptom intensity charts with month-over-month insights" },
-    { icon: "📋", title: "Doctor visit prep & reports", desc: "Auto-generated talking points and PDF exports for your provider" },
-    { icon: "🤖", title: "Vela AI Companion", desc: "Ask questions about your health patterns and get personalized insights" },
-    { icon: "📰", title: "Smart Weekly Digest", desc: "AI-powered weekly summary with trends, triggers, and tips" },
-    { icon: "🔮", title: "Pattern detection & predictions", desc: "Discover symptom correlations and weekly predictions" },
-    { icon: "📆", title: "Unlimited history", desc: "Access your complete tracking history, not just the last 7 days" },
-    { icon: "🔒", title: "100% private, on-device", desc: "Your health data never leaves your phone" },
+    { icon: "🔮", title: "Pattern detection", desc: "Discover what triggers your symptoms — sleep, stress, caffeine, cycle phase" },
+    { icon: "📊", title: "Trends & comparisons", desc: "See how this month compares to last with visual charts" },
+    { icon: "🤖", title: "Vela AI Companion", desc: "Ask questions about your patterns and get personalized guidance" },
+    { icon: "📰", title: "Smart Weekly Digest", desc: "A weekly summary of what happened, what helped, and what to watch" },
   ];
 
   return (
@@ -4628,11 +5512,19 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
 
       <div className="paywall">
         <div className="paywall-hero">
-          <h2>Your menopause journey, understood</h2>
+          <h2>Track for free. Understand with Premium.</h2>
           <p>
-            Evidence-based tracking built for perimenopause and menopause.
-            Your data stays on your device — always.
+            See why your symptoms happen, spot patterns you'd miss,
+            and walk into your next doctor's appointment prepared.
           </p>
+        </div>
+
+        <div className="paywall-lead">
+          <div className="pw-lead-icon">📋</div>
+          <div className="pw-lead-text">
+            <strong>Walk in prepared</strong>
+            <span>Generate a doctor-ready PDF with your symptom history, patterns, and talking points — so you're taken seriously.</span>
+          </div>
         </div>
 
         <div className="paywall-features">
@@ -4647,10 +5539,30 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           ))}
         </div>
 
-        <button className="paywall-cta" onClick={onSubscribe}>
-          Start Premium — $14.99/month
+        <div className="paywall-plans">
+          <button
+            className={`paywall-plan${plan === "annual" ? " selected" : ""}`}
+            onClick={() => setPlan("annual")}
+          >
+            <div className="plan-save">Save 33%</div>
+            <div className="plan-period">Annual</div>
+            <div className="plan-price">$39.99<span>/year</span></div>
+            <div className="plan-monthly">$3.33/mo</div>
+          </button>
+          <button
+            className={`paywall-plan${plan === "monthly" ? " selected" : ""}`}
+            onClick={() => setPlan("monthly")}
+          >
+            <div className="plan-period">Monthly</div>
+            <div className="plan-price">$4.99<span>/mo</span></div>
+            <div className="plan-monthly">&nbsp;</div>
+          </button>
+        </div>
+
+        <button className="paywall-cta" onClick={() => onSubscribe(plan)}>
+          {plan === "annual" ? "Try free for 7 days — $39.99/year" : "Try free for 7 days — $4.99/month"}
         </button>
-        <div className="paywall-price">Cancel anytime. No commitment. 7-day free trial.</div>
+        <div className="paywall-price">Cancel anytime during your trial. Your data stays on your device — always.</div>
         <button className="paywall-restore" onClick={onRestore}>
           Restore previous purchase
         </button>
@@ -5019,6 +5931,47 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
   );
 }
 
+// ─── Milestones Card (collapsible) ────────────────────────────────────────────
+
+function MilestonesCard({ earned, locked, totalCount }) {
+  const [expanded, setExpanded] = useState(false);
+  const PREVIEW_COUNT = 3;
+  const visibleLocked = expanded ? locked : locked.slice(0, PREVIEW_COUNT);
+  const hiddenCount = locked.length - PREVIEW_COUNT;
+
+  return (
+    <div className="settings-card" style={{ marginTop: 8 }}>
+      <div className="gam-badges-title">Milestones ({earned.length}/{totalCount})</div>
+      <div className="gam-badges-grid">
+        {earned.map((b) => (
+          <div key={b.id} className="gam-badge earned">
+            <div className="gam-badge-icon">{b.icon}</div>
+            <div className="gam-badge-name">{b.name}</div>
+            <div className="gam-badge-desc">{b.desc}</div>
+          </div>
+        ))}
+        {visibleLocked.map((b) => (
+          <div key={b.id} className="gam-badge locked">
+            <div className="gam-badge-icon">🔒</div>
+            <div className="gam-badge-name">{b.name}</div>
+            <div className="gam-badge-desc">{b.desc}</div>
+          </div>
+        ))}
+      </div>
+      {!expanded && hiddenCount > 0 && (
+        <button className="milestones-expand" onClick={() => setExpanded(true)}>
+          Show {hiddenCount} more milestones
+        </button>
+      )}
+      {expanded && locked.length > PREVIEW_COUNT && (
+        <button className="milestones-expand" onClick={() => setExpanded(false)}>
+          Show less
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
 function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime, onNavigate }) {
@@ -5031,7 +5984,8 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
     "Find relief strategies",
     "Connect with others",
   ];
-  const goal = profile ? (Array.isArray(profile[2]) ? profile[2].map((i) => goalLabels[i]).join(", ") : goalLabels[profile[2]]) : "Not set";
+  const goalArr = profile ? (Array.isArray(profile[2]) ? profile[2].map((i) => goalLabels[i]) : [goalLabels[profile[2]]]) : [];
+  const goal = goalArr.length === 0 ? "Not set" : goalArr.length === 1 ? goalArr[0] : `${goalArr[0]} +${goalArr.length - 1} more`;
 
   return (
     <div className="screen active">
@@ -5095,7 +6049,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
                       <span style={{ fontSize: 16, fontWeight: 600, color: "var(--sage)" }}>{JSON.parse(localStorage.getItem("vela_streak_freeze_count") || "2")}</span>
                       <button style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid var(--sage)", background: "transparent", color: "var(--sage)", fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
                         onClick={() => {
-                          if (useStreakFreeze()) { haptic("Medium"); window.location.reload(); }
+                          if (applyStreakFreeze()) { haptic("Medium"); window.location.reload(); }
                           else alert("No freezes available or already used today.");
                         }}>Use today</button>
                     </div>
@@ -5103,25 +6057,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
                 )}
               </div>
             </div>
-            <div className="settings-card" style={{ marginTop: 8 }}>
-              <div className="gam-badges-title">Milestones ({earned.length}/{BADGES.length})</div>
-              <div className="gam-badges-grid">
-                {earned.map((b) => (
-                  <div key={b.id} className="gam-badge earned">
-                    <div className="gam-badge-icon">{b.icon}</div>
-                    <div className="gam-badge-name">{b.name}</div>
-                    <div className="gam-badge-desc">{b.desc}</div>
-                  </div>
-                ))}
-                {locked.map((b) => (
-                  <div key={b.id} className="gam-badge locked">
-                    <div className="gam-badge-icon">🔒</div>
-                    <div className="gam-badge-name">{b.name}</div>
-                    <div className="gam-badge-desc">{b.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MilestonesCard earned={earned} locked={locked} totalCount={BADGES.length} />
           </div>
         );
       })()}
@@ -5135,8 +6071,8 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         const steps = [];
         if (uniqueDays < 7) steps.push({ icon: "📊", text: `Log ${7 - uniqueDays} more day${7 - uniqueDays > 1 ? "s" : ""} to unlock your first insights`, action: "today" });
         if (uniqueDays >= 7 && uniqueDays < 14) steps.push({ icon: "🔬", text: "Check your Insights tab — your patterns are ready!", action: "insights" });
-        if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "🧪", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "today" });
-        if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "🧠", text: "Start a recommended CBT program", action: "today" });
+        if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "🧪", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "insights" });
+        if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "🧠", text: "Start a recommended CBT program", action: "insights" });
         if (completedLessons < 3) steps.push({ icon: "💡", text: "Read today's daily insight", action: "today" });
         if (p?.wantsDoctor && uniqueDays >= 14) steps.push({ icon: "👩‍⚕️", text: "Generate your doctor report from your 2 weeks of data", action: "export" });
         if (p?.wantsCommunity) steps.push({ icon: "💬", text: "Join the community — you're not alone in this", action: "community" });
@@ -5375,6 +6311,10 @@ const COMMUNITY_TOPICS = [
       { id: "hf-1", author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand helps me cope. Everyone's different though — tracking what works for you is key.", likes: 24 },
       { id: "hf-2", author: "Anonymous", time: "5h ago", text: "I noticed a pattern in my Vela logs — certain days are worse than others. Showed my doctor and we came up with a plan together.", likes: 18 },
       { id: "hf-3", author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Having a plan for those moments helps.", likes: 31 },
+      { id: "hf-4", author: "Anonymous", time: "1d ago", text: "Week 3 of tracking and I can already see my triggers — stress and wine are the big ones for me. Knowledge is power.", likes: 45 },
+      { id: "hf-5", author: "Anonymous", time: "2d ago", text: "My GP switched me to a different HRT formulation after I showed her my symptom logs. Night sweats went from nightly to maybe twice a week.", likes: 89 },
+      { id: "hf-6", author: "Anonymous", time: "3d ago", text: "Layered clothing is my survival strategy. I call it my 'flash kit' — always ready to peel off a layer at a moment's notice.", likes: 37 },
+      { id: "hf-7", author: "Anonymous", time: "4d ago", text: "For anyone just starting: it gets better once you understand your patterns. The first month of tracking felt pointless, month two was a revelation.", likes: 112 },
     ],
   },
   {
@@ -5389,6 +6329,9 @@ const COMMUNITY_TOPICS = [
     posts: [
       { id: "bf-1", author: "Anonymous", time: "3h ago", text: "I started writing everything down. Lists for everything. It felt silly at first but it genuinely reduced my anxiety about forgetting things.", likes: 42 },
       { id: "bf-2", author: "Anonymous", time: "8h ago", text: "My doctor told me brain fog during perimenopause is caused by fluctuating estrogen levels. It's temporary. That alone made me feel better.", likes: 55 },
+      { id: "bf-3", author: "Anonymous", time: "1d ago", text: "The word-finding thing is so frustrating. Mid-sentence and the word just vanishes. Glad to know it's hormonal and not early dementia.", likes: 73 },
+      { id: "bf-4", author: "Anonymous", time: "2d ago", text: "I tracked my brain fog alongside sleep quality and there's a clear connection. Bad sleep = fog city the next day. Working on my sleep hygiene now.", likes: 48 },
+      { id: "bf-5", author: "Anonymous", time: "3d ago", text: "Omega-3s and reducing sugar helped me. Not a miracle cure but I went from daily brain fog to maybe 2-3 times a week.", likes: 61 },
     ],
   },
   {
@@ -5404,6 +6347,9 @@ const COMMUNITY_TOPICS = [
       { id: "ma-1", author: "Anonymous", time: "1h ago", text: "Some days I feel like a completely different person. Then I remember: hormones. It helps to name it.", likes: 38 },
       { id: "ma-2", author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has helped my mood. Exercise has strong evidence for mood improvement during perimenopause. It's not a cure but it takes the edge off.", likes: 29 },
       { id: "ma-3", author: "Anonymous", time: "2d ago", text: "If you're feeling rage that seems out of nowhere \u2014 that's perimenopause too. You're not broken. Your hormones are just really loud right now.", likes: 67 },
+      { id: "ma-4", author: "Anonymous", time: "3d ago", text: "Started the Anxiety & Mood CBT program here and it's actually helped. The breathing techniques sound basic but they work in the moment.", likes: 54 },
+      { id: "ma-5", author: "Anonymous", time: "4d ago", text: "My husband thought I was upset with him. I showed him my mood tracking — mood drops consistently around day 14-18 of my cycle. Now he understands it's not personal.", likes: 93 },
+      { id: "ma-6", author: "Anonymous", time: "5d ago", text: "Magnesium glycinate before bed has been a game changer for my anxiety. Talk to your doctor first but it might be worth asking about.", likes: 44 },
     ],
   },
   {
@@ -5418,6 +6364,9 @@ const COMMUNITY_TOPICS = [
     posts: [
       { id: "sl-1", author: "Anonymous", time: "4h ago", text: "CBT for insomnia (CBT-I) was recommended by my doctor and it's been really effective. Ask your provider about evidence-based sleep treatments.", likes: 33 },
       { id: "sl-2", author: "Anonymous", time: "1d ago", text: "I stopped looking at the clock when I wake up at 3am. Sounds small but it stopped the anxiety spiral of 'I only have 3 hours left'.", likes: 41 },
+      { id: "sl-3", author: "Anonymous", time: "2d ago", text: "Cooling sheets + keeping the room at 65°F changed everything. My Vela logs show I went from 4-5hrs to 6-7hrs consistently.", likes: 78 },
+      { id: "sl-4", author: "Anonymous", time: "3d ago", text: "The 3am wake-up club checking in 😅 Anyone else wide awake at exactly the same time every night? Cortisol spike apparently.", likes: 56 },
+      { id: "sl-5", author: "Anonymous", time: "5d ago", text: "No screens after 9pm was hard but worth it. Also cut evening caffeine. Two simple changes and my sleep score went way up.", likes: 39 },
     ],
   },
   {
@@ -5432,6 +6381,9 @@ const COMMUNITY_TOPICS = [
     posts: [
       { id: "dt-1", author: "Anonymous", time: "7h ago", text: "Bring your Vela report to your appointment. My doctor was impressed I had actual data on my symptoms. It changed the whole conversation.", likes: 52 },
       { id: "dt-2", author: "Anonymous", time: "2d ago", text: "If your doctor dismisses your symptoms, find a new doctor. It took me 3 tries but I finally found one who listens.", likes: 71 },
+      { id: "dt-3", author: "Anonymous", time: "3d ago", text: "I printed my symptom report and highlighted the patterns. My doctor actually said 'this is exactly what I need to see.' First time I felt truly heard.", likes: 104 },
+      { id: "dt-4", author: "Anonymous", time: "4d ago", text: "Ask specifically for a menopause specialist or someone NAMS-certified. Regular OB/GYNs often have minimal menopause training.", likes: 88 },
+      { id: "dt-5", author: "Anonymous", time: "6d ago", text: "Don't apologize for your symptoms or minimize them. 'I'm having 8 hot flashes a day and sleeping 4 hours' — be direct. You deserve treatment.", likes: 127 },
     ],
   },
 ];
@@ -5755,13 +6707,8 @@ function CommunityScreen() {
       )}
 
       <div className="comm-stat-bar">
-        <div className="comm-stat">
-          <div className="comm-stat-value">12,847</div>
-          <div className="comm-stat-label">women tracking</div>
-        </div>
-        <div className="comm-stat">
-          <div className="comm-stat-value">847</div>
-          <div className="comm-stat-label">shared today</div>
+        <div className="comm-banner-text">
+          Women in perimenopause and menopause sharing what actually helps
         </div>
       </div>
 
@@ -5999,6 +6946,7 @@ export default function App() {
       localStorage.removeItem("vela_doctor_nudge_dismissed");
       localStorage.removeItem("vela_community_nudge_dismissed");
       localStorage.removeItem("vela_relief_nudge_dismissed");
+      localStorage.removeItem("vela_insights_revealed");
       cancelAllReminders();
       setLogs([]);
       setProfile(null);
@@ -6078,8 +7026,8 @@ export default function App() {
       {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} />}
-      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => setShowPaywall(true)} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} onShowPaywall={() => setShowPaywall(true)} />}
+      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => setShowPaywall(true)} onNavigate={setScreen} />}
       {onboarded && screen === "insights" && (
         <InsightsScreen
           logs={logs}
