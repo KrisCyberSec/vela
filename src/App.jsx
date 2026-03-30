@@ -836,9 +836,9 @@ const SYMPTOM_KNOWLEDGE = {
   "hot flash": {
     prevalence: "Up to 80% of women experience hot flashes, making them the most common menopause symptom.",
     science: "Hot flashes are caused by changes in the hypothalamus (your body's thermostat) as estrogen levels fluctuate. The brain briefly misreads your body temperature and triggers a cooling response.",
-    strategies: ["Layered clothing and keeping a room cool (68°F/20°C) can reduce frequency.", "Deep slow breathing (6-8 breaths/min) at the onset has been shown to reduce hot flash intensity in clinical trials.", "CBT for hot flashes has strong evidence — it doesn't reduce frequency but significantly reduces how bothersome they feel.", "Regular aerobic exercise (30 min, 3-5x/week) is associated with fewer and less severe hot flashes in multiple studies."],
+    strategies: ["Layered clothing and keeping a room cool (68°F/20°C) can reduce frequency.", "Deep slow breathing (6-8 breaths/min) at the onset has been shown to reduce hot flash intensity in clinical trials.", "CBT for hot flashes has strong evidence — it doesn't reduce frequency but significantly reduces how bothersome they feel.", "Regular aerobic exercise improves overall quality of life during menopause. Its direct effect on hot flash frequency is still debated, but many women report benefit."],
     stages: { perimenopause: "Hot flashes often peak in late perimenopause and the first 1-2 years after your final period.", postmenopause: "For most women, hot flashes gradually decrease over 2-5 years, though about 10% experience them for a decade or more.", surgical: "Surgical menopause often causes more sudden and intense hot flashes because estrogen drops rapidly rather than gradually." },
-    whenToSeeDoc: "If hot flashes are disrupting sleep or daily life, ask your provider about hormone therapy (HT) — it's the most effective treatment, reducing hot flashes by 75-95% in clinical trials."
+    whenToSeeDoc: "If hot flashes are disrupting sleep or daily life, ask your provider about hormone therapy (HT) — it's the most effective treatment, with clinical trials showing up to a 75% reduction in hot flash frequency."
   },
   "night sweat": {
     prevalence: "Night sweats affect up to 75% of menopausal women — they're essentially hot flashes that happen during sleep.",
@@ -863,7 +863,7 @@ const SYMPTOM_KNOWLEDGE = {
   },
   "anxiety": {
     prevalence: "Up to 51% of women aged 40-55 experience increased anxiety during the menopause transition, even those with no prior history.",
-    science: "Estrogen helps regulate serotonin and GABA — your brain's calming neurotransmitters. As estrogen fluctuates, anxiety can spike. This is a physiological response, not a personal failing.",
+    science: "Estrogen modulates serotonin and norepinephrine, while progesterone has a calming effect via GABA receptors. As both hormones fluctuate during the menopause transition, anxiety can spike — even in women with no prior history. This is a physiological response, not a personal failing.",
     strategies: ["Deep breathing exercises (4-7-8 technique: inhale 4s, hold 7s, exhale 8s) activate the parasympathetic nervous system.", "Regular exercise has strong evidence for reducing anxiety — as effective as medication for mild-moderate cases.", "CBT has been shown to be particularly effective for menopause-related anxiety.", "Limiting caffeine can help — sensitivity often increases during menopause."],
     stages: { perimenopause: "Anxiety often peaks during perimenopause when hormone fluctuations are greatest. It's one of the symptoms most likely to improve with time.", postmenopause: "Many women find anxiety decreases significantly in postmenopause as hormones stabilize.", surgical: "Anxiety after surgical menopause can be intense due to the sudden hormone drop — don't hesitate to seek support." },
     whenToSeeDoc: "If anxiety is interfering with daily life, relationships, or sleep, talk to your provider. Both HT and targeted medications can be very effective."
@@ -911,7 +911,7 @@ const SYMPTOM_KNOWLEDGE = {
     whenToSeeDoc: "If headaches are new, changing in pattern, or not responding to over-the-counter treatment, see your provider."
   },
   "weight change": {
-    prevalence: "Women gain an average of 5 pounds during the menopause transition, with a shift toward abdominal fat storage.",
+    prevalence: "Women gain an average of 5-8 pounds during the menopause transition, with a shift toward abdominal fat storage.",
     science: "Declining estrogen changes how your body stores fat (more abdominally), reduces metabolic rate by about 50 calories/day, and can increase appetite through hormonal signals.",
     strategies: ["Strength training is especially important — it counteracts the muscle loss that slows metabolism.", "Protein intake (20-30g per meal) helps maintain muscle mass and promotes satiety.", "Focus on body composition rather than scale weight — muscle weighs more than fat.", "A Mediterranean-style eating pattern has the best evidence for midlife weight management."],
     stages: { perimenopause: "Weight shifts often begin in perimenopause as metabolic changes take effect.", postmenopause: "Metabolic rate continues to decrease, making strength training increasingly important.", surgical: "Rapid hormone changes can accelerate metabolic shifts — early intervention with exercise helps." },
@@ -925,7 +925,7 @@ const SYMPTOM_KNOWLEDGE = {
     whenToSeeDoc: "If this is bothering you, discuss with your provider. Local estrogen therapy is very effective and safe for vaginal symptoms, and testosterone therapy may help with desire."
   },
   "vaginal dryness": {
-    prevalence: "Up to 55% of postmenopausal women experience vaginal dryness, though many don't report it to their doctor.",
+    prevalence: "Up to 50% of postmenopausal women experience vaginal dryness, though many don't report it to their doctor.",
     science: "Estrogen maintains vaginal tissue elasticity, moisture, and pH. As estrogen declines, tissues can become thinner, drier, and more susceptible to irritation and infection.",
     strategies: ["Regular use of vaginal moisturizers (not just lubricants) helps maintain tissue health.", "Sexual activity (including solo) helps maintain blood flow and tissue elasticity.", "Avoid irritating products — scented soaps, douches, and some laundry detergents.", "Stay well hydrated — it helps all mucous membranes."],
     stages: { perimenopause: "Vaginal changes often begin in late perimenopause.", postmenopause: "Unlike hot flashes, vaginal symptoms typically don't improve on their own and may worsen without treatment.", surgical: "Changes can be more rapid after surgical menopause." },
@@ -981,7 +981,7 @@ const TRIGGER_KNOWLEDGE = {
     nuance: "The relationship is dose-dependent — one glass occasionally may be fine, while regular consumption may noticeably worsen symptoms."
   },
   exercise: {
-    science: "Regular exercise is one of the strongest evidence-based strategies for managing menopause symptoms. It improves mood (via endorphins), reduces hot flash severity, strengthens bones, improves sleep, and helps manage weight. The evidence supports 150 minutes/week of moderate aerobic activity plus 2 sessions of strength training.",
+    science: "Regular exercise is one of the strongest evidence-based strategies for managing menopause symptoms. It improves mood (via endorphins), strengthens bones, improves sleep, and helps manage weight. Its direct effect on hot flash frequency is debated, but it significantly improves overall quality of life. The evidence supports 150 minutes/week of moderate aerobic activity plus 2 sessions of strength training.",
     tip: "Consistency matters more than intensity. If you're not exercising regularly, even 10-minute walks are a great starting point.",
     nuance: "Intense exercise close to bedtime can temporarily worsen hot flashes and disrupt sleep. Morning or afternoon sessions tend to be better."
   },
