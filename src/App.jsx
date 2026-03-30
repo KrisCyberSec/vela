@@ -54,14 +54,14 @@ const SYMPTOMS = [
   { icon: "⚖️", name: "Weight change", cat: "physical" },
   // Intimate health
   { icon: "💧", name: "Vaginal dryness", cat: "intimate" },
-  { icon: "🔥", name: "Vaginal irritation", cat: "intimate" },
+  { icon: "⚡", name: "Vaginal irritation", cat: "intimate" },
   { icon: "❤️", name: "Low libido", cat: "intimate" },
   { icon: "🚽", name: "Urinary urgency", cat: "intimate" },
   { icon: "💦", name: "Incontinence", cat: "intimate" },
   // Digestive
   { icon: "🫧", name: "Bloating", cat: "digestive" },
   { icon: "🤢", name: "Nausea", cat: "digestive" },
-  { icon: "🔥", name: "Acid reflux", cat: "digestive" },
+  { icon: "🫗", name: "Acid reflux", cat: "digestive" },
   { icon: "😣", name: "Digestive changes", cat: "digestive" },
   // Other
   { icon: "🫁", name: "Shortness of breath", cat: "other" },
@@ -5709,9 +5709,9 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   <div>
                     <div className="cbt-complete-msg">🎉 You finished the program — well done!</div>
                     <button className="cbt-btn" onClick={() => {
-                      const completed = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
-                      if (!completed.includes(activeCBT.programId)) completed.push(activeCBT.programId);
-                      localStorage.setItem("vela_completed_cbt", JSON.stringify(completed));
+                      const completed = (() => { try { return JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]"); } catch { return []; } })();
+                      const updated = completed.includes(activeCBT.programId) ? completed : [...completed, activeCBT.programId];
+                      localStorage.setItem("vela_completed_cbt", JSON.stringify(updated));
                       localStorage.removeItem("vela_active_cbt");
                       setActiveCBT(null);
                       haptic("Medium");
@@ -7339,16 +7339,16 @@ function CommunityScreen() {
 
 export default function App() {
   const [onboarded, setOnboarded] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_onboarded") || "false");
+    try { return JSON.parse(localStorage.getItem("vela_onboarded") || "false"); } catch { return false; }
   });
   const [screen, setScreen] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_onboarded") || "false") ? "tracker" : "onboard";
+    try { return JSON.parse(localStorage.getItem("vela_onboarded") || "false") ? "tracker" : "onboard"; } catch { return "onboard"; }
   });
   const [logs, setLogs] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_logs") || "[]");
+    try { return JSON.parse(localStorage.getItem("vela_logs") || "[]"); } catch { return []; }
   });
   const [profile, setProfile] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_profile") || "null");
+    try { return JSON.parse(localStorage.getItem("vela_profile") || "null"); } catch { return null; }
   });
   const [toast, setToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -7358,10 +7358,10 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_reminders_enabled") || "true");
+    try { return JSON.parse(localStorage.getItem("vela_reminders_enabled") || "true"); } catch { return true; }
   });
   const [reminderTimes, setReminderTimes] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_reminder_times") || '{"morning":"09:00","evening":"20:00","weekly":"10:00"}');
+    try { return JSON.parse(localStorage.getItem("vela_reminder_times") || '{"morning":"09:00","evening":"20:00","weekly":"10:00"}'); } catch { return { morning: "09:00", evening: "20:00", weekly: "10:00" }; }
   });
 
   // Inject global styles
