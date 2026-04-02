@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import * as communityMod from "./community";
 
 function haptic(style = "Light") {
   if (Capacitor.isNativePlatform()) {
@@ -6957,6 +6958,7 @@ function CommunityScreen() {
   const [replyingTo, setReplyingTo] = useState(null);
   const [showCreateTopic, setShowCreateTopic] = useState(false);
   const [topicForm, setTopicForm] = useState({ icon: "", title: "", description: "", tags: [] });
+  const [moderationError, setModerationError] = useState(null);
 
   // Migrate old likes → votes
   const [votes, setVotes] = useState(() => {
@@ -7022,11 +7024,27 @@ function CommunityScreen() {
 
   function submitPost() {
     if (!composeText.trim() || !activeTopic) return;
+    // Content moderation
+    const modCheck = communityMod.moderateContent(composeText);
+    if (!modCheck.allowed) {
+      setModerationError(modCheck.reason);
+      haptic("Heavy");
+      return;
+    }
+    setModerationError(null);
     haptic("Medium");
-    setUserPosts((prev) => [{
-      id: `user-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
-      text: composeText.trim(), upvotes: 0, topicId: activeTopic, isUserPost: true,
-    }, ...prev]);
+
+    if (communityMod.LIVE_COMMUNITY) {
+      communityMod.createPost(activeTopic, composeText).then((result) => {
+        if (result?.error) { setModerationError(result.error); return; }
+        if (result) setUserPosts((prev) => [{ ...result, isUserPost: true }, ...prev]);
+      });
+    } else {
+      setUserPosts((prev) => [{
+        id: `user-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
+        text: composeText.trim(), upvotes: 0, topicId: activeTopic, isUserPost: true,
+      }, ...prev]);
+    }
     setComposeText("");
     setShowCompose(false);
     setReplyingTo(null);
@@ -7034,12 +7052,28 @@ function CommunityScreen() {
 
   function submitReply() {
     if (!composeText.trim() || !replyingTo) return;
+    // Content moderation
+    const modCheck = communityMod.moderateContent(composeText);
+    if (!modCheck.allowed) {
+      setModerationError(modCheck.reason);
+      haptic("Heavy");
+      return;
+    }
+    setModerationError(null);
     haptic("Medium");
-    setReplies((prev) => [...prev, {
-      id: `reply-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
-      text: composeText.trim(), upvotes: 0, topicId: activeTopic,
-      parentId: replyingTo, isUserPost: true,
-    }]);
+
+    if (communityMod.LIVE_COMMUNITY) {
+      communityMod.createPost(activeTopic, composeText, replyingTo).then((result) => {
+        if (result?.error) { setModerationError(result.error); return; }
+        if (result) setReplies((prev) => [...prev, { ...result, isUserPost: true, parentId: replyingTo, topicId: activeTopic }]);
+      });
+    } else {
+      setReplies((prev) => [...prev, {
+        id: `reply-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
+        text: composeText.trim(), upvotes: 0, topicId: activeTopic,
+        parentId: replyingTo, isUserPost: true,
+      }]);
+    }
     setComposeText("");
     setShowCompose(false);
     setReplyingTo(null);
@@ -7101,6 +7135,14 @@ function CommunityScreen() {
                   <span className={`comm-bookmark${bookmarks.includes(post.id) ? " comm-bookmark-active" : ""}`} onClick={() => toggleBookmark(post.id)}>
                     {bookmarks.includes(post.id) ? "\u{1F516}" : "\u{1F3F7}"}
                   </span>
+                  {!post.isUserPost && (
+                    <span className="comm-report" onClick={() => {
+                      if (communityMod.LIVE_COMMUNITY) communityMod.reportPost(post.id);
+                      haptic();
+                    }} title="Report" style={{ fontSize: 12, opacity: 0.4, cursor: "pointer", marginLeft: 4 }}>
+                      {"\u{1F6A9}"}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="comm-reactions">
@@ -7222,6 +7264,11 @@ function CommunityScreen() {
                 rows={5}
                 autoFocus
               />
+              {moderationError && (
+                <div style={{ color: "#e74c3c", fontSize: 13, padding: "6px 0", fontWeight: 500 }}>
+                  Post not allowed: {moderationError}
+                </div>
+              )}
               <div className="comm-compose-counter">{composeText.length}/{COMMUNITY_POST_MAX_CHARS}</div>
             </div>
           </div>
