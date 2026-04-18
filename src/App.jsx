@@ -3,6 +3,8 @@ import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import * as communityMod from "./community";
+import { initAnalytics, track } from "./analytics";
+import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from "./subscription";
 
 function haptic(style = "Light") {
   if (Capacitor.isNativePlatform()) {
@@ -5133,6 +5135,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
 
   const handleQuestion = (text) => {
     if (!text.trim() || isTyping) return;
+    track("ask_vela_used", { logCount: logs.length, gatedByDataMin: logs.length < 7 });
     const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
     const updated = [...chatMessages, userMsg];
     setChatMessages(updated);
@@ -7407,6 +7410,16 @@ export default function App() {
     return () => document.head.removeChild(tag);
   }, []);
 
+  // Initialize analytics + RevenueCat, then sync subscription status on launch
+  useEffect(() => {
+    initAnalytics();
+    (async () => {
+      await initPurchases();
+      const { isPremium: livePremium } = await checkSubscription();
+      if (livePremium) setIsPremium(true);
+    })();
+  }, []);
+
   // Persist onboarded state
   useEffect(() => {
     localStorage.setItem("vela_onboarded", JSON.stringify(onboarded));
@@ -7455,6 +7468,12 @@ export default function App() {
     // Smart contextual toast messages — personalized by profile
     const uniqueDays = new Set(newLogs.map((l) => l.date.slice(0, 10))).size;
     const streak = getStreak(newLogs);
+    track("log_completed", {
+      uniqueDays,
+      streak,
+      symptomCount: Object.keys(entry.symptoms || {}).length,
+      hasNotes: !!(entry.notes && entry.notes.length > 0),
+    });
     const p = getPersonalization(profile);
     const concern = p?.topConcernNames?.[0];
     const symptoms = Object.keys(entry.symptoms || {});
@@ -7551,17 +7570,41 @@ export default function App() {
     }
   }
 
-  function handleSubscribe() {
-    // TODO: Wire to RevenueCat purchasePackage() once configured
-    // For now, simulate premium unlock for testing
-    setIsPremium(true);
-    setShowPaywall(false);
+  function openPaywall(trigger) {
+    track("paywall_shown", { trigger });
+    setShowPaywall(true);
   }
 
-  function handleRestore() {
-    // TODO: Wire to RevenueCat restorePurchases() once configured
-    setIsPremium(true);
-    setShowPaywall(false);
+  async function handleSubscribe(plan) {
+    const result = await purchasePlan(plan);
+    if (result.isPremium) {
+      track("paywall_converted", { plan });
+      setIsPremium(true);
+      setShowPaywall(false);
+    } else if (result.cancelled) {
+      // user dismissed the native sheet — leave paywall open
+    } else if (result.error === "not_available") {
+      // Web/dev fallback so the paywall is still testable without RevenueCat configured
+      setIsPremium(true);
+      setShowPaywall(false);
+    } else {
+      setToastMsg("Purchase didn't go through. Try again or contact support.");
+      setToast(true);
+      setTimeout(() => setToast(false), 3500);
+    }
+  }
+
+  async function handleRestore() {
+    const result = await restorePurchases();
+    if (result.isPremium) {
+      setIsPremium(true);
+      setShowPaywall(false);
+      setToastMsg("Premium restored. ✨");
+    } else {
+      setToastMsg("No previous purchase found on this Apple ID.");
+    }
+    setToast(true);
+    setTimeout(() => setToast(false), 3500);
   }
 
   const tabs = [
@@ -7620,14 +7663,14 @@ export default function App() {
       {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} onShowPaywall={() => setShowPaywall(true)} />}
-      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => setShowPaywall(true)} onNavigate={setScreen} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} onShowPaywall={() => openPaywall("tracker")} />}
+      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => openPaywall("history")} onNavigate={setScreen} />}
       {onboarded && screen === "insights" && (
         <InsightsScreen
           logs={logs}
           profile={profile}
           isPremium={isPremium}
-          onShowPaywall={() => setShowPaywall(true)}
+          onShowPaywall={() => openPaywall("insights")}
         />
       )}
       {onboarded && screen === "community" && <CommunityScreen />}
@@ -7636,7 +7679,7 @@ export default function App() {
           profile={profile}
           logs={logs}
           isPremium={isPremium}
-          onShowPaywall={() => setShowPaywall(true)}
+          onShowPaywall={() => openPaywall("settings")}
           onEditQuestion={handleEditQuestion}
           onClearData={handleClearData}
           remindersEnabled={remindersEnabled}

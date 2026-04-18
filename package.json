@@ -10,8 +10,11 @@
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.1",
+    "@revenuecat/purchases-capacitor": "^13.0.0",
+    "@sentry/react": "^10.49.0",
     "firebase": "^12.11.0",
     "jspdf": "^4.2.0",
+    "posthog-js": "^1.369.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1"

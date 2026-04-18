@@ -36,6 +36,7 @@ Running and deploying things.
 | [deployment.md](operations/deployment.md) | How to deploy the landing page, how to update DNS, redeploy functions |
 | [waitlist.md](operations/waitlist.md) | Admin dashboard, JSON/CSV export, token rotation, viewing emails via CLI |
 | [ios-build.md](operations/ios-build.md) | iOS build flow, Xcode setup, TestFlight/App Store submission |
+| [analytics-and-billing.md](operations/analytics-and-billing.md) | RevenueCat, PostHog, Sentry — env vars, setup steps, instrumented events |
 
 ## Business
 
