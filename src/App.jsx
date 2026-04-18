@@ -826,8 +826,6 @@ const AI_TRIGGER_NAMES = ["caffeine", "alcohol", "exercise", "sleep", "stress", 
 // Conversational context for follow-ups (module-level, persists during session)
 let _lastHandler = null;
 let _lastParam = null;
-let _lastSymptom = null;
-let _lastTrigger = null;
 
 // ─── Evidence-Based Knowledge Base ─────────────────────────────────────────
 // Sources: NAMS (North American Menopause Society), NHS, Mayo Clinic,
@@ -1032,7 +1030,6 @@ function matchQuestion(input) {
     if (matched && /trigger|cause|worsen|making/.test(lower)) {
       _lastHandler = "symptomTriggers";
       _lastParam = matched;
-      _lastSymptom = matched;
       return { handler: "symptomTriggers", param: matched, timeRange };
     }
   }
@@ -1044,8 +1041,6 @@ function matchQuestion(input) {
   if (foundTrigger && foundSymptom) {
     _lastHandler = "triggerSymptom";
     _lastParam = { trigger: foundTrigger, symptom: foundSymptom };
-    _lastTrigger = foundTrigger;
-    _lastSymptom = foundSymptom;
     return { handler: "triggerSymptom", param: { trigger: foundTrigger, symptom: foundSymptom }, timeRange };
   }
 
@@ -1053,7 +1048,6 @@ function matchQuestion(input) {
   if (foundSymptom) {
     _lastHandler = "symptomTrend";
     _lastParam = foundSymptom;
-    _lastSymptom = foundSymptom;
     return { handler: "symptomTrend", param: foundSymptom, timeRange };
   }
 
@@ -1061,7 +1055,6 @@ function matchQuestion(input) {
   if (foundTrigger) {
     _lastHandler = "triggerImpact";
     _lastParam = foundTrigger;
-    _lastTrigger = foundTrigger;
     return { handler: "triggerImpact", param: foundTrigger, timeRange };
   }
 
@@ -3757,8 +3750,6 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
   const [energy, setEnergy] = useState(null);
   const [lessonDone, setLessonDone] = useState(false);
   const [xpTick, setXpTick] = useState(0);
-  const [xpGain, setXpGain] = useState(0);
-  const prevXpRef = useRef(null);
   const [showCelebration, setShowCelebration] = useState(null);
 
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
@@ -4130,8 +4121,6 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
         if (uniqueDays < 7) return null;
         const dismissed = localStorage.getItem("vela_insights_nudge_dismissed");
-        const xp = computeXP(logs);
-        const lvl = getLevel(xp);
         const hasExperiment = !!localStorage.getItem("vela_active_experiment");
         const hasCBT = !!localStorage.getItem("vela_active_cbt");
         const streak = getStreak(logs);
@@ -7401,7 +7390,6 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState("");
   const [badgeToast, setBadgeToast] = useState(null);
   const [levelUp, setLevelUp] = useState(null); // { level, name, unlock }
-  const prevLevelRef = useRef(null);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
