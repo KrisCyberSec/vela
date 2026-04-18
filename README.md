@@ -1,74 +1,76 @@
 # Vela 🌿
 
-**Your perimenopause & menopause companion.**
+**Your menopause companion.** A privacy-first iOS app for tracking perimenopause and menopause symptoms, discovering personal patterns, and walking into your doctor's office prepared.
 
-A React MVP with three core screens:
-- **Journey** — personalized onboarding assessment (4 questions)
-- **Today** — daily symptom tracker with mood, severity, and notes
-- **Insights** — 7-day trend chart, AI-generated pattern insight, premium upsell
+- **Landing page (live):** [velahealth.health](https://velahealth.health)
+- **App stage:** Feature-complete, pre–App Store
+- **Codebase:** Single-file React app (~7,800 lines in `src/App.jsx`), packaged for iOS via Capacitor
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Run locally
 npm start
-# → Opens at http://localhost:3000
+# → http://localhost:3000
 ```
 
-## Deploy to Vercel (free, 2 min)
-
+Production build:
 ```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy from project root
-vercel
-
-# Follow prompts — your app will be live at a .vercel.app URL
+npm run build
 ```
-
-Or connect your GitHub repo at vercel.com for auto-deploys on every push.
 
 ---
 
-## Project Structure
+## Documentation
+
+All project documentation lives in [`docs/`](docs/README.md). Start there — it's the single source of truth for the project.
+
+### Quick links
+
+| I want to… | Read |
+|------------|------|
+| Understand what Vela is and where it stands | [docs/product/overview.md](docs/product/overview.md) |
+| Navigate the codebase | [docs/engineering/architecture.md](docs/engineering/architecture.md) |
+| Understand Ask Vela (AI companion) | [docs/engineering/ai-companion.md](docs/engineering/ai-companion.md) |
+| See where things are hosted | [docs/operations/infrastructure.md](docs/operations/infrastructure.md) |
+| Deploy the landing page | [docs/operations/deployment.md](docs/operations/deployment.md) |
+| Check the waitlist / admin dashboard | [docs/operations/waitlist.md](docs/operations/waitlist.md) |
+| Review the financial model | [docs/business/financial-model.md](docs/business/financial-model.md) |
+
+Private admin credentials (tokens, secrets) live in [`ADMIN.md`](ADMIN.md) — **gitignored**, never committed.
+
+---
+
+## Project Layout
 
 ```
-vela/
-├── public/
-│   └── index.html
+Vela/
+├── README.md                 ← this file
+├── ADMIN.md                  ← private tokens (gitignored)
 ├── src/
-│   ├── App.jsx       ← All components live here (single-file MVP)
-│   └── index.js      ← React entry point
-├── package.json
-└── .gitignore
+│   └── App.jsx               ← main React app (single-file, ~7800 lines)
+├── public/                   ← CRA public assets + privacy.html + terms.html
+├── landing/                  ← velahealth.health source (separate from the app)
+│   ├── index.html            ← marketing landing page
+│   ├── admin.html            ← password-protected waitlist dashboard
+│   └── netlify/functions/    ← waitlist.js, waitlist-export.js
+├── docs/                     ← all project documentation
+├── ios/                      ← Capacitor iOS shell
+├── build/                    ← production build output
+├── Vela-Pitch-Deck.pptx      ← investor/friend pitch deck
+└── Vela-Pitch-Deck.pdf       ← same as above, PDF export
 ```
 
-## Next Steps (Claude Code prompts to use)
-
-Open your project in Claude Code (`claude` in terminal) and try:
-
-- `"Add localStorage persistence so symptom logs survive page refresh"`
-- `"Connect to Supabase so data syncs across devices"`
-- `"Build a Settings screen where users can edit their profile answers"`
-- `"Add a streak counter that tracks consecutive days logged"`
-- `"Create a shareable doctor report PDF from the last 30 days of logs"`
-
 ---
 
-## Monetization Tiers (planned)
+## Tech Stack
 
-| Tier | Price | Features |
-|------|-------|----------|
-| Free | $0 | Basic tracking, 3 community posts/week |
-| Core | $14.99/mo | Full tracking, wearable sync, AI patterns |
-| Premium | $29.99/mo | Core + telehealth credits + doctor reports |
-
----
-
-Built with React 18 · Deployed on Vercel · Fonts by Google Fonts (DM Serif Display + DM Sans)
+- **Frontend:** React 18, single-file `App.jsx` (no build-time splitting needed for MVP)
+- **iOS:** Capacitor 8 (native shell wrapping the React app)
+- **PDF reports:** jsPDF
+- **Community backend (ready to flip):** Firebase 12 (Firestore + anonymous auth)
+- **Landing page:** Static HTML/CSS/JS hosted on Netlify
+- **Waitlist:** Netlify Functions + Netlify Blobs
+- **Domain:** Namecheap (velahealth.health)
