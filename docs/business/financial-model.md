@@ -138,12 +138,12 @@
 | Item | Cost |
 |------|------|
 | Apple Developer Program | $8.25 ($99/year) |
-| Domain (velahealth.app) | $1.25 ($15/year) |
+| Domain (velahealth.health) | ~$6/month (~$70/year, .health is a premium TLD) |
 | RevenueCat | Free (< $2.5k MRR) |
 | Email (support inbox) | $0 (use free tier) |
-| **Total fixed** | **~$10/month** |
+| **Total fixed** | **~$15/month** |
 
-**Break-even:** ~4 annual subscribers/month covers fixed costs. Achievable within Month 1.
+**Break-even:** ~6 annual subscribers/month covers fixed costs. Achievable within Month 1.
 
 **Real break-even (including your time):**
 If valuing founder time at $5,000/month → need ~143 annual subscribers or ~$475 MRR (net). Achievable by Month 5-7 in Scenario B.

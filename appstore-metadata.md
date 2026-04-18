@@ -61,10 +61,10 @@ Welcome to Vela! Your menopause companion is here. Track symptoms, discover patt
 ---
 
 ## Privacy URL
-https://velahealth.app/privacy.html
+https://velahealth.health/privacy.html
 
 ## Support URL
-mailto:support@velahealth.app
+mailto:support@velahealth.health
 
 ## App Rating
 4+ (No objectionable content)

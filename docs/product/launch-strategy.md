@@ -6,13 +6,13 @@
 - [x] Privacy Policy & Terms of Service — already written
 - [x] App Store listing copy — written and ready
 - [x] Financial model — completed
-- [ ] Set up support@velahealth.app email
-- [ ] Create velahealth.app landing page (simple one-pager)
+- [x] Set up support@velahealth.health email (Namecheap forward → lindsaykristopher@gmail.com)
+- [x] Create velahealth.health landing page (live at https://velahealth.health)
 - [ ] Create social accounts: Instagram (@velahealth), TikTok, Reddit presence
 - [ ] Write 5-10 social media posts (schedule for launch week)
 - [ ] Join 3-5 menopause Facebook groups and Reddit communities (r/Menopause, r/perimenopause) — lurk, help, don't spam
 
-### Landing Page (velahealth.app)
+### Landing Page (velahealth.health)
 Essential elements:
 1. Hero: "Your body, finally understood." + app mockup
 2. 3 value props with icons (Track / Understand / Advocate)
@@ -61,7 +61,7 @@ Tech: Simple static HTML/CSS. Host on GitHub Pages or Netlify (free).
    - Cost: Time only
 
 3. **Content Marketing / SEO**
-   - Blog posts on velahealth.app (use daily insights content as seed)
+   - Blog posts on velahealth.health (use daily insights content as seed)
    - Topics: "How to track menopause symptoms", "What to tell your doctor about perimenopause"
    - Cost: Time only, drives organic App Store traffic
 
