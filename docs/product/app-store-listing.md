@@ -116,10 +116,13 @@ Secondary: Medical
 - Midday requires account creation and cloud sync. Vela is fully on-device.
 - Vela offers deeper on-device AI analysis.
 
-### vs. Caria
-- Caria costs $59.99/year. Vela is $49.99/year.
-- Caria focuses on expert content. Vela focuses on YOUR data patterns.
-- Vela's AI companion answers questions about YOUR specific symptoms.
+### vs. Caria (developer: Chorus Health Inc., 4.6★ × 1,400 reviews as of Feb 2026)
+- Caria's annual is $49.99 — **at parity with Vela**, not above it. Don't claim a price advantage on annual.
+- Caria's monthly is $9.99 vs. Vela's $5.99 — **Vela is 40% cheaper on monthly**. Real edge for try-before-committing users.
+- Caria positions on comprehensive lifestyle support: audio courses, guided meditations, nutritionist recipes/meal plans, community shop.
+- Vela positions on data + autonomy: pattern detection on YOUR logs, doctor-ready PDF reports, on-device AI, no account required.
+- Doctor PDF reports remain unique to Vela — Caria doesn't offer this.
+- Caria has been in maintenance-only mode since v1.9.16 (August 2025); no new features in ~6 months. Strategic launch window.
 
 ### vs. Balance
 - Balance is broader wellness. Vela is laser-focused on menopause.

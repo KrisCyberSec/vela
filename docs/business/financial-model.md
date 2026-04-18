@@ -95,24 +95,24 @@
 
 ## Pricing Analysis
 
-### Is $39.99/year right?
+### Is $49.99/year right?
 
-**Competitor pricing:**
-| App | Price | Model |
-|-----|-------|-------|
-| Midday | Free (B2B focused) | Enterprise/employer |
-| Caria | $59.99/year | Consumer subscription |
-| Balance (menopause) | $49.99/year | Consumer subscription |
-| Flo (period tracker) | $49.99/year | Consumer subscription |
-| Clue Plus | $39.99/year | Consumer subscription |
-| **Vela** | **$49.99/year** | **Consumer subscription** |
+**Competitor pricing (verified Feb 2026 except where noted):**
+| App | Annual | Monthly | Source |
+|-----|--------|---------|--------|
+| Midday | Free (B2B) | n/a | Sold to employers |
+| Caria | $49.99 | $9.99 | App Store, Feb 2026 |
+| Balance (menopause) | $49.99 | — | Last verified at write time; reverify before quoting |
+| Flo (period tracker) | $49.99 | — | Last verified at write time; reverify before quoting |
+| Clue Plus | $39.99 | — | Last verified at write time; reverify before quoting |
+| **Vela** | **$49.99** | **$5.99** | Current |
 
-**Assessment:** $49.99/year positions Vela at parity with Balance and Flo, still $10/year under Caria. Justified by on-device AI, doctor reports, CBT programs, and 60 daily insights.
+**Assessment:** Annual is at parity with Caria, Balance, and Flo — **don't claim a price advantage on annual.** The real annual price edge is over Clue Plus (period-tracker, not direct competitor). Vela's monthly at $5.99 is 40% below Caria's $9.99 — that's the actual price-leadership position, useful for try-before-committing users and as a marketing hook.
 
 ### Monthly pricing at $5.99
 - Effective annual rate: $71.88 (44% premium over annual)
 - Strong incentive to choose annual (save 31%)
-- Competitive with market rates
+- 40% cheaper than Caria's $9.99 monthly — real positioning lever for users who want to try without committing to a year
 
 ---
 
@@ -216,16 +216,16 @@ ROAS is calculated as `(net revenue from cohort over 12 months) / (ad spend to a
 
 ## Price Sensitivity
 
-Current pricing: $49.99/yr at parity with Balance and Flo, $10 below Caria. The pricing question isn't "what's competitive" — it's "what's the LTV ceiling we can reach without collapsing trial-to-paid."
+Current pricing: $49.99/yr — at parity with Caria, Balance, and Flo; $10 above Clue Plus. The pricing question isn't "what's competitive" — it's "what's the LTV ceiling we can reach without collapsing trial-to-paid."
 
 Assuming 8-month average subscription duration and a 70/30 annual/monthly mix, here's how Year-1 net LTV moves with the annual price (monthly held proportional):
 
 | Annual price | Net LTV (Y1) | Required CAC (target 3:1 LTV:CAC) | Trial-to-paid risk |
 |--------------|--------------|------------------------------------|---------------------|
 | $39.99 | $21.10 | $7.03 | Lowest — but leaves money on the table |
-| $49.99 (current) | $26.40 | $8.80 | Baseline |
-| $59.99 (Caria parity) | $31.70 | $10.57 | Moderate. Likely 5–10% trial-to-paid drop. Worth testing once social proof is established. |
-| $69.99 | $36.95 | $12.32 | High — needs strong differentiation messaging. Don't try until ≥ 200 reviews at 4.7+. |
+| $49.99 (current) | $26.40 | $8.80 | Baseline; matches Caria/Balance/Flo |
+| $59.99 | $31.70 | $10.57 | Moderate. Likely 5–10% trial-to-paid drop. Worth testing once social proof is established — would put Vela above the menopause-app cluster, requires the "doctor PDF + on-device AI" pitch to land |
+| $69.99 | $36.95 | $12.32 | High — needs strong differentiation messaging. Don't try until ≥ 200 reviews at 4.7+ |
 
 **Don't test pricing until trial-to-paid is stable.** A price change perturbs the funnel; if the funnel is also being iterated, you can't tell what caused what. Stabilize first, then run a 50/50 split for ≥ 30 days per cell.
 

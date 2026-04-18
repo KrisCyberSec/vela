@@ -80,7 +80,12 @@ See [business/financial-model.md](../business/financial-model.md) for unit econo
 | Menopause-specific | ✓ | ✓ | ✓ | ✓ | ✗ |
 | CBT programs | ✓ | ✓ | ~ | ✗ | ✗ |
 | Pattern detection | ✓ | ~ | ~ | ✗ | ✗ |
-| Price/year | $49.99 | B2B | $59.99 | $49.99 | $49.99 |
+| Audio guides / meditations | ✗ | ~ | ✓ | ✓ | ✗ |
+| Recipes / meal plans | ✗ | ~ | ✓ | ✗ | ✗ |
+| Price/year | $49.99 | B2B | $49.99 | $49.99 | $49.99 |
+| Price/month | $5.99 | B2B | $9.99 | — | — |
+
+Annual pricing is at parity across the menopause-app cluster. Vela's monthly is ~40% cheaper than Caria's. Audio content + recipes are real Caria advantages — known gaps, not bugs (don't reactively chase them).
 
 ## Related docs
 

@@ -233,7 +233,7 @@ const cardShadow = () => ({ type: "outer", blur: 8, offset: 3, angle: 135, color
     [labelOpt("CBT Programs"), cellOpt("✓", true), cellOpt("✓"), cellOpt("~"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("Pattern Detection"), cellOpt("✓", true), cellOpt("~"), cellOpt("~"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("Community"), cellOpt("✓", true), cellOpt("✓"), cellOpt("✓"), cellOpt("✗"), cellOpt("✓")],
-    [labelOpt("Price/Year"), cellOpt("$49.99", true), cellOpt("B2B"), cellOpt("$59.99"), cellOpt("$49.99"), cellOpt("$49.99")],
+    [labelOpt("Price/Year"), cellOpt("$49.99", true), cellOpt("B2B"), cellOpt("$49.99"), cellOpt("$49.99"), cellOpt("$49.99")],
   ];
 
   s.addTable([headers, ...rows], {
