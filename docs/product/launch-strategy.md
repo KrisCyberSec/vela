@@ -145,11 +145,14 @@ Target: 50 reviews at 4.5+ within first 3 months.
 
 ## Key Decision Points
 
+Operational decisions (when to expand scope, when to add platforms). Financial-discipline triggers — when to start spending, when to stop, when to kill — live in [financial-model.md → Decision Triggers](../business/financial-model.md#decision-triggers).
+
 | Decision | When | Criteria |
 |----------|------|----------|
-| Increase ad spend | After 100 organic downloads convert at >2% | Proven conversion funnel |
-| Raise price to $49.99 | After 100+ reviews at 4.5+ | Established social proof |
-| Add annual-only pricing | If monthly churn > 40% | Reduce revenue leakage |
-| Hire contractor (design/marketing) | When MRR > $500 | Can self-fund growth |
-| Consider seed funding | Month 12-18 | If growth > 20% MoM and need to accelerate |
-| Expand to Android | When iOS is profitable | Don't split focus early |
+| Open paid acquisition budget ($200/mo) | Trial-to-paid ≥ 40% on first 30 trials AND D30 retention ≥ 15% | Both signals must hold; either alone isn't enough |
+| Raise price to $59.99 | ≥ 100 reviews at 4.5+ AND trial-to-paid ≥ 45% sustained 60 days | Run as 50/50 App Store price experiment, not a hard cutover |
+| Add annual-only pricing tier | Monthly churn > 50% in first 30 days | Hide monthly behind a "if you must" flow rather than removing it |
+| Hire contractor | MRR ≥ $1K AND bottleneck is non-engineering work | Hire to relieve the bottleneck, not to spend the revenue |
+| Consider seed funding | Month 12+ AND growth > 15% MoM for 3 consecutive months | Raise to accelerate proven traction, never to fund discovery |
+| Expand to Android | iOS LTV > 1.5× CAC for 90 days | Don't split focus before the unit economics on iOS are clear |
+| Pivot or sunset | See [kill criteria](../business/financial-model.md#kill-criteria) | Pre-committed in financial model; check monthly |

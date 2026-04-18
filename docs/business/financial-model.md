@@ -132,21 +132,117 @@
 
 ---
 
-## Break-Even Analysis
+## Break-Even & Founder Runway
 
-**Fixed costs (estimated monthly):**
+There are two break-even numbers. The first one is the one founders quote at parties; the second one is the one that decides whether this is a business.
+
+### Cash break-even (vanity)
+~6 annual subscribers/month. ~$15 MRR net. Achievable Month 1. Not a meaningful target — it just covers Apple Developer + domain + email. **Don't celebrate hitting this.**
+
 | Item | Cost |
 |------|------|
-| Apple Developer Program | $8.25 ($99/year) |
-| Domain (velahealth.health) | ~$6/month (~$70/year, .health is a premium TLD) |
+| Apple Developer Program | $8.25/mo ($99/year) |
+| Domain (velahealth.health) | ~$6/mo (~$70/year, .health is a premium TLD) |
 | RevenueCat | Free (< $2.5k MRR) |
-| Email (support inbox) | $0 (use free tier) |
-| **Total fixed** | **~$15/month** |
+| PostHog + Sentry | Free (under free-tier limits) |
+| Email (Namecheap forward) | $0 |
+| **Total fixed cash** | **~$15/month** |
 
-**Break-even:** ~6 annual subscribers/month covers fixed costs. Achievable within Month 1.
+### Real break-even (the one that matters)
 
-**Real break-even (including your time):**
-If valuing founder time at $5,000/month → need ~143 annual subscribers or ~$475 MRR (net). Achievable by Month 5-7 in Scenario B.
+Pricing your time at $5,000/month opportunity cost (conservative for an experienced engineer/founder), break-even is **~143 paid subscribers, ~$475 MRR net**. At Scenario B trajectory ($500/mo paid acquisition), that's Month 5–7. At Scenario A (organic only), it never happens within Year 1.
+
+This is the number to optimize for. If you don't price your time, you're not running a business — you're funding a hobby with foregone earnings.
+
+### Founder runway
+
+The actual constraint is how long you can run this without compensation before forcing a decision. That number is yours, not the model's. Three honest scenarios:
+
+| Runway | Implication |
+|--------|-------------|
+| **6 months full-time** | One shot. Must commit to paid acquisition by Month 2 or you won't generate enough learning to pivot meaningfully. |
+| **12 months full-time** | Comfortable. Can afford to spend Month 1–3 in TestFlight + organic before opening the budget. |
+| **Indefinite (side project)** | Different game entirely. Optimize for "interesting learnings per hour" rather than MRR. |
+
+Decide which bucket you're in **before** the App Store launch, not after. Mid-flight pivots from "this is my livelihood" to "this is a side project" tend to follow disappointing months — and that's the worst time to make that call rationally.
+
+---
+
+## Decision Triggers
+
+The point of this section is to pre-commit to actions so you don't have to argue with yourself in the moment. Each trigger is **measurable** (you can't fudge it), **time-bounded** (so it forces a decision), and tied to actions that don't require approval to execute.
+
+Metrics come from the events instrumented in [analytics-and-billing.md](../operations/analytics-and-billing.md) and the RevenueCat dashboard.
+
+### Stage 1: Closed beta (TestFlight, target 10–30 users, ~14 days)
+*Goal: prove the daily-log loop is sticky enough to be worth monetizing.*
+
+| Signal | Action |
+|--------|--------|
+| ≥ 60% of beta users complete 7+ logs in 14 days | **Advance to public launch.** |
+| 30–60% complete 7+ logs | **Iterate on onboarding + day-1 retention** before App Store. Don't launch yet. |
+| < 30% complete 7+ logs | **Pause launch.** Core loop is broken. Talk to the dropouts (5 calls, recorded). The product needs a change, not more polish. |
+
+### Stage 2: Public launch (App Store live, target first 30 trials)
+*Goal: prove monetization works at zero ad spend before investing acquisition budget.*
+
+| Signal | Action |
+|--------|--------|
+| Trial-to-paid ≥ 40% on first 30 trials AND D30 retention ≥ 15% | **Open paid budget.** Start Apple Search Ads at $200/mo. |
+| Trial-to-paid 25–40% | **Don't spend yet.** Iterate on paywall (price layout, copy, plan emphasis). Re-measure after 30 more trials. |
+| Trial-to-paid < 25% | **Stop building features.** Paywall or value prop is broken. Audit the trial → paid transition with session-level analytics. |
+
+### Stage 3: Scale (post-PMF signal, paid acquisition active)
+*Goal: prove acquisition is profitable, then double it.*
+
+ROAS is calculated as `(net revenue from cohort over 12 months) / (ad spend to acquire cohort)`. Use a 30-day rolling window.
+
+| Signal | Action |
+|--------|--------|
+| ROAS ≥ 1.5 over 30 days | **Double the budget.** $200 → $400 → $800. Ratchet up only after each new level holds ROAS for 30 days. |
+| ROAS 1.0–1.5 | **Hold spend flat.** Optimize creative + targeting. Don't scale unprofitable ads. |
+| ROAS < 1.0 for 30 days | **Pause paid acquisition entirely.** Return to organic + ASO until you understand why. |
+
+### Always-on triggers
+*Independent of stage; check monthly.*
+
+| Signal | Action |
+|--------|--------|
+| Monthly churn > 50% in first 30 days | **Add annual-only pricing tier**, hide monthly behind a "if you must" flow. |
+| ≥ 100 reviews at 4.5+ AND trial-to-paid ≥ 45% sustained 60 days | **Test $59.99/year price** (50/50 split via App Store Connect price experiment). |
+| Bottleneck is non-engineering work AND MRR ≥ $1K | **Hire a contractor** (design or marketing, whichever is the bottleneck). Don't hire because revenue exists — hire because the bottleneck is no longer code. |
+
+---
+
+## Price Sensitivity
+
+Current pricing: $49.99/yr at parity with Balance and Flo, $10 below Caria. The pricing question isn't "what's competitive" — it's "what's the LTV ceiling we can reach without collapsing trial-to-paid."
+
+Assuming 8-month average subscription duration and a 70/30 annual/monthly mix, here's how Year-1 net LTV moves with the annual price (monthly held proportional):
+
+| Annual price | Net LTV (Y1) | Required CAC (target 3:1 LTV:CAC) | Trial-to-paid risk |
+|--------------|--------------|------------------------------------|---------------------|
+| $39.99 | $21.10 | $7.03 | Lowest — but leaves money on the table |
+| $49.99 (current) | $26.40 | $8.80 | Baseline |
+| $59.99 (Caria parity) | $31.70 | $10.57 | Moderate. Likely 5–10% trial-to-paid drop. Worth testing once social proof is established. |
+| $69.99 | $36.95 | $12.32 | High — needs strong differentiation messaging. Don't try until ≥ 200 reviews at 4.7+. |
+
+**Don't test pricing until trial-to-paid is stable.** A price change perturbs the funnel; if the funnel is also being iterated, you can't tell what caused what. Stabilize first, then run a 50/50 split for ≥ 30 days per cell.
+
+---
+
+## Kill Criteria
+
+Pre-committing to when you stop is how you avoid the founder failure mode of grinding indefinitely on a thing that isn't working.
+
+| Trigger | Decision |
+|---------|----------|
+| **6 months post-launch** AND MRR < $100 AND no clear retention signal (D30 < 10%) | **Pivot or sunset.** The audience or the product is wrong; more polish won't fix it. Either reposition (different audience, different feature emphasis) or stop. |
+| **12 months post-launch** AND cumulative net negative AND no path to $500 MRR within 6 more months | **Sunset or open-source.** Continuing past this point is a sunk-cost decision, not a strategic one. |
+| **Any time** D30 retention < 5% across ≥ 100 users | **Stop adding features.** PMF is not present. Return to discovery — interviews, dropout analysis, prototype alternatives. |
+| **Any time** Apple changes IDFA / SKAdNetwork rules in a way that lifts iOS CAC > $10 with no offsetting LTV change | **Reconsider iOS-only strategy.** The financial model's CAC assumptions ($1.50–$3.00) become structurally invalid. |
+
+The kill criteria aren't pessimism — they're the price of admission for being able to take real risk earlier. Without them, every disappointing month becomes ambiguous and you grind. With them, you grind on the right things and stop when the data says stop.
 
 ---
 
