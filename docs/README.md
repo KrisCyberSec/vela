@@ -35,6 +35,7 @@ Running and deploying things.
 | [infrastructure.md](operations/infrastructure.md) | Every service we use: Netlify, Namecheap, Firebase, domain, DNS records |
 | [deployment.md](operations/deployment.md) | How to deploy the landing page, how to update DNS, redeploy functions |
 | [waitlist.md](operations/waitlist.md) | Admin dashboard, JSON/CSV export, token rotation, viewing emails via CLI |
+| [ios-build.md](operations/ios-build.md) | iOS build flow, Xcode setup, TestFlight/App Store submission |
 
 ## Business
 
