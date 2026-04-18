@@ -4,55 +4,117 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vela — Privacy Policy</title>
+  <meta name="description" content="How Vela protects your privacy. We store health data on-device, never in the cloud." />
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px 16px; color: #2C1F17; line-height: 1.7; }
-    h1 { font-size: 24px; margin-bottom: 4px; }
-    h2 { font-size: 18px; margin-top: 28px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 680px; margin: 0 auto; padding: 32px 20px 80px; color: #2C1F17; line-height: 1.7; }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin-top: 32px; color: #2C1F17; }
+    h3 { font-size: 15px; margin-top: 20px; color: #6B5347; }
     .date { color: #6B5347; font-size: 14px; margin-bottom: 24px; }
+    .intro { background: #F5E6DE; padding: 16px 20px; border-radius: 8px; margin: 20px 0 32px; }
+    .intro strong { color: #C4856C; }
     p, li { font-size: 15px; }
     ul { padding-left: 20px; }
     a { color: #C97B5C; }
+    a:hover { text-decoration: underline; }
+    .back { font-size: 13px; color: #9A8578; text-decoration: none; }
+    .back:hover { color: #2C1F17; }
   </style>
 </head>
 <body>
+  <p><a href="/" class="back">← Back to velahealth.health</a></p>
+
   <h1>Privacy Policy</h1>
-  <p class="date">Effective date: March 14, 2026</p>
+  <p class="date">Effective date: April 17, 2026</p>
 
-  <p>Vela ("we", "our", or "the app") is a perimenopause and menopause symptom tracking companion. We are committed to protecting your privacy.</p>
+  <div class="intro">
+    <strong>Plain English summary:</strong> Your health data stays on your phone. We never see it. We don't use analytics or ad trackers. If you sign up for our waitlist on this website, we only collect your email address (nothing else). That's it.
+  </div>
 
-  <h2>Data We Collect</h2>
-  <p>Vela collects the following information that you voluntarily provide:</p>
+  <p>Vela ("we", "our", "us", or "the app") is a perimenopause and menopause symptom tracking companion operated by Vela Health ("Vela Health"). This policy covers both the Vela iOS app and this website, <a href="https://velahealth.health">velahealth.health</a>.</p>
+
+  <h2>1. Data We Collect</h2>
+
+  <h3>In the Vela app</h3>
+  <p>The app stores the following information that you voluntarily enter:</p>
   <ul>
-    <li>Onboarding questionnaire answers (hormonal stage, symptom preferences, goals)</li>
-    <li>Daily symptom logs (mood, symptoms, severity ratings, free-text notes)</li>
+    <li>Onboarding answers (menopause stage, concerns, goals, guidance preferences)</li>
+    <li>Daily logs: mood, energy, symptoms, severity ratings, sleep/stress/trigger context, free-text notes</li>
+    <li>Completed lessons, experiments, and CBT program progress</li>
+    <li>Ask Vela conversation history</li>
+  </ul>
+  <p><strong>All of this is stored locally on your device only</strong>, in the app's sandboxed storage. It never leaves your device. We have no ability to read, access, copy, or recover it.</p>
+
+  <h3>On this website</h3>
+  <p>If you submit your email on the waitlist form at velahealth.health, we collect:</p>
+  <ul>
+    <li>Your email address</li>
+    <li>The time you submitted</li>
+    <li>Your browser's user agent string and referring URL (where you came from)</li>
+    <li>Your IP address</li>
+  </ul>
+  <p>This information is stored on Netlify's infrastructure (our hosting provider) and is used only to notify you when Vela launches and to understand where our audience is coming from. We do not sell, rent, or share this information.</p>
+
+  <h3>Community features (future)</h3>
+  <p>The app includes a community feature that is currently offline (posts stored on-device only). When we enable the live community in the future:</p>
+  <ul>
+    <li>Posts and replies you publish will be stored on Google Firebase servers</li>
+    <li>Published posts will be visible to other Vela users (but posted under anonymous aliases, not your real identity)</li>
+    <li>An anonymous user ID (not tied to your email or real name) will be associated with your posts so you can edit or delete them</li>
+  </ul>
+  <p>We will update this policy and notify users before enabling live community features.</p>
+
+  <h2>2. Data We Do NOT Collect</h2>
+  <ul>
+    <li>We do not collect your real name, phone number, address, or government ID</li>
+    <li>We do not use analytics SDKs (Google Analytics, Mixpanel, Amplitude, etc.)</li>
+    <li>We do not use advertising networks or tracking pixels</li>
+    <li>We do not collect device identifiers, advertising IDs, or fingerprints</li>
+    <li>We do not access your contacts, photos, location, calendar, or other device data</li>
+    <li>We do not sell data to anyone, ever</li>
   </ul>
 
-  <h2>How Data Is Stored</h2>
-  <p>All data is stored <strong>locally on your device only</strong>, using your browser's or app's local storage. We do not transmit, upload, or store your health data on any external server.</p>
-  <p>If you delete the app, your data will be permanently lost. We have no ability to recover it.</p>
+  <h2>3. In-App Purchases</h2>
+  <p>Subscription purchases in the iOS app are processed entirely by Apple through the App Store. We use <a href="https://www.revenuecat.com/privacy">RevenueCat</a> to manage subscription status. RevenueCat receives an anonymous app user ID and your Apple purchase receipt — no personal health data is shared.</p>
 
-  <h2>Data We Do NOT Collect</h2>
+  <h2>4. Cookies and Tracking on This Website</h2>
+  <p>The velahealth.health website uses Google Fonts (fonts.googleapis.com) which may set cookies per Google's policy. We do not set any other cookies. If you use the admin dashboard at /admin.html, your authentication token is stored in your browser's localStorage and never sent to us.</p>
+
+  <h2>5. Children's Privacy</h2>
+  <p>Vela is not intended for children under 13. In accordance with the Children's Online Privacy Protection Act (COPPA), we do not knowingly collect personal information from children under 13. If you believe a child has provided us information, please contact us and we will delete it.</p>
+
+  <h2>6. Your Rights (Under GDPR, CCPA, and Similar Laws)</h2>
+  <p>Because health data is stored on your device, you always have full control over it — you can view, edit, or delete any entry from within the app, or delete everything at once by uninstalling.</p>
+  <p>For waitlist data collected on this website, you have the right to:</p>
   <ul>
-    <li>We do not collect personal identifiers (name, email, phone number)</li>
-    <li>We do not use analytics or tracking SDKs</li>
-    <li>We do not collect device identifiers or advertising IDs</li>
-    <li>We do not share any data with third parties</li>
+    <li><strong>Access</strong> your data (we'll email you what we have)</li>
+    <li><strong>Correct</strong> inaccurate data</li>
+    <li><strong>Delete</strong> your data (we'll remove your email from the waitlist)</li>
+    <li><strong>Object</strong> to processing or withdraw consent at any time</li>
+    <li><strong>Portability</strong> — we'll send you a copy of your data in a common format</li>
+  </ul>
+  <p>To exercise any of these rights, email <a href="mailto:support@velahealth.health">support@velahealth.health</a>. We respond within 30 days.</p>
+
+  <p>California residents have additional rights under the California Consumer Privacy Act (CCPA). EU/UK residents have rights under GDPR. We honor all applicable rights — the above list is not exhaustive.</p>
+
+  <h2>7. Data Retention</h2>
+  <ul>
+    <li><strong>App data:</strong> stored on your device until you delete it. We never have a copy.</li>
+    <li><strong>Waitlist email:</strong> retained until you request deletion or until we send you a launch notification (whichever comes first). After launch, we may keep your email as a subscriber unless you unsubscribe.</li>
   </ul>
 
-  <h2>In-App Purchases</h2>
-  <p>Subscription purchases are processed entirely by Apple through the App Store. We use RevenueCat to manage subscription status. RevenueCat receives an anonymous app user ID and purchase receipt — no personal health data is shared with RevenueCat.</p>
-  <p>See RevenueCat's privacy policy at <a href="https://www.revenuecat.com/privacy">revenuecat.com/privacy</a>.</p>
+  <h2>8. Data Security</h2>
+  <p>Waitlist data is stored in Netlify Blobs behind authentication. The admin export endpoint requires a secret token. We use HTTPS for all connections to this website. No system is perfectly secure; if we learn of a breach affecting your data, we will notify you as required by law.</p>
 
-  <h2>Children's Privacy</h2>
-  <p>Vela is not intended for use by children under 13. We do not knowingly collect data from children.</p>
+  <h2>9. International Users</h2>
+  <p>Vela Health is based in the United States. If you access Vela from outside the U.S., be aware that waitlist data is stored in the United States. By using the website, you consent to this transfer.</p>
 
-  <h2>Your Rights</h2>
-  <p>Since all data is stored locally on your device, you have full control. You can delete all data at any time by clearing the app's data or uninstalling the app.</p>
+  <h2>10. Changes to This Policy</h2>
+  <p>We may update this policy from time to time. The "Effective date" above reflects the most recent change. For material changes (e.g., enabling live community features), we will notify existing waitlist subscribers by email.</p>
 
-  <h2>Changes to This Policy</h2>
-  <p>We may update this policy from time to time. Changes will be reflected in the "Effective date" above.</p>
+  <h2>11. Contact</h2>
+  <p>Questions, requests, or complaints? Contact us at <a href="mailto:support@velahealth.health">support@velahealth.health</a>.</p>
 
-  <h2>Contact</h2>
-  <p>Questions about this policy? Contact us at <a href="mailto:support@velahealth.app">support@velahealth.app</a>.</p>
+  <p style="margin-top:40px; font-size:13px; color:#9A8578;">Vela Health · velahealth.health</p>
 </body>
 </html>

@@ -3,13 +3,103 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#C4856C" />
+  <meta name="color-scheme" content="light" />
+
   <title>Vela — Your Menopause Companion</title>
-  <meta name="description" content="Track perimenopause and menopause symptoms, discover personal patterns, and walk into your doctor's office prepared. All data stays on your device." />
-  <meta name="keywords" content="menopause, perimenopause, symptom tracker, hot flashes, hormone health, women's health" />
-  <meta property="og:title" content="Vela — Your Menopause Companion" />
-  <meta property="og:description" content="Track symptoms. See patterns. Your data never leaves your device." />
+  <meta name="description" content="Track perimenopause and menopause symptoms with a 30-second daily log. Discover personal patterns. Walk into your doctor's office prepared. All data stays on your device — no account, no cloud." />
+  <meta name="keywords" content="menopause app, perimenopause tracker, menopause symptom tracker, hot flashes, brain fog, night sweats, hormone health, women's health, doctor visit preparation, privacy-first health app" />
+  <meta name="author" content="Vela Health" />
+  <link rel="canonical" href="https://velahealth.health/" />
+
+  <!-- Favicon & app icons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+  <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://velahealth.app" />
+  <meta property="og:site_name" content="Vela Health" />
+  <meta property="og:url" content="https://velahealth.health/" />
+  <meta property="og:title" content="Vela — Your Menopause Companion" />
+  <meta property="og:description" content="Track symptoms. See patterns. Walk into your doctor's office prepared. Your data never leaves your device." />
+  <meta property="og:image" content="https://velahealth.health/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Vela — Your body, finally understood." />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Vela — Your Menopause Companion" />
+  <meta name="twitter:description" content="Track symptoms. See patterns. Walk into your doctor's office prepared. Your data never leaves your device." />
+  <meta name="twitter:image" content="https://velahealth.health/og-image.png" />
+  <meta name="twitter:image:alt" content="Vela — Your body, finally understood." />
+
+  <!-- Structured data: MobileApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MobileApplication",
+    "name": "Vela",
+    "operatingSystem": "iOS",
+    "applicationCategory": "HealthApplication",
+    "description": "Perimenopause and menopause symptom tracker with on-device AI companion, pattern detection, and doctor-ready reports.",
+    "url": "https://velahealth.health/",
+    "image": "https://velahealth.health/og-image.png",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Premium Annual",
+        "price": "49.99",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Premium Monthly",
+        "price": "5.99",
+        "priceCurrency": "USD"
+      }
+    ],
+    "publisher": {
+      "@type": "Organization",
+      "name": "Vela Health",
+      "url": "https://velahealth.health/"
+    },
+    "featureList": [
+      "Daily symptom tracking",
+      "Pattern detection",
+      "AI health companion",
+      "Doctor-ready PDF reports",
+      "CBT programs",
+      "On-device privacy"
+    ]
+  }
+  </script>
+
+  <!-- Structured data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Vela Health",
+    "url": "https://velahealth.health/",
+    "logo": "https://velahealth.health/icon-512.png",
+    "description": "Privacy-first menopause companion app. On-device AI, doctor-ready reports, and evidence-based CBT programs.",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "support@velahealth.health",
+      "contactType": "Customer support"
+    }
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet" />
@@ -510,7 +600,7 @@
     <div class="footer-links">
       <a href="privacy.html">Privacy</a>
       <a href="terms.html">Terms</a>
-      <a href="mailto:support@velahealth.app">Contact</a>
+      <a href="mailto:support@velahealth.health">Contact</a>
     </div>
     <div class="footer-disclaimer">
       Vela is not medical advice. Always consult your healthcare provider for medical decisions.
