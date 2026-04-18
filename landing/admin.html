@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vela — Waitlist Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <style>
+    :root {
+      --clay: #C4856C; --sage: #7A9E87; --sage-dark: #5A7E67;
+      --cream: #FAF6F1; --ink: #2C1F17; --ink-mid: #6B5347; --ink-light: #9A8578;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--cream); color: var(--ink); padding: 32px 24px; line-height: 1.5;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 4px; color: var(--ink); }
+    .sub { color: var(--ink-mid); margin-bottom: 24px; font-size: 14px; }
+    .stats {
+      display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .stat {
+      background: white; border-radius: 12px; padding: 16px 20px; flex: 1; min-width: 160px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .stat-num { font-size: 28px; font-weight: 600; color: var(--clay); }
+    .stat-label { font-size: 12px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .actions { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .btn {
+      padding: 8px 16px; background: var(--ink); color: var(--cream);
+      border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn.secondary { background: white; color: var(--ink); border: 1px solid rgba(0,0,0,0.15); }
+    table {
+      width: 100%; background: white; border-radius: 12px; overflow: hidden;
+      border-collapse: collapse; border: 1px solid rgba(0,0,0,0.08);
+    }
+    thead { background: var(--sage); color: white; }
+    th, td {
+      padding: 12px 16px; text-align: left; font-size: 14px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    tbody tr:hover { background: rgba(0,0,0,0.02); }
+    tbody tr:last-child td { border-bottom: none; }
+    .email { font-family: ui-monospace, 'SF Mono', monospace; font-size: 13px; color: var(--ink); }
+    .date { color: var(--ink-mid); font-size: 13px; }
+    .ref { color: var(--ink-light); font-size: 12px; }
+    .login {
+      max-width: 400px; margin: 80px auto; background: white; padding: 32px;
+      border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);
+    }
+    .login input {
+      width: 100%; padding: 10px 14px; border: 1px solid rgba(0,0,0,0.15);
+      border-radius: 8px; font-size: 14px; margin: 12px 0 16px;
+      font-family: inherit; color: var(--ink);
+    }
+    .login input:focus { outline: none; border-color: var(--sage); }
+    .login button { width: 100%; padding: 12px; }
+    .error { color: #C4575C; font-size: 13px; margin-bottom: 12px; }
+    .empty {
+      text-align: center; padding: 60px 20px; color: var(--ink-light);
+      background: white; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);
+    }
+    .logout { float: right; font-size: 13px; color: var(--ink-light); text-decoration: none; }
+    .logout:hover { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app"></div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const TOKEN_KEY = "vela_admin_token";
+
+    function renderLogin(errMsg) {
+      $("#app").innerHTML = `
+        <div class="login">
+          <h1>Vela Admin</h1>
+          <p class="sub">Enter your admin token to view the waitlist.</p>
+          ${errMsg ? `<div class="error">${errMsg}</div>` : ""}
+          <form onsubmit="return handleLogin(event)">
+            <input type="password" id="token-input" placeholder="Admin token" autofocus required />
+            <button type="submit" class="btn">Unlock</button>
+          </form>
+        </div>
+      `;
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const token = $("#token-input").value.trim();
+      if (!token) return false;
+      const ok = await tryLoad(token);
+      if (ok) {
+        localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        renderLogin("Invalid token. Try again.");
+      }
+      return false;
+    }
+
+    function logout() {
+      localStorage.removeItem(TOKEN_KEY);
+      renderLogin();
+    }
+
+    async function tryLoad(token) {
+      try {
+        const r = await fetch(`/.netlify/functions/waitlist-export?token=${encodeURIComponent(token)}`);
+        if (!r.ok) return false;
+        const data = await r.json();
+        renderDashboard(data, token);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+
+    function renderDashboard(data, token) {
+      const entries = (data.entries || []).slice().reverse(); // newest first
+      const now = Date.now();
+      const last7d = entries.filter(e => new Date(e.submittedAt) > now - 7*86400000).length;
+      const csvUrl = `/.netlify/functions/waitlist-export?token=${encodeURIComponent(token)}&format=csv`;
+
+      $("#app").innerHTML = `
+        <div>
+          <a href="#" class="logout" onclick="logout(); return false;">Sign out</a>
+          <h1>Waitlist</h1>
+          <p class="sub">velahealth.health signups</p>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-num">${data.count}</div>
+            <div class="stat-label">Total signups</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">${last7d}</div>
+            <div class="stat-label">Last 7 days</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a href="${csvUrl}" class="btn">Download CSV</a>
+          <button class="btn secondary" onclick="copyEmails()">Copy all emails</button>
+          <button class="btn secondary" onclick="location.reload()">Refresh</button>
+        </div>
+
+        ${entries.length === 0 ? `
+          <div class="empty">
+            <p>No signups yet.</p>
+            <p style="margin-top:8px; font-size:13px;">Share your site: <strong>velahealth.health</strong></p>
+          </div>
+        ` : `
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Signed up</th>
+                <th>Referrer</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(e => `
+                <tr>
+                  <td class="email">${e.email}</td>
+                  <td class="date">${fmtDate(e.submittedAt)}</td>
+                  <td class="ref">${e.referrer || "—"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `}
+      `;
+
+      // Expose a helper for the copy-emails button
+      window._emails = entries.map(e => e.email).join("\n");
+    }
+
+    window.copyEmails = async () => {
+      if (window._emails) {
+        await navigator.clipboard.writeText(window._emails);
+        alert("Copied " + window._emails.split("\n").length + " emails to clipboard");
+      }
+    };
+
+    // Boot
+    const saved = localStorage.getItem(TOKEN_KEY);
+    if (saved) {
+      tryLoad(saved).then(ok => { if (!ok) renderLogin("Saved token no longer works. Please re-enter."); });
+    } else {
+      renderLogin();
+    }
+  </script>
+</body>
+</html>

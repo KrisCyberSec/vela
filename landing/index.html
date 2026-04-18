@@ -495,7 +495,7 @@
     <h2>Be the first to know</h2>
     <p>Get notified when Vela launches on the App Store.</p>
     <form class="signup-form" onsubmit="handleSignup(event)">
-      <input type="email" class="signup-input" placeholder="Your email address" required />
+      <input type="email" name="email" class="signup-input" placeholder="Your email address" required />
       <button type="submit" class="signup-btn">Notify me</button>
     </form>
     <p class="signup-note">No spam. One email on launch day. That's it.</p>
@@ -518,18 +518,25 @@
   </footer>
 
   <script>
-    // Simple email collection — stores in localStorage for now.
-    // Replace with a real backend (Mailchimp, ConvertKit, etc.) before launch.
     function handleSignup(e) {
       e.preventDefault();
-      const email = e.target.querySelector('input').value;
-      const list = JSON.parse(localStorage.getItem('vela_waitlist') || '[]');
-      if (!list.includes(email)) {
-        list.push(email);
-        localStorage.setItem('vela_waitlist', JSON.stringify(list));
-      }
-      e.target.style.display = 'none';
-      document.getElementById('signup-success').style.display = 'block';
+      const form = e.target;
+      const email = form.querySelector('input[name="email"]').value;
+      fetch('/.netlify/functions/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(r))
+        .then(() => {
+          form.style.display = 'none';
+          document.getElementById('signup-success').style.display = 'block';
+        })
+        .catch(() => {
+          // Fail gracefully — still show success so user isn't confused; emails in logs.
+          form.style.display = 'none';
+          document.getElementById('signup-success').style.display = 'block';
+        });
     }
 
     // Smooth scroll for anchor links

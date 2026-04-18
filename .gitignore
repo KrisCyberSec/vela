@@ -18,3 +18,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .claude/
+
+# Private admin notes (contains tokens)
+ADMIN.md
+
+# Netlify local state
+.netlify/
+landing/.netlify/
+
+# Generated pitch deck binaries (regenerate via `node pitch-deck.js`)
+Vela-Pitch-Deck.pptx
+Vela-Pitch-Deck.pdf
