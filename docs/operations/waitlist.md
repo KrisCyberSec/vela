@@ -24,12 +24,13 @@ Retrieval goes through a separate function protected by an admin token:
 ```
 Admin loads /admin.html
     ↓
-Enters ADMIN_TOKEN (saved to localStorage after first use)
+Enters ADMIN_TOKEN (saved to sessionStorage; clears on tab close)
     ↓
-GET /.netlify/functions/waitlist-export?token=...
+GET /.netlify/functions/waitlist-export
+    Authorization: Bearer <ADMIN_TOKEN>
     ↓
 waitlist-export.js function
-    ├─ Validates token
+    ├─ Validates token from Authorization header
     ├─ Lists all blobs in the "waitlist" store
     └─ Returns JSON or CSV
 ```
@@ -38,7 +39,7 @@ waitlist-export.js function
 
 **URL:** [velahealth.health/admin.html](https://velahealth.health/admin.html)
 
-First visit asks for the admin token (stored in `ADMIN.md`). After pasting, it's saved to `localStorage["vela_admin_token"]` so you don't need to paste again on the same browser.
+First visit asks for the admin token (stored in `ADMIN.md`). After pasting, it's saved to `sessionStorage["vela_admin_token"]` for the lifetime of the tab — close the tab and you'll need to paste it again. The token is sent as `Authorization: Bearer <token>`, never in the URL.
 
 Features:
 - Total signups + last-7-days count
@@ -52,7 +53,8 @@ Features:
 ### JSON export
 
 ```
-https://velahealth.health/.netlify/functions/waitlist-export?token=<ADMIN_TOKEN>
+curl -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  https://velahealth.health/.netlify/functions/waitlist-export
 ```
 
 Returns:
@@ -67,10 +69,11 @@ Returns:
 
 ### CSV download
 
-Add `&format=csv`:
+Add `?format=csv`:
 
 ```
-https://velahealth.health/.netlify/functions/waitlist-export?token=<ADMIN_TOKEN>&format=csv
+curl -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  "https://velahealth.health/.netlify/functions/waitlist-export?format=csv"
 ```
 
 ## CLI access

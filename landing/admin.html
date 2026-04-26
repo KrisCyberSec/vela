@@ -75,20 +75,41 @@
 
   <script>
     const $ = (sel) => document.querySelector(sel);
+    // sessionStorage (not localStorage) so token clears on tab close.
     const TOKEN_KEY = "vela_admin_token";
+    const EXPORT_URL = "/.netlify/functions/waitlist-export";
+
+    function authedFetch(token, url) {
+      return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    }
+
+    function el(tag, attrs = {}, children = []) {
+      const node = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === "class") node.className = v;
+        else if (k === "onclick") node.addEventListener("click", v);
+        else node.setAttribute(k, v);
+      }
+      for (const c of [].concat(children)) {
+        if (c == null) continue;
+        node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+      }
+      return node;
+    }
 
     function renderLogin(errMsg) {
-      $("#app").innerHTML = `
-        <div class="login">
-          <h1>Vela Admin</h1>
-          <p class="sub">Enter your admin token to view the waitlist.</p>
-          ${errMsg ? `<div class="error">${errMsg}</div>` : ""}
-          <form onsubmit="return handleLogin(event)">
-            <input type="password" id="token-input" placeholder="Admin token" autofocus required />
-            <button type="submit" class="btn">Unlock</button>
-          </form>
-        </div>
-      `;
+      const app = $("#app");
+      app.replaceChildren();
+      const wrap = el("div", { class: "login" }, [
+        el("h1", {}, "Vela Admin"),
+        el("p", { class: "sub" }, "Enter your admin token to view the waitlist."),
+      ]);
+      if (errMsg) wrap.appendChild(el("div", { class: "error" }, errMsg));
+      const input = el("input", { type: "password", id: "token-input", placeholder: "Admin token", autofocus: "", required: "" });
+      const form = el("form", {}, [input, el("button", { type: "submit", class: "btn" }, "Unlock")]);
+      form.addEventListener("submit", handleLogin);
+      wrap.appendChild(form);
+      app.appendChild(wrap);
     }
 
     async function handleLogin(e) {
@@ -97,7 +118,7 @@
       if (!token) return false;
       const ok = await tryLoad(token);
       if (ok) {
-        localStorage.setItem(TOKEN_KEY, token);
+        sessionStorage.setItem(TOKEN_KEY, token);
       } else {
         renderLogin("Invalid token. Try again.");
       }
@@ -105,13 +126,13 @@
     }
 
     function logout() {
-      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
       renderLogin();
     }
 
     async function tryLoad(token) {
       try {
-        const r = await fetch(`/.netlify/functions/waitlist-export?token=${encodeURIComponent(token)}`);
+        const r = await authedFetch(token, EXPORT_URL);
         if (!r.ok) return false;
         const data = await r.json();
         renderDashboard(data, token);
@@ -127,64 +148,82 @@
       return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     }
 
+    async function downloadCsv(token) {
+      const r = await authedFetch(token, `${EXPORT_URL}?format=csv`);
+      if (!r.ok) { alert("Download failed: " + r.status); return; }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "waitlist.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
     function renderDashboard(data, token) {
       const entries = (data.entries || []).slice().reverse(); // newest first
       const now = Date.now();
       const last7d = entries.filter(e => new Date(e.submittedAt) > now - 7*86400000).length;
-      const csvUrl = `/.netlify/functions/waitlist-export?token=${encodeURIComponent(token)}&format=csv`;
 
-      $("#app").innerHTML = `
-        <div>
-          <a href="#" class="logout" onclick="logout(); return false;">Sign out</a>
-          <h1>Waitlist</h1>
-          <p class="sub">velahealth.health signups</p>
-        </div>
+      const app = $("#app");
+      app.replaceChildren();
 
-        <div class="stats">
-          <div class="stat">
-            <div class="stat-num">${data.count}</div>
-            <div class="stat-label">Total signups</div>
-          </div>
-          <div class="stat">
-            <div class="stat-num">${last7d}</div>
-            <div class="stat-label">Last 7 days</div>
-          </div>
-        </div>
+      const header = el("div", {}, [
+        el("a", { href: "#", class: "logout", onclick: (e) => { e.preventDefault(); logout(); } }, "Sign out"),
+        el("h1", {}, "Waitlist"),
+        el("p", { class: "sub" }, "velahealth.health signups"),
+      ]);
 
-        <div class="actions">
-          <a href="${csvUrl}" class="btn">Download CSV</a>
-          <button class="btn secondary" onclick="copyEmails()">Copy all emails</button>
-          <button class="btn secondary" onclick="location.reload()">Refresh</button>
-        </div>
+      const stats = el("div", { class: "stats" }, [
+        el("div", { class: "stat" }, [
+          el("div", { class: "stat-num" }, String(data.count ?? 0)),
+          el("div", { class: "stat-label" }, "Total signups"),
+        ]),
+        el("div", { class: "stat" }, [
+          el("div", { class: "stat-num" }, String(last7d)),
+          el("div", { class: "stat-label" }, "Last 7 days"),
+        ]),
+      ]);
 
-        ${entries.length === 0 ? `
-          <div class="empty">
-            <p>No signups yet.</p>
-            <p style="margin-top:8px; font-size:13px;">Share your site: <strong>velahealth.health</strong></p>
-          </div>
-        ` : `
-          <table>
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Signed up</th>
-                <th>Referrer</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${entries.map(e => `
-                <tr>
-                  <td class="email">${e.email}</td>
-                  <td class="date">${fmtDate(e.submittedAt)}</td>
-                  <td class="ref">${e.referrer || "—"}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        `}
-      `;
+      const actions = el("div", { class: "actions" }, [
+        el("button", { class: "btn", onclick: () => downloadCsv(token) }, "Download CSV"),
+        el("button", { class: "btn secondary", onclick: copyEmails }, "Copy all emails"),
+        el("button", { class: "btn secondary", onclick: () => location.reload() }, "Refresh"),
+      ]);
 
-      // Expose a helper for the copy-emails button
+      app.append(header, stats, actions);
+
+      if (entries.length === 0) {
+        const empty = el("div", { class: "empty" }, [
+          el("p", {}, "No signups yet."),
+          el("p", { style: "margin-top:8px; font-size:13px;" }, [
+            "Share your site: ",
+            el("strong", {}, "velahealth.health"),
+          ]),
+        ]);
+        app.appendChild(empty);
+      } else {
+        const tbody = el("tbody");
+        for (const e of entries) {
+          tbody.appendChild(el("tr", {}, [
+            el("td", { class: "email" }, e.email ?? ""),
+            el("td", { class: "date" }, fmtDate(e.submittedAt)),
+            el("td", { class: "ref" }, e.referrer || "—"),
+          ]));
+        }
+        const table = el("table", {}, [
+          el("thead", {}, el("tr", {}, [
+            el("th", {}, "Email"),
+            el("th", {}, "Signed up"),
+            el("th", {}, "Referrer"),
+          ])),
+          tbody,
+        ]);
+        app.appendChild(table);
+      }
+
       window._emails = entries.map(e => e.email).join("\n");
     }
 
@@ -196,7 +235,7 @@
     };
 
     // Boot
-    const saved = localStorage.getItem(TOKEN_KEY);
+    const saved = sessionStorage.getItem(TOKEN_KEY);
     if (saved) {
       tryLoad(saved).then(ok => { if (!ok) renderLogin("Saved token no longer works. Please re-enter."); });
     } else {

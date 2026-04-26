@@ -772,7 +772,7 @@ function generateDoctorSummary(logs, profile) {
     correlations: correlations.slice(0, 5),
     trend,
     recentSnapshot: recent,
-    journeyStage: profile ? getJourneyLabel(profile.journeyIndex) : null
+    journeyStage: profile ? getJourneyLabel(profile[0]) : null
   };
 }
 
