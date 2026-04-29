@@ -5,6 +5,7 @@ import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import * as communityMod from "./community";
 import { initAnalytics, track } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from "./subscription";
+import { readJSON as safeReadJSON } from "./safeStorage";
 
 function haptic(style = "Light") {
   if (Capacitor.isNativePlatform()) {
@@ -3589,10 +3590,19 @@ const css = `
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
 
 function OnboardingScreen({ onComplete }) {
-  const [qIndex, setQIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [selected, setSelected] = useState(null);
-  const [multiSelected, setMultiSelected] = useState([]);
+  // Restore mid-flow progress so closing/reopening doesn't reset onboarding
+  const saved = (() => {
+    try { return JSON.parse(localStorage.getItem("vela_onboarding_progress") || "null"); }
+    catch { return null; }
+  })();
+  const initialQIndex = Math.min(saved?.qIndex ?? 0, QUESTIONS.length - 1);
+  const initialAnswers = saved?.answers && typeof saved.answers === "object" ? saved.answers : {};
+  const initialQ = QUESTIONS[initialQIndex];
+
+  const [qIndex, setQIndex] = useState(initialQIndex);
+  const [answers, setAnswers] = useState(initialAnswers);
+  const [selected, setSelected] = useState(initialQ?.multi ? null : (initialAnswers[initialQIndex] ?? null));
+  const [multiSelected, setMultiSelected] = useState(initialQ?.multi ? (initialAnswers[initialQIndex] ?? []) : []);
   const [transitioning, setTransitioning] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
 
@@ -3600,6 +3610,13 @@ function OnboardingScreen({ onComplete }) {
   const progress = showComplete ? 100 : ((qIndex + 1) / QUESTIONS.length) * 100;
   const isLast = qIndex === QUESTIONS.length - 1;
   const isMulti = !!q.multi;
+
+  // Persist progress on every change so close-and-reopen resumes mid-flow
+  useEffect(() => {
+    try {
+      localStorage.setItem("vela_onboarding_progress", JSON.stringify({ qIndex, answers }));
+    } catch { /* private mode or quota — fine, just don't persist */ }
+  }, [qIndex, answers]);
 
   function handleSelect(i) {
     if (isMulti) {
@@ -3633,6 +3650,30 @@ function OnboardingScreen({ onComplete }) {
         setTransitioning(false);
       }, 200);
     }
+  }
+
+  function handleBack() {
+    if (qIndex === 0 || transitioning) return;
+    haptic("Light");
+    setTransitioning(true);
+    setTimeout(() => {
+      const prevIdx = qIndex - 1;
+      const prevQ = QUESTIONS[prevIdx];
+      setQIndex(prevIdx);
+      if (prevQ.multi) {
+        setMultiSelected(Array.isArray(answers[prevIdx]) ? answers[prevIdx] : []);
+        setSelected(null);
+      } else {
+        setSelected(answers[prevIdx] ?? null);
+        setMultiSelected([]);
+      }
+      setTransitioning(false);
+    }, 200);
+  }
+
+  function handleStart() {
+    try { localStorage.removeItem("vela_onboarding_progress"); } catch { /* ignore */ }
+    onComplete(answers);
   }
 
   const canContinue = isMulti ? multiSelected.length > 0 : selected !== null;
@@ -3672,7 +3713,7 @@ function OnboardingScreen({ onComplete }) {
 
           <p className="onboard-complete-sub">Each entry takes under 30 seconds.</p>
 
-          <button className="onboard-btn" onClick={() => onComplete(answers)}>
+          <button className="onboard-btn" onClick={handleStart}>
             Log my first entry →
           </button>
         </div>
@@ -3694,6 +3735,26 @@ function OnboardingScreen({ onComplete }) {
       </div>
 
       <div className={`q-card${transitioning ? " q-fade-out" : " q-fade-in"}`}>
+        {qIndex > 0 && (
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={transitioning}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--ink-light)",
+              cursor: transitioning ? "default" : "pointer",
+              padding: "4px 0",
+              marginBottom: 8,
+              fontSize: 14,
+              fontFamily: "inherit",
+            }}
+            aria-label="Go back to previous question"
+          >
+            ← Back
+          </button>
+        )}
         <div className="q-step">
           Question {qIndex + 1} of {QUESTIONS.length}
           {isMulti && <span style={{ marginLeft: 8, fontStyle: "italic", textTransform: "none", letterSpacing: 0 }}>select all that apply</span>}
@@ -7377,18 +7438,13 @@ function CommunityScreen() {
 // ─── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [onboarded, setOnboarded] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_onboarded") || "false");
-  });
-  const [screen, setScreen] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_onboarded") || "false") ? "tracker" : "onboard";
-  });
-  const [logs, setLogs] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_logs") || "[]");
-  });
-  const [profile, setProfile] = useState(() => {
-    return JSON.parse(localStorage.getItem("vela_profile") || "null");
-  });
+  // App-init reads use safeReadJSON: a localStorage exception (e.g. Safari private mode,
+  // some iOS WebView edge cases) here would white-screen the app before any UI paints.
+  // The top-level ErrorBoundary catches everything else.
+  const [onboarded, setOnboarded] = useState(() => safeReadJSON("vela_onboarded", false));
+  const [screen, setScreen] = useState(() => safeReadJSON("vela_onboarded", false) ? "tracker" : "onboard");
+  const [logs, setLogs] = useState(() => safeReadJSON("vela_logs", []));
+  const [profile, setProfile] = useState(() => safeReadJSON("vela_profile", null));
   const [toast, setToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [badgeToast, setBadgeToast] = useState(null);
@@ -7570,6 +7626,65 @@ export default function App() {
     }
   }
 
+  // Dev-only: populate the app with 30 days of realistic synthetic data so
+  // App Store screenshots can be taken in the simulator without manually
+  // onboarding + logging dozens of entries. Surface from the hidden debug
+  // screen (Settings → tap version number 5×). Pattern: caffeine days have
+  // worse hot flashes / insomnia / mood; non-caffeine days correlate with
+  // exercise + better sleep — produces real correlations in Insights.
+  function seedDemoData() {
+    if (!window.confirm("Replace your current data with 30 days of demo content? This is intended for App Store screenshots.")) return;
+    const demoProfile = [1, [0, 1, 2], 4, "sometimes"]; // perimenopause; concerns: hot flashes/sleep/mood
+    const demoLogs = [];
+    for (let day = 30; day >= 0; day--) {
+      const d = new Date();
+      d.setDate(d.getDate() - day);
+      d.setHours(9 + (day % 3), 15, 0, 0);
+      const caffeine = day % 2 === 0;
+      const sleepHours = caffeine ? 5 + Math.random() * 0.8 : 7 + Math.random() * 0.8;
+      const symptoms = {};
+      const severities = {};
+      symptoms["Brain fog"] = true;
+      severities["Brain fog"] = caffeine ? 2 : 1;
+      if (caffeine) {
+        symptoms["Hot flash"] = true; severities["Hot flash"] = 2 + (day % 2);
+        symptoms["Night sweats"] = true; severities["Night sweats"] = 2;
+        symptoms["Poor sleep"] = true; severities["Poor sleep"] = 3;
+        symptoms["Irritability"] = true; severities["Irritability"] = 2;
+      } else {
+        symptoms["Fatigue"] = true; severities["Fatigue"] = 1;
+      }
+      if (day % 7 === 0) { symptoms["Joint stiffness"] = true; severities["Joint stiffness"] = 1; }
+      const notes = day === 5 ? "Bad night — woke up drenched around 3am after the late espresso." : (day === 12 ? "Felt great today. Slept 8 hours and walked 5k." : "");
+      demoLogs.unshift({
+        date: d.toISOString(),
+        mood: caffeine ? 1 : 3,
+        energy: caffeine ? 1 : 3,
+        symptoms,
+        severities,
+        notes,
+        context: {
+          sleepHours: parseFloat(sleepHours.toFixed(1)),
+          stress: caffeine ? 4 : 2,
+          caffeine,
+          alcohol: false,
+          exercise: !caffeine,
+          period: null,
+          periodFlow: null,
+        },
+      });
+    }
+    try {
+      localStorage.setItem("vela_logs", JSON.stringify(demoLogs));
+      localStorage.setItem("vela_profile", JSON.stringify(demoProfile));
+      localStorage.setItem("vela_onboarded", "true");
+    } catch { /* private mode */ }
+    setLogs(demoLogs);
+    setProfile(demoProfile);
+    setOnboarded(true);
+    setScreen("insights");
+  }
+
   function openPaywall(trigger) {
     track("paywall_shown", { trigger });
     setShowPaywall(true);
@@ -7727,6 +7842,29 @@ export default function App() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h2 style={{ margin: 0 }}>Gamification Debugger</h2>
             <button style={{ background: "var(--sage)", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }} onClick={() => setScreen("settings")}>Back</button>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div className="settings-section-label">DEMO DATA (FOR APP STORE SCREENSHOTS)</div>
+            <div className="settings-card" style={{ padding: 12 }}>
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-light)", lineHeight: 1.4 }}>
+                Replaces your data with 30 days of perimenopause-pattern logs (caffeine ↔ hot flashes ↔ sleep correlations). Lands you on Insights so the patterns are immediately visible.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={seedDemoData}
+                  style={{ background: "var(--clay)", color: "white", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", fontWeight: 500 }}
+                >
+                  Seed 30-day demo
+                </button>
+                <button
+                  onClick={handleClearData}
+                  style={{ background: "var(--card-bg)", color: "var(--ink-light)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
+                >
+                  Clear all data
+                </button>
+              </div>
+            </div>
           </div>
 
           <div style={{ marginBottom: 20 }}>

@@ -126,16 +126,17 @@ npx cap sync ios
 
 ---
 
-## P2 — known issues and gaps (won't block submission, document for awareness)
+## P2 — fixes shipped + remaining known gaps
 
-These came out of the first-run audit. Not bugs that break submission, but things a critical tester would notice.
+The first-run audit findings are mostly resolved. What's left is documented below.
 
-| Issue | Impact | Recommended fix timing |
-|-------|--------|-----------------------|
-| Onboarding has no Back button — a misclick means starting over | Real first-run friction; testers will complain | Fix in v1.0.1 after first feedback |
-| Onboarding state isn't persisted mid-flow — close/reopen = restart | Same as above | Fix in v1.0.1 |
-| `localStorage` reads aren't wrapped in try/catch — could throw in private-browsing modes | Mostly affects web preview, not iOS Capacitor (where storage is reliable). Won't impact App Store users. | v1.1 hardening pass |
-| Apple Watch app removed support flag in `Info.plist` — confirm Vela isn't accidentally claiming Watch support | Listing inconsistency only | Pre-flight check |
+| Item | Status |
+|------|--------|
+| Onboarding Back button | ✅ Fixed — small "← Back" in q-card, hidden on Q1 |
+| Onboarding mid-flow persistence | ✅ Fixed — `vela_onboarding_progress` in localStorage; cleared on completion |
+| localStorage exception handling | ✅ Mitigated — top-level `ErrorBoundary` (`src/ErrorBoundary.jsx`) catches any render-time throw including useState lazy initializers; `src/safeStorage.js` provides safe `readJSON/writeJSON/remove` and is used for the App-init reads |
+| Apple Watch support flag in Info.plist | ✅ Verified clean — no `WKApp*` keys present |
+| Demo data seed for screenshots | ✅ Added — Settings → tap version 5× → Debug screen → "Seed 30-day demo" populates realistic perimenopause data with caffeine ↔ hot flash correlations and lands you on Insights |
 
 ---
 
