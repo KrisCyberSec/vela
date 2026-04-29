@@ -7582,12 +7582,20 @@ export default function App() {
       setIsPremium(true);
       setShowPaywall(false);
     } else if (result.cancelled) {
-      // user dismissed the native sheet — leave paywall open
-    } else if (result.error === "not_available") {
-      // Web/dev fallback so the paywall is still testable without RevenueCat configured
+      // user dismissed the native sheet — leave paywall open, no toast
+    } else if (result.error === "web_fallback") {
+      // Browser dev preview only — no Apple receipt to validate. Unlock locally for testing.
+      // This branch is unreachable in production iOS builds (mode would be 'native' or 'misconfigured').
       setIsPremium(true);
       setShowPaywall(false);
+    } else if (result.error === "misconfigured") {
+      // Native iOS build is missing the RevenueCat API key — surfaced as a user-friendly error,
+      // logged to Sentry inside subscription.js. Critically: do NOT grant premium.
+      setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
+      setToast(true);
+      setTimeout(() => setToast(false), 3500);
     } else {
+      // no_offering / no_package / network error / unknown — surface a generic failure
       setToastMsg("Purchase didn't go through. Try again or contact support.");
       setToast(true);
       setTimeout(() => setToast(false), 3500);
@@ -7600,6 +7608,8 @@ export default function App() {
       setIsPremium(true);
       setShowPaywall(false);
       setToastMsg("Premium restored. ✨");
+    } else if (result.error === "misconfigured") {
+      setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
     } else {
       setToastMsg("No previous purchase found on this Apple ID.");
     }
