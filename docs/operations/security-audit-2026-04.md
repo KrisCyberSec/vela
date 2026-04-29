@@ -20,11 +20,13 @@ A pre-beta sanity check on what's exposed, what's secret, and where the docs lie
 
 ### 1. Stale docs misrepresenting the auth flow (FIXED)
 
-`docs/operations/waitlist.md` and `ADMIN.md` showed `?token=<ADMIN_TOKEN>` URL examples for direct API access. These would all return 401 against the current production function — admin auth requires the `Authorization: Bearer` header.
+`docs/operations/infrastructure.md` and `ADMIN.md` (gitignored, fixed locally only) showed `?token=<ADMIN_TOKEN>` URL examples for direct API access. These would all return 401 against the current production function — admin auth requires the `Authorization: Bearer` header.
 
-**Why this matters:** anyone trying to follow the docs (you, future-you, a contractor) hits 401 and either thinks the token is wrong (could trigger a needless rotation) or pastes the token into URLs and routes it through browser history / referer headers / CDN logs (a real anti-pattern that the production flow correctly avoids).
+**Background:** the prior commit `dab8755` ("Fix audit findings: XSS, admin token leak, CSV injection, journeyStage") moved auth from query-param to Bearer header and updated `landing/admin.html` and `docs/operations/waitlist.md` accordingly. It missed two adjacent docs.
 
-**Fix applied:** updated both docs to show the correct `curl -H "Authorization: Bearer $ADMIN_TOKEN"` form. Browser-based access still goes through `/admin.html`, which already does the right thing.
+**Why this matters:** anyone trying to follow the stale docs (you, future-you, a contractor) hits 401 and either thinks the token is wrong (could trigger a needless rotation) or pastes the token into URLs and routes it through browser history / referer headers / CDN logs (a real anti-pattern that the production flow correctly avoids).
+
+**Fix applied:** updated `infrastructure.md` (committed) and `ADMIN.md` (local only — gitignored) to show the correct `curl -H "Authorization: Bearer $ADMIN_TOKEN"` form. Browser-based access through `/admin.html` was already correct from `dab8755`.
 
 ### 2. Optional: admin token has a small disk footprint outside the repo
 
