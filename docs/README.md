@@ -15,6 +15,7 @@ High-level thinking, positioning, and go-to-market.
 | [overview.md](product/overview.md) | What Vela is, who it's for, feature list, current stage, roadmap |
 | [app-store-listing.md](product/app-store-listing.md) | App Store metadata, keywords, screenshots plan, competitive positioning |
 | [launch-strategy.md](product/launch-strategy.md) | Pre-launch checklist, launch-week plan, 90-day growth calendar |
+| [community-outreach-drafts.md](product/community-outreach-drafts.md) | Reddit / community post drafts (not yet posted); tone guidance per subreddit |
 
 ## Engineering
 
@@ -37,6 +38,7 @@ Running and deploying things.
 | [waitlist.md](operations/waitlist.md) | Admin dashboard, JSON/CSV export, token rotation, viewing emails via CLI |
 | [ios-build.md](operations/ios-build.md) | iOS build flow, Xcode setup, TestFlight/App Store submission |
 | [analytics-and-billing.md](operations/analytics-and-billing.md) | RevenueCat, PostHog, Sentry — env vars, setup steps, instrumented events |
+| [security-audit-2026-04.md](operations/security-audit-2026-04.md) | Pre-beta audit: secret patterns checked, repo visibility, admin auth flow |
 
 ## Business
 

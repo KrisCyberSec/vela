@@ -49,7 +49,7 @@ Located at `/Users/kristopher/Vela/landing/netlify/functions/`:
 | Function | Endpoint | Purpose |
 |----------|----------|---------|
 | `waitlist.js` | `/.netlify/functions/waitlist` | Accepts POST with `{email}`, stores to Blobs |
-| `waitlist-export.js` | `/.netlify/functions/waitlist-export?token=…` | Returns all waitlist entries as JSON or CSV |
+| `waitlist-export.js` | `/.netlify/functions/waitlist-export` (requires `Authorization: Bearer $ADMIN_TOKEN`) | Returns all waitlist entries as JSON or CSV |
 
 ### Netlify Blobs
 
