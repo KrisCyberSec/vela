@@ -26,6 +26,7 @@ How the code is built and how to work in it.
 | [architecture.md](engineering/architecture.md) | Tech stack, file layout, key systems, line-number navigation for App.jsx |
 | [ai-companion.md](engineering/ai-companion.md) | Ask Vela internals: matching, knowledge base, handlers, how to add symptoms/triggers |
 | [community-firebase.md](engineering/community-firebase.md) | Firebase community backend, moderation, how to enable LIVE_COMMUNITY |
+| [design-system.md](engineering/design-system.md) | Color tokens, typography, Liquid Glass materials, geometry, voice — hand to Claude Design / Figma / any design AI as context |
 
 ## Operations
 
