@@ -1896,6 +1896,21 @@ const css = `
     --radius:     16px;
     --radius-sm:  10px;
     --card-bg:    #FFFFFF;
+
+    /* ── Liquid Glass tokens (light) ────────────────────────────────────────
+       Translucent surfaces with backdrop-filter blur. Sage-tinted creams
+       preserve the brand identity over content while adding the depth +
+       refraction that defines Apple's iOS 26 Liquid Glass language. */
+    --glass-cream:        rgba(250, 246, 241, 0.72);   /* warm cream glass — primary floating surfaces */
+    --glass-cream-strong: rgba(250, 246, 241, 0.88);   /* heavier opacity for high-contrast contexts */
+    --glass-sage:         rgba(122, 158, 135, 0.16);   /* sage-tinted glass for accent surfaces */
+    --glass-sage-card:    rgba(234, 240, 236, 0.78);   /* sage-cream glass for tip / insight cards */
+    --glass-modal-scrim:  rgba(60, 45, 35, 0.32);      /* warm scrim under glass-blurred modals */
+    --glass-edge:         rgba(255, 255, 255, 0.55);   /* inner top-edge highlight (the "lift") */
+    --glass-edge-soft:    rgba(255, 255, 255, 0.30);   /* subtler edge for less prominent surfaces */
+    --glass-blur:         blur(40px) saturate(180%);   /* standard depth */
+    --glass-blur-strong:  blur(60px) saturate(180%);   /* for prominent floating elements */
+    --glass-blur-soft:    blur(20px) saturate(150%);   /* for subtle accent cards */
   }
 
   /* Dark theme overrides — activated by data-theme="dark" on <html>.
@@ -1915,9 +1930,25 @@ const css = `
     --gold:       #E0BD6D;
     --border:     #342820;
     --card-bg:    #241C17;
+
+    /* Liquid Glass tokens (dark) — warm dark glass keeps the calm, never reads as gray */
+    --glass-cream:        rgba(26, 20, 18, 0.68);
+    --glass-cream-strong: rgba(26, 20, 18, 0.86);
+    --glass-sage:         rgba(143, 184, 155, 0.14);
+    --glass-sage-card:    rgba(30, 46, 36, 0.72);
+    --glass-modal-scrim:  rgba(0, 0, 0, 0.45);
+    --glass-edge:         rgba(255, 255, 255, 0.10);
+    --glass-edge-soft:    rgba(255, 255, 255, 0.05);
   }
-  [data-theme="dark"] .nav, [data-theme="dark"] .nav-bottom { background: #1A1412 !important; }
-  [data-theme="dark"] .nav-bottom { border-color: rgba(255,255,255,0.08) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.2) !important; }
+  [data-theme="dark"] .nav { background: #1A1412 !important; }
+  [data-theme="dark"] .nav-bottom {
+    background: var(--glass-cream) !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 6px 24px rgba(0,0,0,0.4),
+      0 1px 3px rgba(0,0,0,0.2) !important;
+  }
   [data-theme="dark"] .symptom-tile, [data-theme="dark"] .q-opt, [data-theme="dark"] .q-card, [data-theme="dark"] .notes-input, [data-theme="dark"] .ctx-step-btn, [data-theme="dark"] .ctx-dot, [data-theme="dark"] .ctx-pill,
   [data-theme="dark"] .settings-card, [data-theme="dark"] .weekly-summary, [data-theme="dark"] .trend-card, [data-theme="dark"] .symptom-list, [data-theme="dark"] .patterns-card,
   [data-theme="dark"] .comparison-card, [data-theme="dark"] .chart-container, [data-theme="dark"] .chart-toggle-btn, [data-theme="dark"] .reminder-time-input,
@@ -1929,8 +1960,15 @@ const css = `
   [data-theme="dark"] .add-symptom-card, [data-theme="dark"] .add-symptom-input, [data-theme="dark"] .milestone-card,
   [data-theme="dark"] .symptom-cat-tab, [data-theme="dark"] .active-symptom-chip, [data-theme="dark"] .energy-chip,
   [data-theme="dark"] .cbt-card, [data-theme="dark"] .cbt-program-item, [data-theme="dark"] .cbt-lesson-done-btn, [data-theme="dark"] .nudge-card,
-  [data-theme="dark"] .reveal-card, [data-theme="dark"] .reflection-card {
+  [data-theme="dark"] .reflection-card {
     background: var(--card-bg) !important;
+  }
+  [data-theme="dark"] .reveal-card {
+    background: var(--glass-sage-card) !important;
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 12px 36px rgba(0, 0, 0, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.2) !important;
   }
   [data-theme="dark"] .reveal-premium { background: linear-gradient(145deg, #1a2420 0%, #0f1714 100%) !important; border-color: rgba(143,184,155,0.25) !important; }
   [data-theme="dark"] .milestone-card { border-color: var(--sage-light) !important; background: var(--sage-light) !important; }
@@ -1938,7 +1976,7 @@ const css = `
   [data-theme="dark"] .digest-spotlight { background: var(--sage-light) !important; }
   [data-theme="dark"] .digest-tip { background: var(--sage-light) !important; }
   [data-theme="dark"] .comm-guidelines-dismiss { background: var(--card-bg) !important; color: var(--sage-dark) !important; }
-  [data-theme="dark"] .comm-compose-overlay { background: rgba(0,0,0,0.6) !important; }
+  [data-theme="dark"] .comm-compose-overlay { background: var(--glass-modal-scrim) !important; }
   [data-theme="dark"] .comm-reaction-active { background: var(--sage-light) !important; }
   [data-theme="dark"] .comm-sort-active { background: var(--clay) !important; color: white !important; }
   [data-theme="dark"] .comm-emoji-selected { background: var(--clay-light) !important; }
@@ -1992,9 +2030,10 @@ const css = `
   }
   .nav-logo em { color: var(--clay); font-style: italic; }
 
-  /* Floating pill-dock at bottom — matches the original top-nav aesthetic
-     (capsule background + clay-filled active tab) but moved to thumb reach.
-     Floats above the home indicator with a soft shadow for elevation. */
+  /* Floating pill-dock at bottom — Liquid Glass material.
+     Translucent sage-cream over content with backdrop blur + saturation
+     boost (Apple's iOS 26 tab-bar approach). Inset top edge highlight
+     gives the surface a "lift" against whatever scrolls behind it. */
   .nav-bottom {
     position: fixed;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
@@ -2005,10 +2044,15 @@ const css = `
     display: flex;
     gap: 4px;
     padding: 5px;
-    background: var(--card-bg);
+    background: var(--glass-cream);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border);
     border-radius: 24px;
-    box-shadow: 0 6px 20px rgba(140, 78, 50, 0.10), 0 1px 3px rgba(140, 78, 50, 0.06);
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 6px 24px rgba(140, 78, 50, 0.12),
+      0 1px 3px rgba(140, 78, 50, 0.08);
     z-index: 50;
   }
   .nav-bottom-tab {
@@ -2885,7 +2929,8 @@ const css = `
   }
   .comm-compose-btn:active { opacity: 0.8; }
   .comm-compose-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+    position: fixed; inset: 0; background: var(--glass-modal-scrim); z-index: 100;
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
     display: flex; align-items: flex-end;
   }
   .comm-compose-card {
@@ -3011,15 +3056,19 @@ const css = `
   }
 
   /* ── TOAST ── */
+  /* Toast — Liquid Glass with sage tint. Floats above the bottom dock,
+     translucent so the user still feels grounded in the screen. */
   .toast {
     position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 36px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: var(--sage-dark);
+    background: rgba(61, 107, 79, 0.78);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
     color: white;
-    padding: 10px 20px;
-    border-radius: 20px;
+    padding: 11px 22px;
+    border-radius: 22px;
     font-size: 13px;
     font-weight: 500;
     opacity: 0;
@@ -3027,6 +3076,9 @@ const css = `
     white-space: nowrap;
     pointer-events: none;
     z-index: 100;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 8px 24px rgba(0, 0, 0, 0.18);
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -3350,8 +3402,16 @@ const css = `
     cursor: pointer; user-select: none; -webkit-user-select: none;
   }
   .reveal-card {
-    background: var(--card-bg); border-radius: var(--radius); padding: 32px 24px;
-    max-width: 340px; width: 100%; border: 1px solid var(--border);
+    background: var(--glass-sage-card);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-radius: 22px; padding: 32px 24px;
+    max-width: 340px; width: 100%;
+    border: 1px solid var(--border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-edge),
+      0 12px 36px rgba(122, 158, 135, 0.12),
+      0 2px 8px rgba(122, 158, 135, 0.08);
     animation: revealFade 0.5s ease;
   }
   .reveal-intro { padding: 40px 24px; }
@@ -3503,7 +3563,7 @@ const css = `
   @keyframes badgeEarned { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
   .gam-badge.earned { animation: badgeEarned 0.4s ease; }
 
-  .badge-toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; background: linear-gradient(135deg, var(--sage), #5a7a5a); color: white; padding: 14px 22px; border-radius: 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,0.35); animation: badgeSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), toastFade 0.4s ease 2.6s forwards; max-width: 90%; }
+  .badge-toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; background: rgba(122, 158, 135, 0.82); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); color: white; padding: 14px 22px; border-radius: 18px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 8px 30px rgba(0,0,0,0.25); animation: badgeSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), toastFade 0.4s ease 2.6s forwards; max-width: 90%; }
   .badge-toast-icon { font-size: 32px; animation: badgeBounce 0.6s ease 0.3s; }
   .badge-toast-content { display: flex; flex-direction: column; gap: 2px; }
   .badge-toast-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; }
@@ -3513,7 +3573,7 @@ const css = `
 
   .streak-mult { font-size: 10px; font-weight: 700; color: var(--gold); margin-left: 2px; }
 
-  .levelup-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease; }
+  .levelup-overlay { position: fixed; inset: 0; z-index: 10000; background: var(--glass-modal-scrim); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease; }
   .levelup-card { background: var(--card-bg); border-radius: 24px; padding: 40px 32px; text-align: center; max-width: 320px; width: 90%; animation: levelUpPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
   .levelup-sparkle { font-size: 48px; animation: sparkleRotate 2s linear infinite; }
   .levelup-title { font-size: 14px; text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-top: 12px; font-weight: 600; }
