@@ -1913,7 +1913,8 @@ const css = `
       --border:     #342820;
       --card-bg:    #241C17;
     }
-    .nav, .nav-tabs { background: #1A1412 !important; }
+    .nav, .nav-bottom { background: #1A1412 !important; }
+    .nav-bottom { border-top-color: rgba(255,255,255,0.06) !important; }
     .symptom-tile, .q-opt, .q-card, .notes-input, .ctx-step-btn, .ctx-dot, .ctx-pill,
     .settings-card, .weekly-summary, .trend-card, .symptom-list, .patterns-card,
     .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
@@ -1974,11 +1975,12 @@ const css = `
   }
 
   /* ── NAV ── */
+  /* Slim top header: just the wordmark, no tabs (tabs moved to bottom for thumb reach) */
   .nav {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: calc(env(safe-area-inset-top, 0px) + 20px) 24px 12px;
+    justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 24px 8px;
   }
   .nav-logo {
     font-family: 'DM Serif Display', serif;
@@ -1987,30 +1989,45 @@ const css = `
     letter-spacing: -0.5px;
   }
   .nav-logo em { color: var(--clay); font-style: italic; }
-  .nav-tabs {
+
+  /* Bottom tab bar — fixed, thumb-reach friendly, iOS safe-area aware */
+  .nav-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 420px;
+    margin: 0 auto;
     display: flex;
-    gap: 4px;
     background: var(--card-bg);
-    border-radius: 20px;
-    padding: 4px;
-    border: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 50;
+    box-shadow: 0 -1px 8px rgba(140, 78, 50, 0.04);
   }
-  .nav-tab {
+  .nav-bottom-tab {
+    flex: 1;
+    min-height: 52px;
+    padding: 10px 4px 12px;
     font-size: 11px;
     font-weight: 500;
-    padding: 5px 8px;
-    border-radius: 16px;
-    cursor: pointer;
     color: var(--ink-light);
-    transition: all 0.2s;
-    border: none;
     background: transparent;
+    border: none;
+    cursor: pointer;
     font-family: 'DM Sans', sans-serif;
+    transition: color 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.2px;
   }
-  .nav-tab.active { background: var(--clay); color: white; }
+  .nav-bottom-tab.active { color: var(--clay); font-weight: 600; }
+  .nav-bottom-tab:active { transform: scale(0.94); transition: transform 0.1s; }
 
   /* ── SCREENS ── */
-  .screen { display: none; flex-direction: column; padding-bottom: 32px; animation: fadeIn 0.3s ease; }
+  /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
+  .screen { display: none; flex-direction: column; padding-bottom: 96px; animation: fadeIn 0.3s ease; }
   .screen.active { display: flex; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -3358,20 +3375,30 @@ const css = `
   }
   .reveal-cta:active { opacity: 0.85; }
   .reveal-skip-premium {
-    margin-top: 14px; font-size: 13px; color: rgba(240,232,226,0.5);
-    cursor: pointer;
+    margin-top: 12px; padding: 10px 16px; font-size: 14px;
+    color: rgba(240,232,226,0.75); background: transparent;
+    border: 1px solid rgba(240,232,226,0.25); border-radius: var(--radius-sm);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500;
+    width: 100%;
   }
-  .reveal-skip-premium:active { color: rgba(240,232,226,0.7); }
+  .reveal-skip-premium:active { background: rgba(240,232,226,0.06); }
   .reveal-dots { display: flex; gap: 8px; margin-top: 24px; }
   .reveal-dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--border); transition: all 0.3s ease;
   }
   .reveal-dot.active { background: var(--sage); width: 20px; border-radius: 4px; }
+  /* Prominent secondary action — present on every reveal step so users
+     never feel trapped in the ceremony. Goes TO patterns, not away from them. */
   .reveal-skip {
-    margin-top: 16px; font-size: 13px; color: var(--ink-light); cursor: pointer;
+    margin-top: 20px; padding: 12px 24px; font-size: 14px; font-weight: 500;
+    color: var(--clay-dark); background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s ease;
   }
-  .reveal-skip:active { color: var(--ink); }
+  .reveal-skip:hover { background: var(--cream); border-color: var(--clay); }
+  .reveal-skip:active { transform: scale(0.97); }
   @keyframes revealFade { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
 
   @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -5131,9 +5158,13 @@ function InsightsReveal({ logs, profile, moodData, topSymptoms, recentLogs, reve
       <button className="reveal-cta" onClick={(e) => { e.stopPropagation(); onShowPaywall(); }}>
         Try free for 7 days
       </button>
-      <div className="reveal-skip-premium" onClick={(e) => { e.stopPropagation(); onNext(); }}>
-        Continue to insights →
-      </div>
+      <button
+        type="button"
+        className="reveal-skip-premium"
+        onClick={(e) => { e.stopPropagation(); onNext(); }}
+      >
+        Continue to my insights →
+      </button>
     </div>,
   ];
 
@@ -5145,10 +5176,16 @@ function InsightsReveal({ logs, profile, moodData, topSymptoms, recentLogs, reve
           <div key={i} className={`reveal-dot${i === revealStep ? " active" : ""}`} />
         ))}
       </div>
+      {/* Always visible escape hatch — goes TO patterns rather than away from them.
+          Hidden on the last step because that step has its own dedicated button. */}
       {revealStep < 3 && (
-        <div className="reveal-skip" onClick={(e) => { e.stopPropagation(); onSkip(); }}>
-          Skip
-        </div>
+        <button
+          type="button"
+          className="reveal-skip"
+          onClick={(e) => { e.stopPropagation(); onSkip(); }}
+        >
+          Show all my patterns →
+        </button>
       )}
     </div>
   );
@@ -7755,34 +7792,12 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Nav — hidden during onboarding */}
-      {onboarded && (
-        <div className="nav">
-          <div className="nav-logo">
-            Ve<em>la</em>
-          </div>
-          <div className="nav-tabs">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                className={`nav-tab${screen === t.id ? " active" : ""}`}
-                onClick={() => { setScreen(t.id); window.scrollTo(0, 0); }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+      {/* Slim top header — wordmark only */}
+      <div className="nav">
+        <div className="nav-logo">
+          Ve<em>la</em>
         </div>
-      )}
-
-      {/* Onboarding (shown when not onboarded) */}
-      {!onboarded && (
-        <div className="nav">
-          <div className="nav-logo">
-            Ve<em>la</em>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Screens */}
       {!onboarded && (
@@ -7995,6 +8010,23 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bottom nav — hidden during onboarding */}
+      {onboarded && (
+        <nav className="nav-bottom" aria-label="Main navigation">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`nav-bottom-tab${screen === t.id ? " active" : ""}`}
+              onClick={() => { setScreen(t.id); window.scrollTo(0, 0); }}
+              aria-current={screen === t.id ? "page" : undefined}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
       )}
 
       {/* Toast */}
