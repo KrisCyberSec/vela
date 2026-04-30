@@ -10,6 +10,7 @@
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.1",
+    "@phosphor-icons/react": "^2.1.10",
     "@revenuecat/purchases-capacitor": "^13.0.0",
     "@sentry/react": "^10.49.0",
     "firebase": "^12.11.0",

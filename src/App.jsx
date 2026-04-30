@@ -7,6 +7,34 @@ import { initAnalytics, track } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from "./subscription";
 import { readJSON as safeReadJSON } from "./safeStorage";
 import { getThemePref, setTheme } from "./theme";
+import {
+  Flame, MoonStars, Bed, Brain, HeartHalf, BatteryLow, CloudLightning, Lightning,
+  CloudMoon, Heartbeat, Question, ChatTeardrop, Target, Waveform, HourglassLow,
+  Aperture, Sparkle, Bone, PersonSimple, Spiral, Snowflake, ArrowsClockwise,
+  SpeakerHigh, Hand, Footprints, Drop, SunDim, Heart, Scales, DropHalfBottom,
+  HeartBreak, Circle, Smiley, ArrowUp, Repeat, Wind, Eye, Tooth, Bug,
+} from "@phosphor-icons/react";
+
+// Phosphor icon registry for symptom tiles. Mature, sophisticated alternative
+// to system emojis (which differ between iOS versions and read childish for
+// the 45-55 audience). Duotone weight pairs with DM Serif Display + the
+// earth palette without feeling like a generic dev-tool dashboard.
+const SYMPTOM_ICONS = {
+  Flame, MoonStars, Bed, Brain, HeartHalf, BatteryLow, CloudLightning, Lightning,
+  CloudMoon, Heartbeat, Question, ChatTeardrop, Target, Waveform, HourglassLow,
+  Aperture, Sparkle, Bone, PersonSimple, Spiral, Snowflake, ArrowsClockwise,
+  SpeakerHigh, Hand, Footprints, Drop, SunDim, Heart, Scales, DropHalfBottom,
+  HeartBreak, Circle, Smiley, ArrowUp, Repeat, Wind, Eye, Tooth, Bug,
+};
+
+function SymptomIcon({ name, size = 24, weight = "duotone", style }) {
+  const Cmp = SYMPTOM_ICONS[name];
+  // Fallback for custom user-defined symptoms (still using glyph string)
+  if (!Cmp) {
+    return <span style={{ fontSize: size, lineHeight: 1, ...style }}>{name}</span>;
+  }
+  return <Cmp size={size} weight={weight} style={style} />;
+}
 
 function haptic(style = "Light") {
   if (Capacitor.isNativePlatform()) {
@@ -23,57 +51,59 @@ const SYMPTOM_CATEGORIES = [
   { key: "other", label: "Other" },
 ];
 
+// Icons are Phosphor component names (rendered via SymptomIcon at use sites,
+// duotone weight). Custom user symptoms use the literal "✦" glyph.
 const SYMPTOMS = [
   // Most common (shown first)
-  { icon: "🌡", name: "Hot flash", cat: "common" },
-  { icon: "🌙", name: "Night sweats", cat: "common" },
-  { icon: "😴", name: "Poor sleep", cat: "common" },
-  { icon: "🧠", name: "Brain fog", cat: "common" },
-  { icon: "💔", name: "Mood shifts", cat: "common" },
-  { icon: "⚡", name: "Fatigue", cat: "common" },
-  { icon: "😰", name: "Anxiety", cat: "common" },
-  { icon: "🔥", name: "Irritability", cat: "common" },
+  { icon: "Flame", name: "Hot flash", cat: "common" },
+  { icon: "MoonStars", name: "Night sweats", cat: "common" },
+  { icon: "Bed", name: "Poor sleep", cat: "common" },
+  { icon: "Brain", name: "Brain fog", cat: "common" },
+  { icon: "HeartHalf", name: "Mood shifts", cat: "common" },
+  { icon: "BatteryLow", name: "Fatigue", cat: "common" },
+  { icon: "CloudLightning", name: "Anxiety", cat: "common" },
+  { icon: "Lightning", name: "Irritability", cat: "common" },
   // Mood & cognitive
-  { icon: "😢", name: "Depression", cat: "mood" },
-  { icon: "😱", name: "Panic attacks", cat: "mood" },
-  { icon: "💭", name: "Memory lapse", cat: "mood" },
-  { icon: "🗣️", name: "Word-finding difficulty", cat: "mood" },
-  { icon: "🎯", name: "Difficulty concentrating", cat: "mood" },
-  { icon: "😤", name: "Mood swings", cat: "mood" },
-  { icon: "😶", name: "Low motivation", cat: "mood" },
+  { icon: "CloudMoon", name: "Depression", cat: "mood" },
+  { icon: "Heartbeat", name: "Panic attacks", cat: "mood" },
+  { icon: "Question", name: "Memory lapse", cat: "mood" },
+  { icon: "ChatTeardrop", name: "Word-finding difficulty", cat: "mood" },
+  { icon: "Target", name: "Difficulty concentrating", cat: "mood" },
+  { icon: "Waveform", name: "Mood swings", cat: "mood" },
+  { icon: "HourglassLow", name: "Low motivation", cat: "mood" },
   // Physical
-  { icon: "💊", name: "Headache", cat: "physical" },
-  { icon: "🤕", name: "Migraine", cat: "physical" },
-  { icon: "🦴", name: "Joint pain", cat: "physical" },
-  { icon: "💪", name: "Muscle aches", cat: "physical" },
-  { icon: "🔙", name: "Back pain", cat: "physical" },
-  { icon: "💓", name: "Palpitations", cat: "physical" },
-  { icon: "🧊", name: "Chills", cat: "physical" },
-  { icon: "🌀", name: "Dizziness", cat: "physical" },
-  { icon: "👂", name: "Tinnitus", cat: "physical" },
-  { icon: "✋", name: "Tingling/numbness", cat: "physical" },
-  { icon: "🦵", name: "Restless legs", cat: "physical" },
-  { icon: "💇", name: "Hair thinning", cat: "physical" },
-  { icon: "🧴", name: "Dry skin", cat: "physical" },
-  { icon: "🌊", name: "Breast tenderness", cat: "physical" },
-  { icon: "⚖️", name: "Weight change", cat: "physical" },
+  { icon: "Aperture", name: "Headache", cat: "physical" },
+  { icon: "Sparkle", name: "Migraine", cat: "physical" },
+  { icon: "Bone", name: "Joint pain", cat: "physical" },
+  { icon: "PersonSimple", name: "Muscle aches", cat: "physical" },
+  { icon: "PersonSimple", name: "Back pain", cat: "physical" },
+  { icon: "Heartbeat", name: "Palpitations", cat: "physical" },
+  { icon: "Snowflake", name: "Chills", cat: "physical" },
+  { icon: "ArrowsClockwise", name: "Dizziness", cat: "physical" },
+  { icon: "SpeakerHigh", name: "Tinnitus", cat: "physical" },
+  { icon: "Hand", name: "Tingling/numbness", cat: "physical" },
+  { icon: "Footprints", name: "Restless legs", cat: "physical" },
+  { icon: "Drop", name: "Hair thinning", cat: "physical" },
+  { icon: "SunDim", name: "Dry skin", cat: "physical" },
+  { icon: "Heart", name: "Breast tenderness", cat: "physical" },
+  { icon: "Scales", name: "Weight change", cat: "physical" },
   // Intimate health
-  { icon: "💧", name: "Vaginal dryness", cat: "intimate" },
-  { icon: "🔥", name: "Vaginal irritation", cat: "intimate" },
-  { icon: "❤️", name: "Low libido", cat: "intimate" },
-  { icon: "🚽", name: "Urinary urgency", cat: "intimate" },
-  { icon: "💦", name: "Incontinence", cat: "intimate" },
+  { icon: "Drop", name: "Vaginal dryness", cat: "intimate" },
+  { icon: "Flame", name: "Vaginal irritation", cat: "intimate" },
+  { icon: "HeartBreak", name: "Low libido", cat: "intimate" },
+  { icon: "DropHalfBottom", name: "Urinary urgency", cat: "intimate" },
+  { icon: "Drop", name: "Incontinence", cat: "intimate" },
   // Digestive
-  { icon: "🫧", name: "Bloating", cat: "digestive" },
-  { icon: "🤢", name: "Nausea", cat: "digestive" },
-  { icon: "🔥", name: "Acid reflux", cat: "digestive" },
-  { icon: "😣", name: "Digestive changes", cat: "digestive" },
+  { icon: "Circle", name: "Bloating", cat: "digestive" },
+  { icon: "Smiley", name: "Nausea", cat: "digestive" },
+  { icon: "ArrowUp", name: "Acid reflux", cat: "digestive" },
+  { icon: "Repeat", name: "Digestive changes", cat: "digestive" },
   // Other
-  { icon: "🫁", name: "Shortness of breath", cat: "other" },
-  { icon: "👄", name: "Dry mouth", cat: "other" },
-  { icon: "👁️", name: "Dry eyes", cat: "other" },
-  { icon: "🦷", name: "Gum problems", cat: "other" },
-  { icon: "🐛", name: "Crawling skin", cat: "other" },
+  { icon: "Wind", name: "Shortness of breath", cat: "other" },
+  { icon: "Drop", name: "Dry mouth", cat: "other" },
+  { icon: "Eye", name: "Dry eyes", cat: "other" },
+  { icon: "Tooth", name: "Gum problems", cat: "other" },
+  { icon: "Bug", name: "Crawling skin", cat: "other" },
 ];
 
 const QUESTIONS = [
@@ -2311,7 +2341,8 @@ const css = `
   }
   .symptom-tile:hover { border-color: var(--clay); }
   .symptom-tile.active { border-color: var(--clay); background: var(--clay-light); }
-  .s-icon { font-size: 18px; margin-bottom: 4px; }
+  .s-icon { font-size: 18px; margin-bottom: 4px; color: var(--clay-dark); display: flex; align-items: center; justify-content: center; min-height: 28px; }
+  .symptom-tile.active .s-icon { color: var(--clay); }
   .s-name { font-size: 13px; font-weight: 500; color: var(--ink); display: block; }
   .symptom-tile.active .s-name { color: var(--clay-dark); }
   .s-severity { display: none; gap: 4px; margin-top: 6px; }
@@ -4559,7 +4590,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
               const s = allSymptoms.find((sym) => sym.name === name);
               return (
                 <span key={name} className="active-symptom-chip" onClick={() => { haptic("Light"); toggleSymptom(name); }}>
-                  {s ? s.icon : "✦"} {name} ×
+                  <SymptomIcon name={s ? s.icon : "✦"} size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} /> {name} ×
                 </span>
               );
             })}
@@ -4604,7 +4635,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
                 {s.custom && (
                   <div className="custom-remove" onClick={(e) => { e.stopPropagation(); removeCustomSymptom(s.name); }}>×</div>
                 )}
-                <div className="s-icon">{s.icon}</div>
+                <div className="s-icon"><SymptomIcon name={s.icon} size={26} /></div>
                 <span className="s-name">{s.name}</span>
                 <div className="s-severity">
                   {[1, 2, 3].map((level) => (
