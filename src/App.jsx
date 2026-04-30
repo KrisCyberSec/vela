@@ -8,11 +8,18 @@ import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from
 import { readJSON as safeReadJSON } from "./safeStorage";
 import { getThemePref, setTheme } from "./theme";
 import {
+  // Symptom-tile icons
   Flame, MoonStars, Bed, Brain, HeartHalf, BatteryLow, CloudLightning, Lightning,
   CloudMoon, Heartbeat, Question, ChatTeardrop, Target, Waveform, HourglassLow,
   Aperture, Sparkle, Bone, PersonSimple, Spiral, Snowflake, ArrowsClockwise,
   SpeakerHigh, Hand, Footprints, Drop, SunDim, Heart, Scales, DropHalfBottom,
   HeartBreak, Circle, Smiley, ArrowUp, Repeat, Wind, Eye, Tooth, Bug,
+  // UI / settings icons
+  Flower, Palette, Bell, ListChecks, SunHorizon, Moon, Calendar, CheckCircle, Star,
+  Lock, FileText, DeviceMobile, ChartBar, MagnifyingGlass, Flask, Lightbulb,
+  FirstAidKit, ChatCircle, ChatCircleText, Sun, Gear,
+  // Energy-chip icons
+  BatteryEmpty, BatteryMedium, BatteryHigh, BatteryFull,
 } from "@phosphor-icons/react";
 
 // Phosphor icon registry for symptom tiles. Mature, sophisticated alternative
@@ -33,6 +40,22 @@ function SymptomIcon({ name, size = 24, weight = "duotone", style }) {
   if (!Cmp) {
     return <span style={{ fontSize: size, lineHeight: 1, ...style }}>{name}</span>;
   }
+  return <Cmp size={size} weight={weight} style={style} />;
+}
+
+// UI icons (settings rows, energy chips, reveal carousel, theme toggle, etc.)
+// Same Phosphor duotone treatment as SymptomIcon, separate registry so the two
+// concerns don't accidentally collide on shared names (e.g. Smiley).
+const UI_ICONS = {
+  Flower, Palette, Bell, ListChecks, SunHorizon, Moon, Calendar, CheckCircle, Star,
+  Lock, FileText, DeviceMobile, ChartBar, MagnifyingGlass, Flask, Lightbulb,
+  FirstAidKit, ChatCircle, ChatCircleText, Sun, Gear, Sparkle, Eye, Target, Brain,
+  BatteryEmpty, BatteryLow, BatteryMedium, BatteryHigh, BatteryFull,
+};
+
+function UIIcon({ name, size = 22, weight = "duotone", style }) {
+  const Cmp = UI_ICONS[name];
+  if (!Cmp) return null;
   return <Cmp size={size} weight={weight} style={style} />;
 }
 
@@ -2290,7 +2313,8 @@ const css = `
   }
   .energy-chip:active { transform: scale(0.94); }
   .energy-chip.active { border-color: var(--sage); background: var(--sage-light); }
-  .energy-icon { font-size: 20px; }
+  .energy-icon { font-size: 20px; color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; }
+  .energy-chip.active .energy-icon { color: var(--sage-dark); }
   .energy-label { font-size: 10px; font-weight: 500; color: var(--ink-light); text-align: center; }
   .energy-chip.active .energy-label { color: var(--sage-dark); font-weight: 600; }
 
@@ -2784,7 +2808,7 @@ const css = `
   .settings-row:last-child { border-bottom: none; }
   .settings-row:hover { background: var(--cream); }
   .sr-left { display: flex; align-items: center; gap: 10px; }
-  .sr-icon { font-size: 18px; }
+  .sr-icon { font-size: 18px; color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; min-width: 22px; }
   .sr-label { font-size: 14px; color: var(--ink); }
   .sr-value { font-size: 13px; color: var(--ink-light); }
   .sr-arrow { font-size: 14px; color: var(--ink-light); }
@@ -4563,18 +4587,18 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         <div className="section-label">Energy level</div>
         <div className="energy-row">
           {[
-            { level: 1, label: "Depleted", icon: "🪫" },
-            { level: 2, label: "Low", icon: "😮‍💨" },
-            { level: 3, label: "Moderate", icon: "⚡" },
-            { level: 4, label: "Good", icon: "💪" },
-            { level: 5, label: "Energized", icon: "🔋" },
+            { level: 1, label: "Depleted", icon: "BatteryEmpty" },
+            { level: 2, label: "Low", icon: "BatteryLow" },
+            { level: 3, label: "Moderate", icon: "BatteryMedium" },
+            { level: 4, label: "Good", icon: "BatteryHigh" },
+            { level: 5, label: "Energized", icon: "BatteryFull" },
           ].map(({ level, label, icon }) => (
             <div
               key={level}
               className={`energy-chip${energy === level ? " active" : ""}`}
               onClick={() => { haptic("Light"); setEnergy(energy === level ? null : level); }}
             >
-              <span className="energy-icon">{icon}</span>
+              <span className="energy-icon"><UIIcon name={icon} size={22} /></span>
               <span className="energy-label">{label}</span>
             </div>
           ))}
@@ -5214,7 +5238,7 @@ function InsightsReveal({ logs, profile, moodData, topSymptoms, recentLogs, reve
 
   const steps = [
     <div className="reveal-card reveal-intro" key="intro">
-      <div className="reveal-icon">✨</div>
+      <div className="reveal-icon"><UIIcon name="Sparkle" size={48} /></div>
       <h3 className="reveal-heading">Here's what Vela found</h3>
       <p className="reveal-body">
         You logged for 7 days{p?.topConcernNames?.length > 0
@@ -5267,10 +5291,10 @@ function InsightsReveal({ logs, profile, moodData, topSymptoms, recentLogs, reve
         You've seen what 7 days reveals. Premium goes deeper — triggers, predictions, and a personal health companion.
       </p>
       <div className="reveal-premium-features">
-        <div className="reveal-pf">🔮 <span>Deeper patterns — what triggers your worst days</span></div>
-        <div className="reveal-pf">🤖 <span>Ask Vela — your personal health companion</span></div>
-        <div className="reveal-pf">📄 <span>Doctor reports — walk in prepared, get taken seriously</span></div>
-        <div className="reveal-pf">📊 <span>Weekly digest — what happened, what helped, what to watch</span></div>
+        <div className="reveal-pf"><UIIcon name="Eye" size={20} /> <span>Deeper patterns — what triggers your worst days</span></div>
+        <div className="reveal-pf"><UIIcon name="ChatCircle" size={20} /> <span>Ask Vela — your personal health companion</span></div>
+        <div className="reveal-pf"><UIIcon name="FileText" size={20} /> <span>Doctor reports — walk in prepared, get taken seriously</span></div>
+        <div className="reveal-pf"><UIIcon name="ChartBar" size={20} /> <span>Weekly digest — what happened, what helped, what to watch</span></div>
       </div>
       <button className="reveal-cta" onClick={(e) => { e.stopPropagation(); onShowPaywall(); }}>
         Try free for 7 days
@@ -6767,7 +6791,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <div className="settings-card">
           <div className="settings-row" onClick={() => onEditQuestion(0)}>
             <div className="sr-left">
-              <span className="sr-icon">🌸</span>
+              <span className="sr-icon"><UIIcon name="Flower" /></span>
               <span className="sr-label">Hormonal stage</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -6777,7 +6801,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           </div>
           <div className="settings-row" onClick={() => onEditQuestion(2)}>
             <div className="sr-left">
-              <span className="sr-icon">🎯</span>
+              <span className="sr-icon"><UIIcon name="Target" /></span>
               <span className="sr-label">Primary goal</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -6837,13 +6861,13 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         const hasCBT = !!localStorage.getItem("vela_active_cbt");
         const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]").length;
         const steps = [];
-        if (uniqueDays < 7) steps.push({ icon: "📊", text: `Log ${7 - uniqueDays} more day${7 - uniqueDays > 1 ? "s" : ""} to unlock your first insights`, action: "today" });
-        if (uniqueDays >= 7 && uniqueDays < 14) steps.push({ icon: "🔬", text: "Check your Insights tab — your patterns are ready!", action: "insights" });
-        if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "🧪", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "insights" });
-        if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "🧠", text: "Start a recommended CBT program", action: "insights" });
-        if (completedLessons < 3) steps.push({ icon: "💡", text: "Read today's daily insight", action: "today" });
-        if (p?.wantsDoctor && uniqueDays >= 14) steps.push({ icon: "👩‍⚕️", text: "Generate your doctor report from your 2 weeks of data", action: "export" });
-        if (p?.wantsCommunity) steps.push({ icon: "💬", text: "Join the community — you're not alone in this", action: "community" });
+        if (uniqueDays < 7) steps.push({ icon: "ChartBar", text: `Log ${7 - uniqueDays} more day${7 - uniqueDays > 1 ? "s" : ""} to unlock your first insights`, action: "today" });
+        if (uniqueDays >= 7 && uniqueDays < 14) steps.push({ icon: "MagnifyingGlass", text: "Check your Insights tab — your patterns are ready!", action: "insights" });
+        if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "Flask", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "insights" });
+        if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "Brain", text: "Start a recommended CBT program", action: "insights" });
+        if (completedLessons < 3) steps.push({ icon: "Lightbulb", text: "Read today's daily insight", action: "today" });
+        if (p?.wantsDoctor && uniqueDays >= 14) steps.push({ icon: "FirstAidKit", text: "Generate your doctor report from your 2 weeks of data", action: "export" });
+        if (p?.wantsCommunity) steps.push({ icon: "ChatCircleText", text: "Join the community — you're not alone in this", action: "community" });
         if (steps.length === 0) return null;
         return (
           <div className="settings-section">
@@ -6852,7 +6876,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
               {steps.slice(0, 3).map((s, i) => (
                 <div key={i} className="settings-row" style={{ cursor: "default" }}>
                   <div className="sr-left">
-                    <span className="sr-icon">{s.icon}</span>
+                    <span className="sr-icon"><UIIcon name={s.icon} /></span>
                     <span className="sr-label">{s.text}</span>
                   </div>
                 </div>
@@ -6867,15 +6891,15 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <div className="settings-card">
           <div className="settings-row" style={{ borderBottom: "none", cursor: "default" }}>
             <div className="sr-left">
-              <span className="sr-icon">🎨</span>
+              <span className="sr-icon"><UIIcon name="Palette" /></span>
               <span className="sr-label">Theme</span>
             </div>
           </div>
           <div className="seg-control" role="radiogroup" aria-label="Theme preference">
             {[
-              { id: "light", label: "Light", icon: "☀️" },
-              { id: "system", label: "System", icon: "⚙" },
-              { id: "dark", label: "Dark", icon: "🌙" },
+              { id: "light", label: "Light", icon: "Sun" },
+              { id: "system", label: "System", icon: "Gear" },
+              { id: "dark", label: "Dark", icon: "Moon" },
             ].map((opt) => (
               <button
                 key={opt.id}
@@ -6885,7 +6909,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
                 className={`seg-control-btn${themePref === opt.id ? " active" : ""}`}
                 onClick={() => { setTheme(opt.id); setThemePref(opt.id); haptic("Light"); }}
               >
-                <span aria-hidden="true">{opt.icon}</span>
+                <UIIcon name={opt.icon} size={16} />
                 <span>{opt.label}</span>
               </button>
             ))}
@@ -6898,7 +6922,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <div className="settings-card">
           <div className="settings-row">
             <div className="sr-left">
-              <span className="sr-icon">🔔</span>
+              <span className="sr-icon"><UIIcon name="Bell" /></span>
               <span className="sr-label">Reminders</span>
             </div>
             <div className="toggle-wrap" onClick={() => onToggleReminders(!remindersEnabled)}>
@@ -6908,7 +6932,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           </div>
           <div className="settings-row" onClick={() => onEditQuestion(3)}>
             <div className="sr-left">
-              <span className="sr-icon">📋</span>
+              <span className="sr-icon"><UIIcon name="ListChecks" /></span>
               <span className="sr-label">Frequency</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -6921,7 +6945,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
               {(guidancePref === 0) && (
                 <div className="settings-row">
                   <div className="sr-left">
-                    <span className="sr-icon">🌅</span>
+                    <span className="sr-icon"><UIIcon name="SunHorizon" /></span>
                     <span className="sr-label">Morning</span>
                   </div>
                   <input type="time" className="reminder-time-input" value={reminderTimes.morning} onChange={(e) => onUpdateReminderTime("morning", e.target.value)} />
@@ -6930,7 +6954,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
               {(guidancePref === 0 || guidancePref === 3) && (
                 <div className="settings-row">
                   <div className="sr-left">
-                    <span className="sr-icon">🌙</span>
+                    <span className="sr-icon"><UIIcon name="Moon" /></span>
                     <span className="sr-label">Evening</span>
                   </div>
                   <input type="time" className="reminder-time-input" value={reminderTimes.evening} onChange={(e) => onUpdateReminderTime("evening", e.target.value)} />
@@ -6939,7 +6963,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
               {guidancePref === 1 && (
                 <div className="settings-row">
                   <div className="sr-left">
-                    <span className="sr-icon">📅</span>
+                    <span className="sr-icon"><UIIcon name="Calendar" /></span>
                     <span className="sr-label">Sunday</span>
                   </div>
                   <input type="time" className="reminder-time-input" value={reminderTimes.weekly} onChange={(e) => onUpdateReminderTime("weekly", e.target.value)} />
@@ -6950,7 +6974,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           {remindersEnabled && guidancePref === 2 && (
             <div className="settings-row">
               <div className="sr-left">
-                <span className="sr-icon">😌</span>
+                <span className="sr-icon"><UIIcon name="Smiley" /></span>
                 <span className="sr-label" style={{ color: "var(--ink-light)" }}>No reminders scheduled</span>
               </div>
             </div>
@@ -6963,7 +6987,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <div className="settings-card">
           <div className="settings-row" onClick={isPremium ? undefined : onShowPaywall}>
             <div className="sr-left">
-              <span className="sr-icon">{isPremium ? "✅" : "⭐"}</span>
+              <span className="sr-icon"><UIIcon name={isPremium ? "CheckCircle" : "Star"} /></span>
               <span className="sr-label">{isPremium ? "Premium active" : "Upgrade to Premium"}</span>
             </div>
             {!isPremium && <span className="sr-arrow">›</span>}
@@ -6976,21 +7000,21 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <div className="settings-card">
           <div className="settings-row" onClick={() => window.open("/privacy.html", "_blank")}>
             <div className="sr-left">
-              <span className="sr-icon">🔒</span>
+              <span className="sr-icon"><UIIcon name="Lock" /></span>
               <span className="sr-label">Privacy policy</span>
             </div>
             <span className="sr-arrow">›</span>
           </div>
           <div className="settings-row" onClick={() => window.open("/terms.html", "_blank")}>
             <div className="sr-left">
-              <span className="sr-icon">📄</span>
+              <span className="sr-icon"><UIIcon name="FileText" /></span>
               <span className="sr-label">Terms of service</span>
             </div>
             <span className="sr-arrow">›</span>
           </div>
           <div className="settings-row">
             <div className="sr-left">
-              <span className="sr-icon">📱</span>
+              <span className="sr-icon"><UIIcon name="DeviceMobile" /></span>
               <span className="sr-label">Data storage</span>
             </div>
             <span className="sr-value">On-device only</span>
@@ -7006,7 +7030,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             generateDoctorReport(logs, profile);
           }}>
             <div className="sr-left">
-              <span className="sr-icon">📋</span>
+              <span className="sr-icon"><UIIcon name="FileText" /></span>
               <span className="sr-label">Doctor report (PDF)</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -7016,7 +7040,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           </div>
           <div className="settings-row" onClick={() => exportCSV(logs)}>
             <div className="sr-left">
-              <span className="sr-icon">📊</span>
+              <span className="sr-icon"><UIIcon name="ChartBar" /></span>
               <span className="sr-label">Export data (CSV)</span>
             </div>
             <span className="sr-arrow">›</span>
