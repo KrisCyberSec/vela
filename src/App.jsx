@@ -1914,7 +1914,7 @@ const css = `
       --card-bg:    #241C17;
     }
     .nav, .nav-bottom { background: #1A1412 !important; }
-    .nav-bottom { border-top-color: rgba(255,255,255,0.06) !important; }
+    .nav-bottom { border-color: rgba(255,255,255,0.08) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.2) !important; }
     .symptom-tile, .q-opt, .q-card, .notes-input, .ctx-step-btn, .ctx-dot, .ctx-pill,
     .settings-card, .weekly-summary, .trend-card, .symptom-list, .patterns-card,
     .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
@@ -1990,40 +1990,49 @@ const css = `
   }
   .nav-logo em { color: var(--clay); font-style: italic; }
 
-  /* Bottom tab bar — fixed, thumb-reach friendly, iOS safe-area aware */
+  /* Floating pill-dock at bottom — matches the original top-nav aesthetic
+     (capsule background + clay-filled active tab) but moved to thumb reach.
+     Floats above the home indicator with a soft shadow for elevation. */
   .nav-bottom {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-width: 420px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    left: 16px;
+    right: 16px;
+    max-width: 388px;
     margin: 0 auto;
     display: flex;
+    gap: 4px;
+    padding: 5px;
     background: var(--card-bg);
-    border-top: 1px solid var(--border);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: 0 6px 20px rgba(140, 78, 50, 0.10), 0 1px 3px rgba(140, 78, 50, 0.06);
     z-index: 50;
-    box-shadow: 0 -1px 8px rgba(140, 78, 50, 0.04);
   }
   .nav-bottom-tab {
     flex: 1;
-    min-height: 52px;
-    padding: 10px 4px 12px;
-    font-size: 11px;
+    padding: 9px 4px;
+    font-size: 11.5px;
     font-weight: 500;
     color: var(--ink-light);
     background: transparent;
     border: none;
+    border-radius: 18px;
     cursor: pointer;
     font-family: 'DM Sans', sans-serif;
-    transition: color 0.15s ease;
+    transition: background 0.2s ease, color 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
+    line-height: 1;
   }
-  .nav-bottom-tab.active { color: var(--clay); font-weight: 600; }
-  .nav-bottom-tab:active { transform: scale(0.94); transition: transform 0.1s; }
+  .nav-bottom-tab.active {
+    background: var(--clay);
+    color: white;
+    font-weight: 600;
+  }
+  .nav-bottom-tab:active { transform: scale(0.95); transition: transform 0.1s; }
 
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
