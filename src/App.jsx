@@ -6,6 +6,7 @@ import * as communityMod from "./community";
 import { initAnalytics, track } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from "./subscription";
 import { readJSON as safeReadJSON } from "./safeStorage";
+import { getThemePref, setTheme } from "./theme";
 
 function haptic(style = "Light") {
   if (Capacitor.isNativePlatform()) {
@@ -1897,64 +1898,65 @@ const css = `
     --card-bg:    #FFFFFF;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --clay:       #D9977E;
-      --clay-light: #3A2A22;
-      --clay-dark:  #E8B59E;
-      --sage:       #8FB89B;
-      --sage-light: #1E2E24;
-      --sage-dark:  #A8D4B4;
-      --cream:      #1A1412;
-      --ink:        #F0E8E2;
-      --ink-mid:    #BDA898;
-      --ink-light:  #887568;
-      --gold:       #E0BD6D;
-      --border:     #342820;
-      --card-bg:    #241C17;
-    }
-    .nav, .nav-bottom { background: #1A1412 !important; }
-    .nav-bottom { border-color: rgba(255,255,255,0.08) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.2) !important; }
-    .symptom-tile, .q-opt, .q-card, .notes-input, .ctx-step-btn, .ctx-dot, .ctx-pill,
-    .settings-card, .weekly-summary, .trend-card, .symptom-list, .patterns-card,
-    .comparison-card, .chart-container, .chart-toggle-btn, .reminder-time-input,
-    .streak-milestone, .settings-danger-btn, .insight-callout, .prediction-card,
-    .note-chip, .symptom-filter, .comm-reaction-btn, .comm-header-btn,
-    .comm-compose-input, .comm-compose-card, .comm-emoji-opt, .comm-tag-btn,
-    .comm-sort-tab, .chat-text, .chat-chip, .chat-input, .digest-card,
-    .gamification-bar, .gam-badge, .exp-card, .lesson-card,
-    .add-symptom-card, .add-symptom-input, .milestone-card,
-    .symptom-cat-tab, .active-symptom-chip, .energy-chip,
-    .cbt-card, .cbt-program-item, .cbt-lesson-done-btn, .nudge-card,
-    .reveal-card, .reflection-card {
-      background: var(--card-bg) !important;
-    }
-    .reveal-premium { background: linear-gradient(145deg, #1a2420 0%, #0f1714 100%) !important; border-color: rgba(143,184,155,0.25) !important; }
-    .milestone-card { border-color: var(--sage-light) !important; background: var(--sage-light) !important; }
-    .chat-bubble.user .chat-text { background: var(--clay) !important; }
-    .digest-spotlight { background: var(--sage-light) !important; }
-    .digest-tip { background: var(--sage-light) !important; }
-    .comm-guidelines-dismiss { background: var(--card-bg) !important; color: var(--sage-dark) !important; }
-    .comm-compose-overlay { background: rgba(0,0,0,0.6) !important; }
-    .comm-reaction-active { background: var(--sage-light) !important; }
-    .comm-sort-active { background: var(--clay) !important; color: white !important; }
-    .comm-emoji-selected { background: var(--clay-light) !important; }
-    .symptom-tile.active { background: var(--clay-light) !important; }
-    .symptom-cat-tab.active { background: var(--sage) !important; color: white !important; border-color: var(--sage) !important; }
-    .active-symptom-chip { background: var(--clay-light) !important; color: var(--clay) !important; border-color: var(--clay) !important; }
-    .energy-chip.active { background: var(--sage-light) !important; border-color: var(--sage) !important; }
-    .cbt-lesson-header:active { background: rgba(255,255,255,0.05) !important; }
-    .cbt-program-item:active { background: var(--sage-light) !important; }
-    .ctx-dot.active { background: var(--clay-light) !important; }
-    .ctx-pill.on { background: var(--sage-light) !important; }
-    .streak-milestone.earned { background: var(--sage) !important; }
-    .chart-toggle-btn.active { background: var(--clay) !important; }
-    .q-opt.selected { background: var(--clay) !important; color: white !important; }
-    .nav-tab.active { background: var(--clay) !important; }
-    .wb-face { background: rgba(255,255,255,0.08) !important; }
-    .wb-face.selected { background: rgba(255,255,255,0.2) !important; }
-    svg text { fill: var(--ink-light); }
+  /* Dark theme overrides — activated by data-theme="dark" on <html>.
+     src/theme.js sets the attribute synchronously based on user pref
+     (light/dark/system) and watches matchMedia for system changes. */
+  [data-theme="dark"] {
+    --clay:       #D9977E;
+    --clay-light: #3A2A22;
+    --clay-dark:  #E8B59E;
+    --sage:       #8FB89B;
+    --sage-light: #1E2E24;
+    --sage-dark:  #A8D4B4;
+    --cream:      #1A1412;
+    --ink:        #F0E8E2;
+    --ink-mid:    #BDA898;
+    --ink-light:  #887568;
+    --gold:       #E0BD6D;
+    --border:     #342820;
+    --card-bg:    #241C17;
   }
+  [data-theme="dark"] .nav, [data-theme="dark"] .nav-bottom { background: #1A1412 !important; }
+  [data-theme="dark"] .nav-bottom { border-color: rgba(255,255,255,0.08) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.2) !important; }
+  [data-theme="dark"] .symptom-tile, [data-theme="dark"] .q-opt, [data-theme="dark"] .q-card, [data-theme="dark"] .notes-input, [data-theme="dark"] .ctx-step-btn, [data-theme="dark"] .ctx-dot, [data-theme="dark"] .ctx-pill,
+  [data-theme="dark"] .settings-card, [data-theme="dark"] .weekly-summary, [data-theme="dark"] .trend-card, [data-theme="dark"] .symptom-list, [data-theme="dark"] .patterns-card,
+  [data-theme="dark"] .comparison-card, [data-theme="dark"] .chart-container, [data-theme="dark"] .chart-toggle-btn, [data-theme="dark"] .reminder-time-input,
+  [data-theme="dark"] .streak-milestone, [data-theme="dark"] .settings-danger-btn, [data-theme="dark"] .insight-callout, [data-theme="dark"] .prediction-card,
+  [data-theme="dark"] .note-chip, [data-theme="dark"] .symptom-filter, [data-theme="dark"] .comm-reaction-btn, [data-theme="dark"] .comm-header-btn,
+  [data-theme="dark"] .comm-compose-input, [data-theme="dark"] .comm-compose-card, [data-theme="dark"] .comm-emoji-opt, [data-theme="dark"] .comm-tag-btn,
+  [data-theme="dark"] .comm-sort-tab, [data-theme="dark"] .chat-text, [data-theme="dark"] .chat-chip, [data-theme="dark"] .chat-input, [data-theme="dark"] .digest-card,
+  [data-theme="dark"] .gamification-bar, [data-theme="dark"] .gam-badge, [data-theme="dark"] .exp-card, [data-theme="dark"] .lesson-card,
+  [data-theme="dark"] .add-symptom-card, [data-theme="dark"] .add-symptom-input, [data-theme="dark"] .milestone-card,
+  [data-theme="dark"] .symptom-cat-tab, [data-theme="dark"] .active-symptom-chip, [data-theme="dark"] .energy-chip,
+  [data-theme="dark"] .cbt-card, [data-theme="dark"] .cbt-program-item, [data-theme="dark"] .cbt-lesson-done-btn, [data-theme="dark"] .nudge-card,
+  [data-theme="dark"] .reveal-card, [data-theme="dark"] .reflection-card {
+    background: var(--card-bg) !important;
+  }
+  [data-theme="dark"] .reveal-premium { background: linear-gradient(145deg, #1a2420 0%, #0f1714 100%) !important; border-color: rgba(143,184,155,0.25) !important; }
+  [data-theme="dark"] .milestone-card { border-color: var(--sage-light) !important; background: var(--sage-light) !important; }
+  [data-theme="dark"] .chat-bubble.user .chat-text { background: var(--clay) !important; }
+  [data-theme="dark"] .digest-spotlight { background: var(--sage-light) !important; }
+  [data-theme="dark"] .digest-tip { background: var(--sage-light) !important; }
+  [data-theme="dark"] .comm-guidelines-dismiss { background: var(--card-bg) !important; color: var(--sage-dark) !important; }
+  [data-theme="dark"] .comm-compose-overlay { background: rgba(0,0,0,0.6) !important; }
+  [data-theme="dark"] .comm-reaction-active { background: var(--sage-light) !important; }
+  [data-theme="dark"] .comm-sort-active { background: var(--clay) !important; color: white !important; }
+  [data-theme="dark"] .comm-emoji-selected { background: var(--clay-light) !important; }
+  [data-theme="dark"] .symptom-tile.active { background: var(--clay-light) !important; }
+  [data-theme="dark"] .symptom-cat-tab.active { background: var(--sage) !important; color: white !important; border-color: var(--sage) !important; }
+  [data-theme="dark"] .active-symptom-chip { background: var(--clay-light) !important; color: var(--clay) !important; border-color: var(--clay) !important; }
+  [data-theme="dark"] .energy-chip.active { background: var(--sage-light) !important; border-color: var(--sage) !important; }
+  [data-theme="dark"] .cbt-lesson-header:active { background: rgba(255,255,255,0.05) !important; }
+  [data-theme="dark"] .cbt-program-item:active { background: var(--sage-light) !important; }
+  [data-theme="dark"] .ctx-dot.active { background: var(--clay-light) !important; }
+  [data-theme="dark"] .ctx-pill.on { background: var(--sage-light) !important; }
+  [data-theme="dark"] .streak-milestone.earned { background: var(--sage) !important; }
+  [data-theme="dark"] .chart-toggle-btn.active { background: var(--clay) !important; }
+  [data-theme="dark"] .q-opt.selected { background: var(--clay) !important; color: white !important; }
+  [data-theme="dark"] .nav-tab.active { background: var(--clay) !important; }
+  [data-theme="dark"] .wb-face { background: rgba(255,255,255,0.08) !important; }
+  [data-theme="dark"] .wb-face.selected { background: rgba(255,255,255,0.2) !important; }
+  [data-theme="dark"] svg text { fill: var(--ink-light); }
 
   body {
     background: var(--cream);
@@ -2685,6 +2687,21 @@ const css = `
   .settings-card {
     background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden;
   }
+  /* 3-way segmented control (used for Theme: Light / System / Dark) */
+  .seg-control {
+    display: flex; gap: 4px; padding: 4px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 14px; margin: 0 16px 14px;
+  }
+  .seg-control-btn {
+    flex: 1; padding: 10px 6px; font-size: 12px; font-weight: 500;
+    color: var(--ink-light); background: transparent; border: none;
+    border-radius: 10px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s ease, color 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .seg-control-btn.active { background: var(--clay); color: white; font-weight: 600; }
+  .seg-control-btn:active { transform: scale(0.97); transition: transform 0.1s; }
   .settings-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
@@ -6634,6 +6651,7 @@ function MilestonesCard({ earned, locked, totalCount }) {
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
 function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime, onNavigate }) {
+  const [themePref, setThemePref] = useState(() => getThemePref());
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
   const guidanceLabels = ["Daily check-ins & reminders", "Weekly summaries", "Only when I ask", "Let the app decide"];
   const guidancePref = profile && profile[3] !== undefined && profile[3] !== null ? profile[3] : 3;
@@ -6752,6 +6770,37 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           </div>
         );
       })()}
+
+      <div className="settings-section">
+        <div className="settings-section-label">Appearance</div>
+        <div className="settings-card">
+          <div className="settings-row" style={{ borderBottom: "none", cursor: "default" }}>
+            <div className="sr-left">
+              <span className="sr-icon">🎨</span>
+              <span className="sr-label">Theme</span>
+            </div>
+          </div>
+          <div className="seg-control" role="radiogroup" aria-label="Theme preference">
+            {[
+              { id: "light", label: "Light", icon: "☀️" },
+              { id: "system", label: "System", icon: "⚙" },
+              { id: "dark", label: "Dark", icon: "🌙" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={themePref === opt.id}
+                className={`seg-control-btn${themePref === opt.id ? " active" : ""}`}
+                onClick={() => { setTheme(opt.id); setThemePref(opt.id); haptic("Light"); }}
+              >
+                <span aria-hidden="true">{opt.icon}</span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="settings-section">
         <div className="settings-section-label">Reminders</div>
