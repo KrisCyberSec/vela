@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
-import * as communityMod from "./community";
+// import * as communityMod from "./community"; // Re-enable when LIVE_COMMUNITY=true
 import { initAnalytics, track } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from "./subscription";
 import { readJSON as safeReadJSON } from "./safeStorage";
@@ -2655,6 +2655,78 @@ const css = `
   .dd-context-cell .v { font-family: var(--font-serif); font-size: 20px; color: var(--ink); }
   .dd-context-cell .v small { font-family: var(--font-sans); font-size: 11px; color: var(--ink-mid); margin-left: 3px; }
   .dd-note { font-family: var(--font-serif); font-style: italic; font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Circle (Community) screen redesign (Claude Design handoff, Apr 30 2026)
+     ════════════════════════════════════════════════════════════════════════ */
+  .cir-greeting { padding: 18px 0 14px; }
+  .cir-greeting h1 { margin: 0 0 6px; font-family: var(--font-serif); font-weight: 400; font-size: 30px; line-height: 1.08; letter-spacing: -0.01em; color: var(--ink); }
+  .cir-greeting h1 em { font-style: italic; color: var(--clay); }
+  .cir-greeting .meta { margin: 0; font-size: 13px; color: var(--ink-mid); }
+
+  .cir-prompt { position: relative; border-radius: 22px; padding: 20px 20px 18px; background: linear-gradient(135deg, rgba(122,158,135,0.18), rgba(212,168,83,0.12)); border: 1px solid var(--border); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: inset 0 1px 0 var(--glass-edge), 0 8px 24px rgba(61, 107, 79, 0.10); overflow: hidden; margin-bottom: 22px; }
+  .cir-prompt::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 80% at 100% 0%, rgba(122,158,135,0.20), transparent 55%); pointer-events: none; }
+  .cir-prompt .eye { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage-dark); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .cir-prompt .eye .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--sage); box-shadow: 0 0 0 3px rgba(122,158,135,0.22); }
+  .cir-prompt h2 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.18; color: var(--ink); margin: 0 0 14px; }
+  .cir-prompt h2 em { font-style: italic; color: var(--sage-dark); }
+  .cir-prompt-meta { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-mid); margin-bottom: 16px; }
+  .cir-prompt-meta .dot { color: var(--ink-light); }
+  .cir-prompt-meta .live { display: inline-flex; align-items: center; gap: 5px; color: var(--sage-dark); font-weight: 600; }
+  .cir-prompt-meta .live .pulse { width: 6px; height: 6px; border-radius: 999px; background: var(--sage); animation: cir-pulse 1.6s ease-out infinite; }
+  @keyframes cir-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(122,158,135,0.6); } 70% { box-shadow: 0 0 0 6px rgba(122,158,135,0); } }
+  .cir-share-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; border-radius: 14px; background: var(--ink); color: var(--cream); font-size: 13.5px; font-weight: 600; font-family: inherit; border: none; cursor: pointer; transition: transform 100ms ease; }
+  .cir-share-btn:active { transform: scale(0.98); }
+  .cir-share-btn .anon { font-size: 11px; font-weight: 500; opacity: 0.7; letter-spacing: 0.04em; }
+
+  .cir-section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-light); margin: 18px 4px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .cir-section-label .filter-chip { text-transform: none; letter-spacing: 0.01em; color: var(--ink-mid); font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; background: none; border: none; }
+
+  .cir-reply { background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 14px 16px 12px; margin-bottom: 10px; position: relative; }
+  .cir-reply-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 11.5px; color: var(--ink-mid); }
+  .cir-avatar { width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-size: 11px; color: #fff; flex-shrink: 0; }
+  .cir-avatar.a { background: var(--sage); }
+  .cir-avatar.b { background: var(--clay); }
+  .cir-avatar.c { background: var(--gold); }
+  .cir-avatar.d { background: var(--clay-dark); }
+  .cir-avatar.e { background: var(--sage-dark); }
+  .cir-reply-head .who { color: var(--ink); font-weight: 600; }
+  .cir-reply-head .age { color: var(--ink-light); }
+  .cir-reply-head .when { margin-left: auto; color: var(--ink-light); font-size: 11px; }
+  .cir-reply-body { font-size: 14px; line-height: 1.55; color: var(--ink); margin: 0 0 10px; }
+  .cir-reply-body em { font-family: var(--font-serif); font-style: italic; color: var(--sage-dark); }
+  .cir-reply-foot { display: flex; align-items: center; gap: 12px; font-size: 11.5px; color: var(--ink-mid); padding-top: 6px; border-top: 1px solid var(--border); }
+  .cir-reply-foot .react { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px 5px 7px; border-radius: 999px; background: rgba(122,158,135,0.10); color: var(--sage-dark); font-weight: 500; border: none; font-family: inherit; cursor: pointer; transition: background 200ms ease; }
+  .cir-reply-foot .react.on { background: var(--sage-light); color: var(--sage-dark); }
+  .cir-reply-foot .save { margin-left: auto; color: var(--ink-light); font-family: inherit; font-size: 12px; display: inline-flex; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; }
+  .cir-reply-foot .save.on { color: var(--clay-dark); }
+  .cir-reply.featured { background: linear-gradient(180deg, var(--card-bg), rgba(212,168,83,0.04)); border-color: rgba(212,168,83,0.28); }
+  .cir-reply.featured::before { content: "Most echoed"; position: absolute; top: -7px; left: 14px; background: var(--card-bg); border: 1px solid rgba(212,168,83,0.4); color: var(--gold); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+
+  .cir-past { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .cir-past-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border); background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; font-family: inherit; cursor: pointer; }
+  .cir-past-row:last-child { border-bottom: none; }
+  .cir-past-row:active { background: rgba(140,78,50,0.06); }
+  .cir-past-row .day { width: 38px; flex-shrink: 0; text-align: center; }
+  .cir-past-row .day .num { font-family: var(--font-serif); font-size: 18px; color: var(--clay); line-height: 1; }
+  .cir-past-row .day .mo { font-size: 9px; color: var(--ink-light); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+  .cir-past-row .body { flex: 1; min-width: 0; }
+  .cir-past-row .q { font-size: 13px; color: var(--ink); font-weight: 500; line-height: 1.35; }
+  .cir-past-row .stats { font-size: 11px; color: var(--ink-light); margin-top: 3px; }
+  .cir-past-row .arrow { font-size: 18px; color: var(--ink-light); }
+
+  .cir-privacy { margin-top: 22px; padding: 14px 16px; background: var(--sage-light); border-radius: 14px; border: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+  .cir-privacy .ico { width: 28px; height: 28px; border-radius: 8px; background: var(--sage); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .cir-privacy .body { font-size: 12px; line-height: 1.5; color: var(--sage-dark); }
+  .cir-privacy .body strong { display: block; font-size: 12.5px; font-weight: 600; color: var(--sage-dark); margin-bottom: 2px; }
+
+  .cir-first-welcome { margin: 4px 0 18px; padding: 18px 18px 16px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,242,234,0.78)); border: 1px solid rgba(94,80,62,0.10); }
+  .cir-first-eye { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 10px; }
+  .cir-first-welcome h3 { margin: 0 0 8px; font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.18; color: var(--ink); }
+  .cir-first-welcome h3 em { font-style: italic; color: var(--clay); }
+  .cir-first-welcome p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.55; color: var(--ink-mid); }
+  .cir-first-rules { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 11.5px; color: var(--ink-light); }
+  .cir-first-rules span { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: rgba(94,80,62,0.05); border: 1px solid rgba(94,80,62,0.08); }
 
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
@@ -6658,581 +6730,213 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   );
 }
 
-const COMMUNITY_REACTIONS = [
-  { type: "hug", emoji: "\u{1F917}", label: "Hug" },
-  { type: "strength", emoji: "\u{1F4AA}", label: "Strength" },
-  { type: "thanks", emoji: "\u{1F64F}", label: "Thanks" },
-];
-const COMMUNITY_POST_MAX_CHARS = 500;
-const TOPIC_EMOJI_OPTIONS = ["\u{1F4AA}","\u{1F9D8}","\u2764\uFE0F","\u{1F338}","\u{1F375}","\u{1F48A}","\u{1F3C3}","\u{1F634}","\u{1F9E0}","\u{1F33F}","\u2600\uFE0F","\u{1FAC2}","\u{1FA7A}","\u{1F4DD}","\u{1F3AF}"];
-const TOPIC_TAG_OPTIONS = ["Support", "Tips", "Questions", "Venting", "Wins"];
-const TOPIC_TITLE_MAX = 60;
-const TOPIC_DESC_MAX = 120;
-
-function relativeTime(isoString) {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-function getPostTime(post) {
-  const d = new Date(post.time);
-  return isNaN(d.getTime()) ? Date.now() - 86400000 : d.getTime();
-}
-
-function getScore(post, votes) {
-  const base = post.upvotes ?? post.likes ?? 0;
-  const v = votes[post.id];
-  return base + (v === "up" ? 1 : v === "down" ? -1 : 0);
-}
-
-function hotScore(post, votes) {
-  const score = getScore(post, votes);
-  const ageHours = (Date.now() - getPostTime(post)) / 3600000;
-  return score / Math.pow(ageHours + 2, 1.5);
-}
-
-function sortPosts(posts, mode, votes) {
-  const sorted = [...posts];
-  switch (mode) {
-    case "hot": return sorted.sort((a, b) => hotScore(b, votes) - hotScore(a, votes));
-    case "new": return sorted.sort((a, b) => getPostTime(b) - getPostTime(a));
-    case "top": return sorted.sort((a, b) => getScore(b, votes) - getScore(a, votes));
-    default: return sorted;
-  }
-}
-
-const COMMUNITY_TOPICS = [
-  {
-    id: "hot-flashes",
-    icon: "\u{1F321}",
-    title: "Hot flashes & night sweats",
-    description: "Sharing experiences and what's helped us",
-    resources: [
-      { label: "Evidence-based treatment options for VMS", type: "article" },
-      { label: "When to talk to your doctor about treatment", type: "article" },
-    ],
-    posts: [
-      { id: "hf-1", author: "Anonymous", time: "2h ago", text: "Keeping a small fan on my nightstand helps me cope. Everyone's different though — tracking what works for you is key.", likes: 24 },
-      { id: "hf-2", author: "Anonymous", time: "5h ago", text: "I noticed a pattern in my Vela logs — certain days are worse than others. Showed my doctor and we came up with a plan together.", likes: 18 },
-      { id: "hf-3", author: "Anonymous", time: "1d ago", text: "Does anyone else get them at the most inconvenient times? Middle of a presentation yesterday. Having a plan for those moments helps.", likes: 31 },
-      { id: "hf-4", author: "Anonymous", time: "1d ago", text: "Week 3 of tracking and I can already see my triggers — stress and wine are the big ones for me. Knowledge is power.", likes: 45 },
-      { id: "hf-5", author: "Anonymous", time: "2d ago", text: "My GP switched me to a different HRT formulation after I showed her my symptom logs. Night sweats went from nightly to maybe twice a week.", likes: 89 },
-      { id: "hf-6", author: "Anonymous", time: "3d ago", text: "Layered clothing is my survival strategy. I call it my 'flash kit' — always ready to peel off a layer at a moment's notice.", likes: 37 },
-      { id: "hf-7", author: "Anonymous", time: "4d ago", text: "For anyone just starting: it gets better once you understand your patterns. The first month of tracking felt pointless, month two was a revelation.", likes: 112 },
-    ],
-  },
-  {
-    id: "brain-fog",
-    icon: "\u{1F9E0}",
-    title: "Brain fog & memory",
-    description: "You're not losing your mind \u2014 this is real",
-    resources: [
-      { label: "Techniques for managing brain fog", type: "tip" },
-      { label: "How estrogen affects cognitive function", type: "article" },
-    ],
-    posts: [
-      { id: "bf-1", author: "Anonymous", time: "3h ago", text: "I started writing everything down. Lists for everything. It felt silly at first but it genuinely reduced my anxiety about forgetting things.", likes: 42 },
-      { id: "bf-2", author: "Anonymous", time: "8h ago", text: "My doctor told me brain fog during perimenopause is caused by fluctuating estrogen levels. It's temporary. That alone made me feel better.", likes: 55 },
-      { id: "bf-3", author: "Anonymous", time: "1d ago", text: "The word-finding thing is so frustrating. Mid-sentence and the word just vanishes. Glad to know it's hormonal and not early dementia.", likes: 73 },
-      { id: "bf-4", author: "Anonymous", time: "2d ago", text: "I tracked my brain fog alongside sleep quality and there's a clear connection. Bad sleep = fog city the next day. Working on my sleep hygiene now.", likes: 48 },
-      { id: "bf-5", author: "Anonymous", time: "3d ago", text: "Omega-3s and reducing sugar helped me. Not a miracle cure but I went from daily brain fog to maybe 2-3 times a week.", likes: 61 },
-    ],
-  },
-  {
-    id: "mood-anxiety",
-    icon: "\u{1F494}",
-    title: "Mood changes & anxiety",
-    description: "The emotional rollercoaster nobody warned us about",
-    resources: [
-      { label: "Grounding exercises for anxiety spikes", type: "tip" },
-      { label: "Understanding hormonal mood shifts", type: "article" },
-    ],
-    posts: [
-      { id: "ma-1", author: "Anonymous", time: "1h ago", text: "Some days I feel like a completely different person. Then I remember: hormones. It helps to name it.", likes: 38 },
-      { id: "ma-2", author: "Anonymous", time: "6h ago", text: "Walking 20 minutes every morning has helped my mood. Exercise has strong evidence for mood improvement during perimenopause. It's not a cure but it takes the edge off.", likes: 29 },
-      { id: "ma-3", author: "Anonymous", time: "2d ago", text: "If you're feeling rage that seems out of nowhere \u2014 that's perimenopause too. You're not broken. Your hormones are just really loud right now.", likes: 67 },
-      { id: "ma-4", author: "Anonymous", time: "3d ago", text: "Started the Anxiety & Mood CBT program here and it's actually helped. The breathing techniques sound basic but they work in the moment.", likes: 54 },
-      { id: "ma-5", author: "Anonymous", time: "4d ago", text: "My husband thought I was upset with him. I showed him my mood tracking — mood drops consistently around day 14-18 of my cycle. Now he understands it's not personal.", likes: 93 },
-      { id: "ma-6", author: "Anonymous", time: "5d ago", text: "Magnesium glycinate before bed has been a game changer for my anxiety. Talk to your doctor first but it might be worth asking about.", likes: 44 },
-    ],
-  },
-  {
-    id: "sleep",
-    icon: "\u{1F634}",
-    title: "Sleep struggles",
-    description: "Getting rest when your body won't cooperate",
-    resources: [
-      { label: "Sleep hygiene strategies during menopause", type: "tip" },
-      { label: "When to talk to your doctor about sleep issues", type: "article" },
-    ],
-    posts: [
-      { id: "sl-1", author: "Anonymous", time: "4h ago", text: "CBT for insomnia (CBT-I) was recommended by my doctor and it's been really effective. Ask your provider about evidence-based sleep treatments.", likes: 33 },
-      { id: "sl-2", author: "Anonymous", time: "1d ago", text: "I stopped looking at the clock when I wake up at 3am. Sounds small but it stopped the anxiety spiral of 'I only have 3 hours left'.", likes: 41 },
-      { id: "sl-3", author: "Anonymous", time: "2d ago", text: "Cooling sheets + keeping the room at 65°F changed everything. My Vela logs show I went from 4-5hrs to 6-7hrs consistently.", likes: 78 },
-      { id: "sl-4", author: "Anonymous", time: "3d ago", text: "The 3am wake-up club checking in 😅 Anyone else wide awake at exactly the same time every night? Cortisol spike apparently.", likes: 56 },
-      { id: "sl-5", author: "Anonymous", time: "5d ago", text: "No screens after 9pm was hard but worth it. Also cut evening caffeine. Two simple changes and my sleep score went way up.", likes: 39 },
-    ],
-  },
-  {
-    id: "doctor-talks",
-    icon: "\u{1F469}\u200D\u2695\uFE0F",
-    title: "Talking to your doctor",
-    description: "How to advocate for yourself",
-    resources: [
-      { label: "Questions to ask at your next appointment", type: "tip" },
-      { label: "How to find a menopause-informed doctor", type: "article" },
-    ],
-    posts: [
-      { id: "dt-1", author: "Anonymous", time: "7h ago", text: "Bring your Vela report to your appointment. My doctor was impressed I had actual data on my symptoms. It changed the whole conversation.", likes: 52 },
-      { id: "dt-2", author: "Anonymous", time: "2d ago", text: "If your doctor dismisses your symptoms, find a new doctor. It took me 3 tries but I finally found one who listens.", likes: 71 },
-      { id: "dt-3", author: "Anonymous", time: "3d ago", text: "I printed my symptom report and highlighted the patterns. My doctor actually said 'this is exactly what I need to see.' First time I felt truly heard.", likes: 104 },
-      { id: "dt-4", author: "Anonymous", time: "4d ago", text: "Ask specifically for a menopause specialist or someone NAMS-certified. Regular OB/GYNs often have minimal menopause training.", likes: 88 },
-      { id: "dt-5", author: "Anonymous", time: "6d ago", text: "Don't apologize for your symptoms or minimize them. 'I'm having 8 hot flashes a day and sleeping 4 hours' — be direct. You deserve treatment.", likes: 127 },
-    ],
-  },
-];
-
 function CommunityScreen() {
-  const [activeTopic, setActiveTopic] = useState(null);
-  const [showSaved, setShowSaved] = useState(false);
-  const [showMyPosts, setShowMyPosts] = useState(false);
-  const [showCompose, setShowCompose] = useState(false);
-  const [composeText, setComposeText] = useState("");
-  const [sortMode, setSortMode] = useState("hot");
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [showCreateTopic, setShowCreateTopic] = useState(false);
-  const [topicForm, setTopicForm] = useState({ icon: "", title: "", description: "", tags: [] });
-  const [moderationError, setModerationError] = useState(null);
+  // Renamed conceptually to "Circle" in the redesign — anonymous daily-prompt
+  // model. Kept function name CommunityScreen so App.jsx wiring is unchanged.
+  // Real backend integration is still gated by LIVE_COMMUNITY (community.js);
+  // this is the visual shell that lights up once we flip the flag.
 
-  // Migrate old likes → votes
-  const [votes, setVotes] = useState(() => {
-    const existing = localStorage.getItem("vela_community_votes");
-    if (existing) return JSON.parse(existing);
-    const oldLikes = JSON.parse(localStorage.getItem("vela_community_likes") || "{}");
-    const migrated = {};
-    for (const id of Object.keys(oldLikes)) { if (oldLikes[id]) migrated[id] = "up"; }
-    localStorage.setItem("vela_community_votes", JSON.stringify(migrated));
-    localStorage.removeItem("vela_community_likes");
-    return migrated;
-  });
-  const [bookmarks, setBookmarks] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_bookmarks") || "[]")
-  );
-  const [reactions, setReactions] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_reactions") || "{}")
-  );
-  const [userPosts, setUserPosts] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_posts") || "[]")
-  );
-  const [guidelinesSeen, setGuidelinesSeen] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_guidelines_seen") || "false")
-  );
-  const [userTopics, setUserTopics] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_user_topics") || "[]")
-  );
-  const [replies, setReplies] = useState(() =>
-    JSON.parse(localStorage.getItem("vela_community_replies") || "[]")
-  );
+  const [reactions, setReactions] = useState({ 0: true });
+  const [saved, setSaved] = useState({});
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const isFirst = JSON.parse(localStorage.getItem("vela_circle_first_visit") || "true");
+  const [showFirst, setShowFirst] = useState(isFirst);
 
-  useEffect(() => { localStorage.setItem("vela_community_votes", JSON.stringify(votes)); }, [votes]);
-  useEffect(() => { localStorage.setItem("vela_community_bookmarks", JSON.stringify(bookmarks)); }, [bookmarks]);
-  useEffect(() => { localStorage.setItem("vela_community_reactions", JSON.stringify(reactions)); }, [reactions]);
-  useEffect(() => { localStorage.setItem("vela_community_posts", JSON.stringify(userPosts)); }, [userPosts]);
-  useEffect(() => { localStorage.setItem("vela_community_guidelines_seen", JSON.stringify(guidelinesSeen)); }, [guidelinesSeen]);
-  useEffect(() => { localStorage.setItem("vela_community_user_topics", JSON.stringify(userTopics)); }, [userTopics]);
-  useEffect(() => { localStorage.setItem("vela_community_replies", JSON.stringify(replies)); }, [replies]);
-
-  function vote(postId, direction) {
-    haptic();
-    setVotes((prev) => {
-      const next = { ...prev };
-      if (next[postId] === direction) delete next[postId];
-      else next[postId] = direction;
-      return next;
-    });
+  function dismissFirst() {
+    localStorage.setItem("vela_circle_first_visit", "false");
+    setShowFirst(false);
   }
 
-  function toggleBookmark(postId) {
-    haptic();
-    setBookmarks((prev) => prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]);
-  }
+  const toggle = (i) => setReactions((r) => ({ ...r, [i]: !r[i] }));
+  const toggleSave = (i) => setSaved((s) => ({ ...s, [i]: !s[i] }));
 
-  function toggleReaction(postId, type) {
-    haptic();
-    setReactions((prev) => {
-      const current = prev[postId] || [];
-      const has = current.includes(type);
-      return { ...prev, [postId]: has ? current.filter((r) => r !== type) : [...current, type] };
-    });
-  }
+  // Hardcoded sample data — real prompt + replies come from the Firebase
+  // backend (community.js) once LIVE_COMMUNITY is enabled.
+  const promptToday = {
+    date: "Apr 30",
+    text: <>What's one thing you've stopped <em>apologizing for</em> since perimenopause began?</>,
+    plain: "What's one thing you've stopped apologizing for since perimenopause began?",
+    answered: 247,
+    reading: 12,
+  };
 
-  function submitPost() {
-    if (!composeText.trim() || !activeTopic) return;
-    // Content moderation
-    const modCheck = communityMod.moderateContent(composeText);
-    if (!modCheck.allowed) {
-      setModerationError(modCheck.reason);
-      haptic("Heavy");
-      return;
-    }
-    setModerationError(null);
-    haptic("Medium");
-
-    if (communityMod.LIVE_COMMUNITY) {
-      communityMod.createPost(activeTopic, composeText).then((result) => {
-        if (result?.error) { setModerationError(result.error); return; }
-        if (result) setUserPosts((prev) => [{ ...result, isUserPost: true }, ...prev]);
-      });
-    } else {
-      setUserPosts((prev) => [{
-        id: `user-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
-        text: composeText.trim(), upvotes: 0, topicId: activeTopic, isUserPost: true,
-      }, ...prev]);
-    }
-    setComposeText("");
-    setShowCompose(false);
-    setReplyingTo(null);
-  }
-
-  function submitReply() {
-    if (!composeText.trim() || !replyingTo) return;
-    // Content moderation
-    const modCheck = communityMod.moderateContent(composeText);
-    if (!modCheck.allowed) {
-      setModerationError(modCheck.reason);
-      haptic("Heavy");
-      return;
-    }
-    setModerationError(null);
-    haptic("Medium");
-
-    if (communityMod.LIVE_COMMUNITY) {
-      communityMod.createPost(activeTopic, composeText, replyingTo).then((result) => {
-        if (result?.error) { setModerationError(result.error); return; }
-        if (result) setReplies((prev) => [...prev, { ...result, isUserPost: true, parentId: replyingTo, topicId: activeTopic }]);
-      });
-    } else {
-      setReplies((prev) => [...prev, {
-        id: `reply-${Date.now()}`, author: "Anonymous", time: new Date().toISOString(),
-        text: composeText.trim(), upvotes: 0, topicId: activeTopic,
-        parentId: replyingTo, isUserPost: true,
-      }]);
-    }
-    setComposeText("");
-    setShowCompose(false);
-    setReplyingTo(null);
-  }
-
-  function submitTopic() {
-    if (!topicForm.title.trim()) return;
-    haptic("Medium");
-    const newTopic = {
-      id: `topic-${Date.now()}`, icon: topicForm.icon || "\u{1F4AC}",
-      title: topicForm.title.trim(), description: topicForm.description.trim(),
-      tags: topicForm.tags, isUserTopic: true, createdAt: new Date().toISOString(),
-      resources: [], posts: [],
-    };
-    setUserTopics((prev) => [newTopic, ...prev]);
-    setTopicForm({ icon: "", title: "", description: "", tags: [] });
-    setShowCreateTopic(false);
-    setActiveTopic(newTopic.id);
-  }
-
-  function findTopic(id) {
-    return COMMUNITY_TOPICS.find((t) => t.id === id) || userTopics.find((t) => t.id === id);
-  }
-
-  function getPostById(id) {
-    for (const topic of COMMUNITY_TOPICS) {
-      const found = topic.posts.find((p) => p.id === id);
-      if (found) return { ...found, topicId: topic.id };
-    }
-    return userPosts.find((p) => p.id === id) || replies.find((p) => p.id === id) || null;
-  }
-
-  function renderPost(post, isReply) {
-    const postTime = post.isUserPost ? relativeTime(post.time) : post.time;
-    const score = getScore(post, votes);
-    const postReplies = isReply ? [] : replies.filter((r) => r.parentId === post.id);
-    return (
-      <div key={post.id}>
-        <div className={`comm-post${isReply ? " comm-reply" : ""}`}>
-          <div className="comm-post-inner">
-            <div className="comm-vote">
-              <button className={`comm-vote-btn${votes[post.id] === "up" ? " comm-vote-active-up" : ""}`} onClick={() => vote(post.id, "up")}>{"\u25B2"}</button>
-              <span className="comm-vote-score">{score}</span>
-              <button className={`comm-vote-btn${votes[post.id] === "down" ? " comm-vote-active-down" : ""}`} onClick={() => vote(post.id, "down")}>{"\u25BC"}</button>
-            </div>
-            <div className="comm-post-body">
-              <div className="comm-post-header">
-                <span className="comm-post-author">{post.isUserPost ? "You (anonymous)" : post.author}</span>
-                <span className="comm-post-time">{postTime}</span>
-              </div>
-              <p className="comm-post-text">{post.text}</p>
-              <div className="comm-post-footer">
-                <div className="comm-post-actions">
-                  {!isReply && (
-                    <button className="comm-reply-btn" onClick={() => { setReplyingTo(post.id); setShowCompose(true); haptic(); }}>
-                      {"\u{1F4AC}"} Reply
-                    </button>
-                  )}
-                  <span className={`comm-bookmark${bookmarks.includes(post.id) ? " comm-bookmark-active" : ""}`} onClick={() => toggleBookmark(post.id)}>
-                    {bookmarks.includes(post.id) ? "\u{1F516}" : "\u{1F3F7}"}
-                  </span>
-                  {!post.isUserPost && (
-                    <span className="comm-report" onClick={() => {
-                      if (communityMod.LIVE_COMMUNITY) communityMod.reportPost(post.id);
-                      haptic();
-                    }} title="Report" style={{ fontSize: 12, opacity: 0.4, cursor: "pointer", marginLeft: 4 }}>
-                      {"\u{1F6A9}"}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="comm-reactions">
-                {COMMUNITY_REACTIONS.map((r) => {
-                  const active = (reactions[post.id] || []).includes(r.type);
-                  return (
-                    <button key={r.type} className={`comm-reaction-btn${active ? " comm-reaction-active" : ""}`} onClick={() => toggleReaction(post.id, r.type)} title={r.label}>
-                      {r.emoji}
-                    </button>
-                  );
-                })}
-              </div>
-              {(showSaved || showMyPosts) && post.topicId && (
-                <div className="comm-post-topic-tag">{findTopic(post.topicId)?.title}</div>
-              )}
-            </div>
-          </div>
-        </div>
-        {postReplies.length > 0 && postReplies.map((r) => renderPost(r, true))}
-      </div>
-    );
-  }
-
-  // Saved posts view
-  if (showSaved) {
-    const savedPosts = bookmarks.map(getPostById).filter(Boolean);
-    return (
-      <div className="screen active">
-        <div style={{ padding: "8px 16px 0" }}>
-          <button className="comm-back" onClick={() => setShowSaved(false)}>{"\u2190"} Back to Community</button>
-        </div>
-        <div className="comm-header"><h2>Saved posts</h2></div>
-        <div className="comm-posts">
-          {savedPosts.length === 0 && <p className="comm-empty">Tap {"\u{1F3F7}"} on any post to save it here.</p>}
-          {savedPosts.map((p) => renderPost(p, false))}
-        </div>
-      </div>
-    );
-  }
-
-  // My posts view
-  if (showMyPosts) {
-    const myAll = [...userPosts, ...replies.filter((r) => r.isUserPost)];
-    return (
-      <div className="screen active">
-        <div style={{ padding: "8px 16px 0" }}>
-          <button className="comm-back" onClick={() => setShowMyPosts(false)}>{"\u2190"} Back to Community</button>
-        </div>
-        <div className="comm-header"><h2>My posts</h2></div>
-        <div className="comm-posts">
-          {myAll.length === 0 && <p className="comm-empty">Your anonymous posts will appear here.</p>}
-          {myAll.map((p) => renderPost(p, !!p.parentId))}
-        </div>
-      </div>
-    );
-  }
-
-  // Topic detail view
-  if (activeTopic) {
-    const topic = findTopic(activeTopic);
-    if (!topic) { setActiveTopic(null); return null; }
-    const topicUserPosts = userPosts.filter((p) => p.topicId === activeTopic);
-    const curatedPosts = topic.posts || [];
-    const topLevel = [...topicUserPosts, ...curatedPosts].filter((p) => !p.parentId);
-    const sorted = sortPosts(topLevel, sortMode, votes);
-    return (
-      <div className="screen active">
-        <div style={{ padding: "8px 16px 0" }}>
-          <button className="comm-back" onClick={() => { setActiveTopic(null); setSortMode("hot"); }}>{"\u2190"} Back to Community</button>
-        </div>
-        <div className="comm-topic-header">
-          <span className="comm-topic-icon">{topic.icon}</span>
-          <div>
-            <h3 className="comm-topic-title">{topic.title}</h3>
-            <p className="comm-topic-desc">{topic.description}</p>
-            {topic.tags && topic.tags.length > 0 && (
-              <div className="comm-topic-tags">{topic.tags.map((t) => <span key={t} className="comm-topic-tag-pill">{t}</span>)}</div>
-            )}
-          </div>
-        </div>
-        {topic.resources && topic.resources.length > 0 && (
-          <div className="comm-resources">
-            <div className="section-label" style={{ padding: "0 0 6px" }}>Resources</div>
-            {topic.resources.map((res, i) => (
-              <div key={i} className="comm-resource-row">
-                <span>{res.type === "tip" ? "\u{1F4A1}" : res.type === "article" ? "\u{1F4D6}" : "\u{1F3A5}"}</span>
-                <span>{res.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="comm-sort-tabs">
-          {["hot", "new", "top"].map((m) => (
-            <button key={m} className={`comm-sort-tab${sortMode === m ? " comm-sort-active" : ""}`} onClick={() => setSortMode(m)}>
-              {m === "hot" ? "\u{1F525} Hot" : m === "new" ? "\u{1F552} New" : "\u2B06 Top"}
-            </button>
-          ))}
-        </div>
-        <div className="comm-posts">
-          {sorted.length === 0 && <p className="comm-empty">No posts yet. Be the first to share!</p>}
-          {sorted.map((p) => renderPost(p, false))}
-        </div>
-        <div className="comm-compose-btn" onClick={() => { setReplyingTo(null); setShowCompose(true); haptic(); }}>
-          <span>{"\u{1F4AC}"}</span> Share your experience anonymously
-        </div>
-        {showCompose && (
-          <div className="comm-compose-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowCompose(false); setReplyingTo(null); } }}>
-            <div className="comm-compose-card">
-              <div className="comm-compose-header">
-                <button onClick={() => { setShowCompose(false); setReplyingTo(null); }}>Cancel</button>
-                <strong>{replyingTo ? "Reply anonymously" : "Share anonymously"}</strong>
-                <button onClick={replyingTo ? submitReply : submitPost} disabled={!composeText.trim()} className="comm-compose-submit">Post</button>
-              </div>
-              <textarea
-                className="comm-compose-input"
-                placeholder={replyingTo ? "Write your reply..." : "Share what's helped you, or just let it out..."}
-                value={composeText}
-                onChange={(e) => setComposeText(e.target.value.slice(0, COMMUNITY_POST_MAX_CHARS))}
-                rows={5}
-                autoFocus
-              />
-              {moderationError && (
-                <div style={{ color: "#e74c3c", fontSize: 13, padding: "6px 0", fontWeight: 500 }}>
-                  Post not allowed: {moderationError}
-                </div>
-              )}
-              <div className="comm-compose-counter">{composeText.length}/{COMMUNITY_POST_MAX_CHARS}</div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Topic list view
-  const allTopics = [
-    ...COMMUNITY_TOPICS.map((t) => ({ ...t, isPinned: true })),
-    ...userTopics.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+  const replies = [
+    {
+      avatar: "M", tone: "a", who: "Anonymous", age: "52 · post-meno", when: "2h",
+      body: "What helped most was naming it out loud at work. Not as an apology — just \"I'm in a hot flash, give me 30 seconds.\" The first time felt impossible. The fifth time felt like nothing.",
+      hearts: 47, echoed: 12, featured: true,
+    },
+    {
+      avatar: "R", tone: "b", who: "Anonymous", age: "48 · perimeno", when: "4h",
+      body: "Honestly? Letting go of the version of me who could push through anything on four hours of sleep. She was great. She's also retired now.",
+      hearts: 31, echoed: 8,
+    },
+    {
+      avatar: "J", tone: "c", who: "Anonymous", age: "46 · perimeno", when: "6h",
+      body: "Magnesium glycinate at bedtime. Walked into my doctor's office with three months of Vela data and got an actual conversation instead of a shrug. Both helped.",
+      hearts: 28, echoed: 5,
+    },
+    {
+      avatar: "K", tone: "d", who: "Anonymous", age: "51 · post-meno", when: "Yesterday",
+      body: "I stopped fighting the brain fog and started working with it. Heavy thinking before noon, admin in the afternoon, walks at 4. I'm more productive now than I was at 40, just on a different rhythm.",
+      hearts: 22, echoed: 4,
+    },
   ];
+
+  const past = [
+    { d: "29", m: "Apr", q: "What's something you've grieved that surprised you?", replies: 142 },
+    { d: "28", m: "Apr", q: "When did you first realize this was perimenopause and not stress?", replies: 98 },
+    { d: "27", m: "Apr", q: "What does your partner / family understand now that they didn't a year ago?", replies: 67 },
+  ];
+
   return (
     <div className="screen active">
-      <div className="comm-header">
-        <div className="comm-header-row">
-          <h2>Community</h2>
-          <div className="comm-header-actions">
-            <button className="comm-header-btn" onClick={() => setShowSaved(true)}>{"\u{1F516}"} Saved</button>
-            <button className="comm-header-btn" onClick={() => setShowMyPosts(true)}>{"\u{1F4DD}"} My Posts</button>
-          </div>
-        </div>
-        <p>You're not alone in this. Connect with women on the same journey.</p>
-      </div>
+      <section className="cir-greeting">
+        <h1>The <em>circle.</em></h1>
+        <p className="meta">Anonymous, no DMs, no follower counts. Just the question and the answers.</p>
+      </section>
 
-      {!guidelinesSeen && (
-        <div className="comm-guidelines">
-          <div className="comm-guidelines-text">
-            <div style={{ fontSize: 28, marginBottom: 8 }}>{"\u{1F33F}"}</div>
-            <strong>Welcome to our community</strong>
-            <p style={{ margin: "8px 0", lineHeight: 1.5 }}>Thousands of women are navigating this journey together. Here's how it works:</p>
-            <div style={{ textAlign: "left", fontSize: 13, lineHeight: 1.7 }}>
-              <div>{"\u{1F49A}"} <strong>Safe & anonymous</strong> — your identity is never shared</div>
-              <div>{"\u{1F91D}"} <strong>Be kind</strong> — every experience is valid</div>
-              <div>{"\u{1F4AC}"} <strong>Share what helps</strong> — your story could help someone else</div>
-              <div>{"\u{26A0}\uFE0F"} <strong>Not medical advice</strong> — always consult your provider</div>
-            </div>
+      {showFirst && (
+        <section className="cir-first-welcome">
+          <div className="cir-first-eye"><UIIcon name="Sparkle" size={12} /> First time here</div>
+          <h3>You don't have to <em>say anything yet.</em></h3>
+          <p>Most people read for a week before they answer. That's fine. The prompt below is today's — there will be a new one tomorrow.</p>
+          <div className="cir-first-rules">
+            <span><UIIcon name="Eye" size={12} /> Anonymous by default</span>
+            <span><UIIcon name="Lock" size={12} /> No replies, no DMs</span>
+            <span><UIIcon name="CheckCircle" size={12} /> Delete anytime</span>
           </div>
-          <button className="comm-guidelines-dismiss" onClick={() => { setGuidelinesSeen(true); haptic(); }}>Join the conversation</button>
-        </div>
+          <button
+            type="button"
+            onClick={dismissFirst}
+            style={{ marginTop: 12, background: "transparent", border: "none", color: "var(--clay-dark)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 4, textDecoration: "underline" }}
+          >
+            Got it — show me the prompt
+          </button>
+        </section>
       )}
 
-      <div className="comm-stat-bar">
-        <div className="comm-banner-text">
-          Women in perimenopause and menopause sharing what actually helps
+      {/* Today's prompt */}
+      <section className="cir-prompt" aria-label="Today's prompt">
+        <span className="eye"><span className="dot" /> Today's prompt · {promptToday.date}</span>
+        <h2>{promptToday.text}</h2>
+        <div className="cir-prompt-meta">
+          <span><strong style={{ color: "var(--ink)", fontWeight: 600 }}>{promptToday.answered}</strong> have answered</span>
+          <span className="dot">·</span>
+          <span className="live"><span className="pulse" /> {promptToday.reading} reading now</span>
         </div>
+        <button type="button" className="cir-share-btn" onClick={() => setComposeOpen(true)}>
+          <UIIcon name="Sparkle" size={14} />
+          Share your answer
+          <span className="anon">· anonymous</span>
+        </button>
+      </section>
+
+      {/* Replies */}
+      <div className="cir-section-label">
+        <span>Answers</span>
+        <span className="filter-chip">
+          <UIIcon name="ArrowUp" size={11} /> Most echoed
+        </span>
       </div>
 
-      <div className="comm-topics">
-        <div className="section-label" style={{ padding: "0 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>Discussion topics</span>
-          <button className="comm-new-topic-btn" onClick={() => setShowCreateTopic(true)}>+ New Topic</button>
-        </div>
-        {allTopics.map((topic) => {
-          const topicUserPosts = userPosts.filter((p) => p.topicId === topic.id);
-          const postCount = (topic.posts?.length || 0) + topicUserPosts.length;
-          return (
-            <div key={topic.id} className="comm-topic-row" onClick={() => setActiveTopic(topic.id)}>
-              <span className="comm-row-icon">{topic.icon}</span>
-              <div className="comm-row-info">
-                <div className="comm-row-title">
-                  {topic.isPinned && <span className="comm-pin">{"\u{1F4CC}"}</span>}
-                  {topic.title}
-                </div>
-                <div className="comm-row-desc">{topic.description}</div>
-                {topic.tags && topic.tags.length > 0 && (
-                  <div className="comm-topic-tags">{topic.tags.map((t) => <span key={t} className="comm-topic-tag-pill">{t}</span>)}</div>
-                )}
-              </div>
-              <div className="comm-row-count">{postCount}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {showCreateTopic && (
-        <div className="comm-compose-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCreateTopic(false); }}>
-          <div className="comm-compose-card">
-            <div className="comm-compose-header">
-              <button onClick={() => setShowCreateTopic(false)}>Cancel</button>
-              <strong>New topic</strong>
-              <button onClick={submitTopic} disabled={!topicForm.title.trim()} className="comm-compose-submit">Create</button>
-            </div>
-            <div className="comm-topic-form">
-              <div className="comm-emoji-picker">
-                <label>Choose an icon</label>
-                <div className="comm-emoji-grid">
-                  {TOPIC_EMOJI_OPTIONS.map((e) => (
-                    <button key={e} className={`comm-emoji-opt${topicForm.icon === e ? " comm-emoji-selected" : ""}`} onClick={() => setTopicForm((f) => ({ ...f, icon: e }))}>{e}</button>
-                  ))}
-                </div>
-              </div>
-              <input className="comm-compose-input comm-topic-title-input" placeholder="Topic title" maxLength={TOPIC_TITLE_MAX}
-                value={topicForm.title} onChange={(e) => setTopicForm((f) => ({ ...f, title: e.target.value }))} />
-              <textarea className="comm-compose-input" placeholder="Description (optional)" rows={2}
-                value={topicForm.description} onChange={(e) => setTopicForm((f) => ({ ...f, description: e.target.value.slice(0, TOPIC_DESC_MAX) }))} />
-              <div className="comm-tag-picker">
-                {TOPIC_TAG_OPTIONS.map((tag) => (
-                  <button key={tag} className={`comm-tag-btn${topicForm.tags.includes(tag) ? " comm-tag-active" : ""}`}
-                    onClick={() => setTopicForm((f) => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag] }))}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {replies.map((r, i) => (
+        <article key={i} className={`cir-reply${r.featured ? " featured" : ""}`}>
+          <div className="cir-reply-head">
+            <span className={`cir-avatar ${r.tone}`}>{r.avatar}</span>
+            <span className="who">{r.who}</span>
+            <span className="age">· {r.age}</span>
+            <span className="when">{r.when}</span>
           </div>
+          <p className="cir-reply-body">{r.body}</p>
+          <div className="cir-reply-foot">
+            <button
+              type="button"
+              className={`react${reactions[i] ? " on" : ""}`}
+              onClick={() => toggle(i)}
+              aria-pressed={!!reactions[i]}
+            >
+              <UIIcon name="Heart" size={12} weight={reactions[i] ? "fill" : "duotone"} />
+              <span>{r.hearts + (reactions[i] ? 1 : 0)}</span>
+            </button>
+            <span style={{ color: "var(--ink-light)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <UIIcon name="ChatCircle" size={12} /> {r.echoed} echoed
+            </span>
+            <button
+              type="button"
+              className={`save${saved[i] ? " on" : ""}`}
+              onClick={() => toggleSave(i)}
+              aria-pressed={!!saved[i]}
+            >
+              <UIIcon name="Star" size={13} weight={saved[i] ? "fill" : "duotone"} />
+            </button>
+          </div>
+        </article>
+      ))}
+
+      {/* Past prompts */}
+      <div className="cir-section-label"><span>Past prompts</span></div>
+      <div className="cir-past">
+        {past.map((p) => (
+          <button key={p.d} type="button" className="cir-past-row">
+            <div className="day">
+              <div className="num">{p.d}</div>
+              <div className="mo">{p.m}</div>
+            </div>
+            <div className="body">
+              <div className="q">{p.q}</div>
+              <div className="stats">{p.replies} answers</div>
+            </div>
+            <span className="arrow">›</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Privacy footer */}
+      <div className="cir-privacy">
+        <span className="ico"><UIIcon name="Lock" size={14} /></span>
+        <div className="body">
+          <strong>Always anonymous</strong>
+          No usernames, no profiles, no photos. We strip metadata before posting. You can delete your answer anytime.
         </div>
+      </div>
+
+      {/* Compose sheet */}
+      {composeOpen && (
+        <>
+          <div className="dd-scrim show" onClick={() => setComposeOpen(false)} />
+          <aside className="dd-sheet show" role="dialog" aria-modal="true" aria-label="Compose answer">
+            <div className="dd-handle" />
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 16, color: "var(--ink)", margin: "0 0 12px", lineHeight: 1.3 }}>
+              {promptToday.text}
+            </p>
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Take your time. There's no word count."
+              style={{ width: "100%", minHeight: 110, border: "1px solid var(--border)", borderRadius: 14, padding: 12, fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--ink)", resize: "none", outline: "none", lineHeight: 1.5, background: "var(--card-bg)" }}
+            />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--sage-dark)", fontWeight: 500 }}>
+                <UIIcon name="Lock" size={12} /> Posting anonymously
+              </span>
+              <button
+                type="button"
+                disabled={draft.trim().length < 8}
+                onClick={() => { setDraft(""); setComposeOpen(false); }}
+                style={{ padding: "11px 18px", borderRadius: 12, background: "var(--clay)", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: draft.trim().length < 8 ? "not-allowed" : "pointer", opacity: draft.trim().length < 8 ? 0.4 : 1, fontFamily: "inherit" }}
+              >
+                Share
+              </button>
+            </div>
+          </aside>
+        </>
       )}
     </div>
   );
 }
-
-// ─── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
   // App-init reads use safeReadJSON: a localStorage exception (e.g. Safari private mode,
