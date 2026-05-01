@@ -8,6 +8,15 @@ import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from
 import { readJSON as safeReadJSON } from "./safeStorage";
 import { getThemePref, setTheme } from "./theme";
 import {
+  isHealthKitEnabled,
+  enableHealthKit,
+  disableHealthKit,
+  fetchYesterdaySleep,
+  // fetchYesterdayHRV — wired in the module, will surface in a future
+  // Insights HRV-vs-symptom card. Skipped at the import site for now.
+  getHealthKitStatus,
+} from "./healthkit";
+import {
   // Symptom-tile icons
   Flame, MoonStars, Bed, Brain, HeartHalf, BatteryLow, CloudLightning, Lightning,
   CloudMoon, Heartbeat, Question, ChatTeardrop, Target, Waveform, HourglassLow,
@@ -505,6 +514,191 @@ function analyzePatterns(logs) {
 }
 
 
+// ─── Weekly Summary (Premium) ───────────────────────────────────────────
+// Computes a quiet "your week" snapshot: 7 days back vs the 7 days before
+// that. Returns deltas + a 1-paragraph plain-language summary. Designed
+// to be opened from a Sunday-ready card on Insights and (eventually)
+// from a tapped weekly notification.
+function buildWeeklySummary(logs) {
+  if (!logs || logs.length === 0) return null;
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const sevenAgo = new Date(now); sevenAgo.setDate(sevenAgo.getDate() - 7);
+  const fourteenAgo = new Date(now); fourteenAgo.setDate(fourteenAgo.getDate() - 14);
+
+  const inWindow = (l, a, b) => {
+    const d = new Date(l.date); d.setHours(0, 0, 0, 0);
+    return d >= a && d < b;
+  };
+  const week = logs.filter((l) => inWindow(l, sevenAgo, now));
+  const prior = logs.filter((l) => inWindow(l, fourteenAgo, sevenAgo));
+
+  if (week.length === 0) return null;
+
+  // Symptom counts
+  const tally = (set) => {
+    const c = {};
+    set.forEach((l) => {
+      const seen = new Set();
+      Object.keys(l.symptoms || {}).forEach((s) => seen.add(s));
+      seen.forEach((s) => { c[s] = (c[s] || 0) + 1; });
+    });
+    return c;
+  };
+  const wCounts = tally(week);
+  const pCounts = tally(prior);
+  const topSymptoms = Object.entries(wCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([sym, count]) => ({
+      sym,
+      count,
+      prior: pCounts[sym] || 0,
+      delta: count - (pCounts[sym] || 0),
+      icon: SYMPTOMS.find((s) => s.name === sym)?.icon,
+    }));
+
+  // Mood
+  const moodAvg = (set) => {
+    const m = set.filter((l) => l.mood !== null && l.mood !== undefined);
+    return m.length === 0 ? null : { avg: m.reduce((s, l) => s + l.mood, 0) / m.length, samples: m.length };
+  };
+  const wMood = moodAvg(week);
+  const pMood = moodAvg(prior);
+  const moodDelta = (wMood && pMood) ? wMood.avg - pMood.avg : null;
+
+  // Sleep
+  const sleepAvg = (set) => {
+    const s = set.filter((l) => l.context && l.context.sleepHours !== null && l.context.sleepHours !== undefined);
+    return s.length === 0 ? null : { avg: s.reduce((sum, l) => sum + l.context.sleepHours, 0) / s.length, samples: s.length };
+  };
+  const wSleep = sleepAvg(week);
+  const pSleep = sleepAvg(prior);
+  const sleepDelta = (wSleep && pSleep) ? wSleep.avg - pSleep.avg : null;
+
+  // Period days this week
+  const periodDays = week.filter((l) => l.context && l.context.period && l.context.period !== "none").length;
+
+  // Stress
+  const stressAvg = (set) => {
+    const s = set.filter((l) => l.context && l.context.stress !== null && l.context.stress !== undefined);
+    return s.length === 0 ? null : s.reduce((sum, l) => sum + l.context.stress, 0) / s.length;
+  };
+  const wStress = stressAvg(week);
+  const pStress = stressAvg(prior);
+
+  // Build the plain-language paragraph
+  const moodLabels = ["rough", "low", "okay", "good", "great"];
+  const parts = [];
+  const uniqueDays = new Set(week.map((l) => l.date.slice(0, 10))).size;
+  parts.push(`You logged ${uniqueDays} of 7 days.`);
+  if (topSymptoms[0]) {
+    const t = topSymptoms[0];
+    if (t.delta < 0) parts.push(`${t.sym} was your top symptom (${t.count} days) — down from ${t.prior} the week before.`);
+    else if (t.delta > 0) parts.push(`${t.sym} showed up most (${t.count} days, up from ${t.prior}).`);
+    else parts.push(`${t.sym} showed up most (${t.count} days, same as the week before).`);
+  }
+  if (wMood && wMood.samples >= 3) {
+    const lbl = moodLabels[Math.round(wMood.avg)];
+    if (moodDelta !== null && Math.abs(moodDelta) >= 0.4) {
+      parts.push(`Mood averaged ${lbl} — ${moodDelta > 0 ? "lifted" : "dipped"} from the week before.`);
+    } else {
+      parts.push(`Mood averaged ${lbl}.`);
+    }
+  }
+  if (wSleep && wSleep.samples >= 3) {
+    if (sleepDelta !== null && Math.abs(sleepDelta) >= 0.4) {
+      parts.push(`Sleep averaged ${wSleep.avg.toFixed(1)}h — ${sleepDelta > 0 ? "more" : "less"} than the week before.`);
+    } else {
+      parts.push(`Sleep held around ${wSleep.avg.toFixed(1)}h.`);
+    }
+  }
+
+  return {
+    windowStart: sevenAgo.toISOString().slice(0, 10),
+    windowEnd: now.toISOString().slice(0, 10),
+    daysLogged: uniqueDays,
+    topSymptoms,
+    mood: wMood ? { avg: wMood.avg, label: moodLabels[Math.round(wMood.avg)], delta: moodDelta, samples: wMood.samples } : null,
+    sleep: wSleep ? { avg: wSleep.avg, delta: sleepDelta, samples: wSleep.samples } : null,
+    stress: wStress != null ? { avg: wStress, delta: pStress != null ? wStress - pStress : null } : null,
+    periodDays,
+    summary: parts.join(" "),
+  };
+}
+
+// ─── Anonymized summary for Ask Vela API ────────────────────────────────
+// Strips notes (free-text), exact dates, custom symptom names, location.
+// Returns an aggregated, sliced view that the model can reason about
+// without seeing anything personally identifying.
+function buildAskVelaSummary(logs) {
+  if (!logs || logs.length === 0) return { daysLogged: 0 };
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const thirtyAgo = new Date(now); thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  const recent = logs.filter((l) => new Date(l.date) >= thirtyAgo);
+
+  const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+  const lastEntry = logs.length > 0 ? new Date(logs[logs.length - 1].date) : null;
+  const lastEntryDaysAgo = lastEntry ? Math.floor((now - lastEntry) / (1000 * 60 * 60 * 24)) : null;
+
+  // Symptom counts (last 30 days)
+  const symptomCounts = {};
+  recent.forEach((l) => {
+    Object.keys(l.symptoms || {}).forEach((s) => {
+      // Skip custom user symptoms (stored as raw glyph) to avoid
+      // leaking anything personal
+      if (typeof s === "string" && s.length < 40) {
+        symptomCounts[s] = (symptomCounts[s] || 0) + 1;
+      }
+    });
+  });
+
+  // Mood/sleep/stress aggregates
+  const moodSamples = recent.filter((l) => l.mood !== null && l.mood !== undefined);
+  const avgMood = moodSamples.length ? moodSamples.reduce((s, l) => s + l.mood, 0) / moodSamples.length : null;
+  const moodLabels = ["Rough", "Low", "Okay", "Good", "Great"];
+  const avgMoodLabel = avgMood !== null ? moodLabels[Math.round(avgMood)] : null;
+
+  const sleepSamples = recent.filter((l) => l.context && l.context.sleepHours !== null && l.context.sleepHours !== undefined);
+  const avgSleep = sleepSamples.length ? sleepSamples.reduce((s, l) => s + l.context.sleepHours, 0) / sleepSamples.length : null;
+  const stressSamples = recent.filter((l) => l.context && l.context.stress !== null && l.context.stress !== undefined);
+  const avgStress = stressSamples.length ? stressSamples.reduce((s, l) => s + l.context.stress, 0) / stressSamples.length : null;
+
+  // Reuse the correlation engine output as plain-language strings
+  const corr = analyzeCorrelations(logs).slice(0, 6).map((c) => c.text);
+
+  // Cycle prediction snapshot if present
+  const cp = predictNextCycle(logs);
+  const cyclePrediction = (cp && cp.cyclesLogged >= 2) ? {
+    cyclesLogged: cp.cyclesLogged,
+    cycleLengthMean: cp.cycleLengthMean,
+    cycleLengthStddev: cp.cycleLengthStddev,
+    windowStart: cp.windowStart,
+    windowEnd: cp.windowEnd,
+  } : null;
+
+  // Active experiments summary
+  const experiments = (() => { try { return JSON.parse(localStorage.getItem("vela_experiments") || "[]"); } catch { return []; } })();
+  const activeExperiments = experiments.filter((e) => e.status === "active").map((e) => {
+    const start = new Date(e.startDate + "T00:00:00");
+    const day = Math.min(e.duration, Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1);
+    return { name: e.name, day, duration: e.duration };
+  });
+
+  return {
+    daysLogged: logs.length,
+    uniqueDays,
+    lastEntryDaysAgo,
+    symptomCounts,
+    avgMood,
+    avgMoodLabel,
+    avgSleep,
+    avgStress,
+    correlations: corr,
+    cyclePrediction,
+    activeExperiments,
+  };
+}
+
 function analyzeCorrelations(logs) {
   const contextLogs = logs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null));
   if (contextLogs.length < 14) return [];
@@ -574,6 +768,226 @@ function analyzeCorrelations(logs) {
   }
 
   return insights.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+// ─── Cycle prediction (Premium) ──────────────────────────────────────────
+// Looks at logged period flow days, infers cycle starts (transition from
+// non-period → period day-1), computes mean cycle length + spread, and
+// predicts the next likely period window. Returns null when there isn't
+// enough signal — never invents a window from < 2 cycles.
+//
+// For perimenopausal users with irregular cycles, the *spread* matters as
+// much as the mean: we always show a 5-day window centered on the next
+// expected start (or wider if their stddev is high).
+function predictNextCycle(logs) {
+  if (!logs || logs.length === 0) return null;
+
+  // Collect period day-1 starts. A "start" = first day of a period after
+  // ≥ 3 non-period days. We sort by date and walk forward.
+  const dayMap = new Map(); // dateStr -> hasPeriod boolean
+  logs.forEach((l) => {
+    const d = l.date.slice(0, 10);
+    const isPeriod = !!(l.context && l.context.period && l.context.period !== "none");
+    // OR across multiple logs same day
+    dayMap.set(d, dayMap.get(d) || isPeriod);
+  });
+  const sortedDays = [...dayMap.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, hasPeriod]) => ({ date, hasPeriod }));
+
+  // Find day-1 starts: a hasPeriod=true day preceded by a hasPeriod=false day
+  // (allowing for log gaps — we treat unlogged days as non-period)
+  const starts = [];
+  for (let i = 0; i < sortedDays.length; i++) {
+    if (!sortedDays[i].hasPeriod) continue;
+    // Check the previous logged day; if it was period or we're at start, skip
+    if (i > 0 && sortedDays[i - 1].hasPeriod) {
+      // Was previous logged day adjacent (within 1 day)? If yes, this is mid-period
+      const prevD = new Date(sortedDays[i - 1].date);
+      const curD = new Date(sortedDays[i].date);
+      const gap = (curD - prevD) / (1000 * 60 * 60 * 24);
+      if (gap <= 1) continue; // adjacent period day — not a new cycle
+    }
+    starts.push(sortedDays[i].date);
+  }
+
+  if (starts.length < 2) {
+    // Need at least 2 cycles to predict the next one
+    return {
+      hasData: starts.length === 1,
+      lastStart: starts[0] || null,
+      cyclesLogged: starts.length,
+      reason: starts.length === 0
+        ? "Log your period for 2+ cycles and Vela will predict the next."
+        : "One cycle logged. After your next period, Vela will start predicting.",
+    };
+  }
+
+  // Compute cycle lengths
+  const lengths = [];
+  for (let i = 1; i < starts.length; i++) {
+    const a = new Date(starts[i - 1]);
+    const b = new Date(starts[i]);
+    const days = Math.round((b - a) / (1000 * 60 * 60 * 24));
+    if (days >= 14 && days <= 90) lengths.push(days); // sanity bounds
+  }
+  if (lengths.length === 0) return { hasData: true, lastStart: starts[starts.length - 1], cyclesLogged: starts.length, reason: "Cycle gaps look unusual — keep logging and we'll try again." };
+
+  const mean = lengths.reduce((s, x) => s + x, 0) / lengths.length;
+  const variance = lengths.reduce((s, x) => s + (x - mean) ** 2, 0) / lengths.length;
+  const stddev = Math.sqrt(variance);
+
+  // Predicted next start = last start + mean cycle length
+  const lastStart = new Date(starts[starts.length - 1]);
+  const predictedDate = new Date(lastStart);
+  predictedDate.setDate(predictedDate.getDate() + Math.round(mean));
+
+  // Window: ± max(2, ceil(stddev)) days around predicted center, clamped to [2, 7]
+  const windowSpread = Math.min(7, Math.max(2, Math.ceil(stddev)));
+  const windowStart = new Date(predictedDate);
+  windowStart.setDate(windowStart.getDate() - windowSpread);
+  const windowEnd = new Date(predictedDate);
+  windowEnd.setDate(windowEnd.getDate() + windowSpread);
+
+  // Confidence label
+  const confidence =
+    lengths.length >= 4 && stddev <= 3 ? "high" :
+    lengths.length >= 3 && stddev <= 6 ? "medium" : "low";
+
+  // Days from today
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysUntil = Math.round((predictedDate - today) / (1000 * 60 * 60 * 24));
+
+  return {
+    hasData: true,
+    cyclesLogged: starts.length,
+    cycleLengthMean: Math.round(mean),
+    cycleLengthStddev: Math.round(stddev * 10) / 10,
+    lastStart: starts[starts.length - 1],
+    predictedDate: predictedDate.toISOString().slice(0, 10),
+    windowStart: windowStart.toISOString().slice(0, 10),
+    windowEnd: windowEnd.toISOString().slice(0, 10),
+    windowSpread,
+    daysUntil,
+    confidence,
+  };
+}
+
+// ─── Experiments engine (Premium) ────────────────────────────────────────
+// Compares symptom frequency during an experiment window vs the equivalent
+// window immediately before. Returns plain-language deltas — never claims
+// causation.
+const EXPERIMENT_LIBRARY = [
+  {
+    id: "caffeine_cutoff",
+    name: "Caffeine cutoff at 1 pm",
+    desc: "No coffee/tea after 1 pm. Vela will compare your night sweats and sleep against the prior week.",
+    duration: 7,
+    icon: "Sparkle",
+    targets: ["Hot flash", "Night sweats", "Poor sleep"],
+    contextKey: "caffeine",
+    contextExpect: false, // expect caffeine=false during the experiment
+  },
+  {
+    id: "evening_walks",
+    name: "Evening walks for 10 days",
+    desc: "A 20-minute walk after dinner. We'll watch mood, sleep, and brain fog.",
+    duration: 10,
+    icon: "Footprints",
+    targets: ["Brain fog", "Anxiety", "Poor sleep"],
+    contextKey: "exercise",
+    contextExpect: true,
+  },
+  {
+    id: "no_alcohol",
+    name: "No alcohol for 14 days",
+    desc: "Two weeks dry. Vela tracks night sweats, sleep quality, and mood swings.",
+    duration: 14,
+    icon: "Drop",
+    targets: ["Night sweats", "Hot flash", "Mood shifts"],
+    contextKey: "alcohol",
+    contextExpect: false,
+  },
+  {
+    id: "consistent_bedtime",
+    name: "Consistent bedtime window",
+    desc: "Pick a 30-minute bedtime window and stick to it for 10 days. We'll watch sleep hours and morning mood.",
+    duration: 10,
+    icon: "MoonStars",
+    targets: ["Poor sleep", "Fatigue"],
+    contextKey: "sleepHours",
+    contextExpect: "high",
+  },
+  {
+    id: "magnesium",
+    name: "Magnesium glycinate at bedtime",
+    desc: "200-400 mg, 30 minutes before sleep. Vela compares sleep and night sweats vs the prior week. Check with your doctor first.",
+    duration: 14,
+    icon: "Sparkle",
+    targets: ["Poor sleep", "Night sweats", "Restless legs"],
+    contextKey: null,
+    contextExpect: null,
+  },
+  {
+    id: "morning_protein",
+    name: "30g protein at breakfast",
+    desc: "Two weeks of front-loaded protein. We'll watch fatigue and brain fog through the afternoon.",
+    duration: 14,
+    icon: "Heart",
+    targets: ["Fatigue", "Brain fog"],
+    contextKey: null,
+    contextExpect: null,
+  },
+];
+
+function compareExperiment(experiment, logs) {
+  const start = new Date(experiment.startDate); start.setHours(0, 0, 0, 0);
+  const end = new Date(start); end.setDate(end.getDate() + experiment.duration);
+  const prevStart = new Date(start); prevStart.setDate(prevStart.getDate() - experiment.duration);
+
+  const inWindow = (l, a, b) => {
+    const d = new Date(l.date); d.setHours(0, 0, 0, 0);
+    return d >= a && d < b;
+  };
+  const during = logs.filter((l) => inWindow(l, start, end));
+  const prior = logs.filter((l) => inWindow(l, prevStart, start));
+
+  const tally = (set) => {
+    const c = {};
+    set.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { c[s] = (c[s] || 0) + 1; }));
+    return c;
+  };
+  const dCounts = tally(during);
+  const pCounts = tally(prior);
+
+  // Deltas for the experiment's target symptoms
+  const targets = (experiment.targets || []).map((sym) => {
+    const d = dCounts[sym] || 0;
+    const p = pCounts[sym] || 0;
+    const delta = d - p;
+    let summary;
+    if (p === 0 && d === 0) summary = "no change — neither week showed it";
+    else if (p === 0 && d > 0) summary = `appeared ${d}x — wasn't there the week before`;
+    else if (d === 0 && p > 0) summary = `gone — appeared ${p}x the week before`;
+    else summary = `${delta > 0 ? "+" : ""}${delta} (${d} vs ${p})`;
+    return { symptom: sym, during: d, prior: p, delta, summary };
+  });
+
+  // Average mood delta
+  const moodAvg = (set) => {
+    const m = set.filter((l) => l.mood !== null && l.mood !== undefined);
+    return m.length === 0 ? null : m.reduce((s, l) => s + l.mood, 0) / m.length;
+  };
+  const moodD = moodAvg(during);
+  const moodP = moodAvg(prior);
+  const moodDelta = (moodD !== null && moodP !== null) ? moodD - moodP : null;
+
+  return {
+    daysLogged: { during: during.length, prior: prior.length },
+    targets,
+    moodDelta,
+    sampleOk: during.length >= Math.max(3, Math.floor(experiment.duration / 3)),
+  };
 }
 
 const REMINDER_MESSAGES = {
@@ -2134,6 +2548,7 @@ const css = `
     font-family: var(--font-serif); font-size: 22px; color: var(--ink); letter-spacing: -0.01em;
   }
   .context-card .unit { font-family: var(--font-sans); font-size: 12px; color: var(--ink-mid); margin-left: 4px; }
+  .hk-pill { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sage-dark); background: var(--sage-light); padding: 2px 6px; border-radius: 999px; }
   .context-stepper { display: flex; align-items: center; gap: 8px; }
   .context-stepper button {
     width: 26px; height: 26px; border-radius: 9px;
@@ -2308,6 +2723,113 @@ const css = `
   .export-cta h4 { font-family: var(--font-serif); font-weight: 400; font-size: 17px; margin: 0 0 3px; line-height: 1.2; }
   .export-cta p { font-size: 12px; margin: 0; opacity: 0.9; line-height: 1.4; }
   .export-cta .arrow { width: 32px; height: 32px; border-radius: 999px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ─── Weekly summary card (Premium) ────────────────────────────────────
+     Quiet card on weekdays, lifted with a subtle gradient on Sundays so
+     it earns the "your week is ready" promotion. Locked variant uses
+     the gold accent like Cycle. */
+  .week-summary-card { display: block; width: 100%; text-align: left; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; font-family: inherit; transition: transform 100ms ease; }
+  .week-summary-card:active { transform: scale(0.99); }
+  .week-summary-card.sunday { background: linear-gradient(135deg, rgba(143,184,155,0.20), rgba(212,168,83,0.08)); border-color: rgba(143,184,155,0.36); }
+  .week-summary-card.locked { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.10)); border-color: rgba(212,168,83,0.30); }
+  .week-summary-card .ws-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 6px; }
+  .week-summary-card.locked .ws-eyebrow { color: var(--clay-dark); }
+  .week-summary-card .ws-tag { background: var(--gold); color: #2C1F17; padding: 1px 8px; border-radius: 999px; font-size: 9.5px; margin-left: 6px; letter-spacing: 0.06em; }
+  .week-summary-card .ws-summary { font-size: 13.5px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; font-family: var(--font-serif); font-weight: 400; }
+  .week-summary-card .ws-foot { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-light); }
+  .week-summary-card .ws-arrow { display: inline-flex; color: var(--clay-dark); margin-left: auto; }
+
+  /* Weekly summary sheet */
+  .ws-sheet-body { padding: 4px 0 16px; overflow-y: auto; }
+  .ws-sheet-head { margin-bottom: 14px; }
+  .ws-sheet-head .eye { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 4px; }
+  .ws-sheet-head h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--ink); margin: 0 0 8px; line-height: 1.2; }
+  .ws-sheet-head .ws-sheet-summary { font-size: 14px; color: var(--ink-mid); line-height: 1.55; margin: 0; }
+  .ws-stat-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .ws-stat { flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; text-align: center; }
+  .ws-stat .v { font-family: var(--font-serif); font-size: 22px; color: var(--ink); line-height: 1; min-height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+  .ws-stat .v small { font-size: 12px; color: var(--ink-light); margin-left: 2px; }
+  .ws-stat .l { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); margin-top: 4px; }
+  .ws-stat .l .delta.up { color: var(--sage-dark); }
+  .ws-stat .l .delta.down { color: var(--clay-dark); }
+  .ws-section { margin-bottom: 14px; }
+  .ws-section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 8px; }
+  .ws-symptom-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ws-symptom-row:last-child { border-bottom: none; }
+  .ws-symptom-row .ico { color: var(--clay-dark); display: inline-flex; }
+  .ws-symptom-row .sym { flex: 1; color: var(--ink); }
+  .ws-symptom-row .counts { color: var(--ink-mid); font-size: 12.5px; }
+  .ws-symptom-row .counts small { color: var(--ink-light); font-size: 11px; }
+  .ws-symptom-row .delta { font-size: 11.5px; font-weight: 600; min-width: 38px; text-align: right; }
+  .ws-symptom-row .delta.good { color: var(--sage-dark); }
+  .ws-symptom-row .delta.bad { color: var(--clay-dark); }
+  .ws-symptom-row .delta.flat { color: var(--ink-light); }
+  .ws-pill-row { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-mid); background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; margin: 4px 4px 4px 0; }
+  .ws-pdf-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--sage); color: #fff; border: none; border-radius: 12px; padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 14px; }
+
+  /* ─── Cycle prediction card (Premium) ──────────────────────────────────
+     Soft sage gradient when active so it reads as a "Vela is working in
+     the background" surface, not another data card. Locked variant uses
+     the upgrade-gold accent to match the Settings premium row. */
+  .cycle-card { background: linear-gradient(135deg, rgba(143,184,155,0.16), rgba(255,255,255,0.55)); border: 1px solid rgba(143,184,155,0.32); border-radius: var(--radius); padding: 16px; }
+  .cycle-card.locked { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.10)); border-color: rgba(212,168,83,0.30); }
+  .cycle-card .cycle-head { display: inline-flex; align-items: center; gap: 8px; color: var(--sage-dark); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+  .cycle-card.locked .cycle-head { color: var(--clay-dark); }
+  .cycle-card .cycle-head .ico { color: var(--sage-dark); display: inline-flex; }
+  .cycle-card.locked .cycle-head .ico { color: var(--clay); }
+  .cycle-card .cycle-head strong { font-family: var(--font-sans); font-size: 12px; color: inherit; }
+  .cycle-card .cycle-window { font-family: var(--font-serif); font-size: 22px; line-height: 1.2; color: var(--ink); margin: 0 0 6px; }
+  .cycle-card .cycle-meta { font-size: 12px; color: var(--ink-mid); margin: 0; line-height: 1.5; }
+  .cycle-card .cycle-body { font-size: 13.5px; color: var(--ink-mid); line-height: 1.5; margin: 0 0 12px; }
+  .cycle-card .cycle-cta { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; border: none; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  /* ─── Experiments (Premium) ────────────────────────────────────────────
+     Active card uses the same surface as data cards but adds a top
+     accent strip + progress bar. Completed cards drop the accent and
+     show only the deltas. */
+  .exp-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 12px; margin-bottom: 10px; position: relative; overflow: hidden; }
+  .exp-card.active::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--clay), var(--sage)); }
+  .exp-card.completed { border-style: dashed; }
+  .exp-card .exp-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .exp-card .exp-head .ico { width: 32px; height: 32px; border-radius: 10px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .exp-card .exp-head .ttl { flex: 1; min-width: 0; }
+  .exp-card .exp-head strong { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 16px; color: var(--ink); line-height: 1.2; }
+  .exp-card .exp-head small { display: block; font-size: 11.5px; color: var(--ink-light); margin-top: 2px; letter-spacing: 0.02em; }
+  .exp-card .exp-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark); background: rgba(143,184,155,0.18); padding: 3px 8px; border-radius: 999px; align-self: flex-start; }
+  .exp-card .exp-progress { height: 4px; background: var(--card-bg-soft, rgba(0,0,0,0.05)); border-radius: 999px; overflow: hidden; margin-bottom: 10px; }
+  .exp-card .exp-progress .fill { height: 100%; background: linear-gradient(90deg, var(--clay), var(--sage)); transition: width 200ms ease; }
+  .exp-card .exp-deltas { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: rgba(0,0,0,0.025); border-radius: 10px; margin-bottom: 8px; }
+  .exp-card .exp-delta { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+  .exp-card .exp-delta .sym { color: var(--ink); font-weight: 500; }
+  .exp-card .exp-delta .val { color: var(--ink-mid); font-size: 12px; text-align: right; }
+  .exp-card .exp-delta .val.good { color: var(--sage-dark); font-weight: 600; }
+  .exp-card .exp-delta .val.bad { color: var(--clay-dark); font-weight: 600; }
+  .exp-card .exp-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .exp-card .exp-btn { padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; border: 1px solid var(--border); background: transparent; color: var(--ink-mid); }
+  .exp-card .exp-btn.primary { background: var(--clay); color: #fff; border-color: var(--clay); }
+  .exp-card .exp-btn.secondary:hover { background: var(--card-bg-soft, rgba(0,0,0,0.04)); }
+
+  /* Experiment promo CTA — when no experiments exist */
+  .exp-promo { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 14px; width: 100%; cursor: pointer; font-family: var(--font-sans); text-align: left; }
+  .exp-promo .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .exp-promo .body { flex: 1; min-width: 0; }
+  .exp-promo h4 { font-family: var(--font-serif); font-weight: 400; font-size: 16px; margin: 0 0 3px; color: var(--ink); line-height: 1.2; }
+  .exp-promo p { font-size: 12.5px; margin: 0; color: var(--ink-mid); line-height: 1.45; }
+  .exp-promo .arrow { width: 28px; height: 28px; border-radius: 999px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* Experiment library inside the picker sheet */
+  .exp-library { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; overflow-y: auto; }
+  .exp-lib-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: left; cursor: pointer; font-family: inherit; transition: border-color 100ms ease, transform 100ms ease; position: relative; }
+  .exp-lib-card:active:not(:disabled) { transform: scale(0.99); }
+  .exp-lib-card:hover:not(:disabled) { border-color: var(--clay); }
+  .exp-lib-card:disabled { opacity: 0.55; cursor: not-allowed; }
+  .exp-lib-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .exp-lib-head .ico { width: 28px; height: 28px; border-radius: 9px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .exp-lib-head strong { flex: 1; font-family: var(--font-serif); font-weight: 400; font-size: 16px; color: var(--ink); line-height: 1.2; }
+  .exp-lib-head .dur { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-light); text-transform: uppercase; }
+  .exp-lib-desc { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin: 0 0 6px; }
+  .exp-lib-targets { font-size: 11px; color: var(--ink-light); letter-spacing: 0.02em; }
+  .exp-lib-status { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sage-dark); }
 
   /* Shelf — horizontal scroll cards */
   .shelf-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
@@ -4665,6 +5187,21 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
   const [periodFlow, setPeriodFlow] = useState(null);
   const [energy, setEnergy] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
+  // HealthKit auto-fill — pulls yesterday's sleep when permission's been
+  // granted. Sets a flag so the UI can show "Synced from Apple Health"
+  // and the user can override by tapping the +/- buttons.
+  const [hkSyncedSleep, setHkSyncedSleep] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!isHealthKitEnabled()) return;
+      const hours = await fetchYesterdaySleep();
+      if (cancelled || hours == null) return;
+      setSleepHours((current) => current == null ? hours : current);
+      setHkSyncedSleep(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
 
@@ -4997,17 +5534,24 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       {/* Context */}
       <div className="today-section-label"><span>Context</span><span className="hint">Optional</span></div>
       <div className="context-grid">
-        {/* Sleep — stepper */}
+        {/* Sleep — stepper. Auto-fills from Apple Health when enabled. */}
         <div className="context-card">
-          <div className="label"><UIIcon name="Bed" size={13} /> Sleep</div>
+          <div className="label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><UIIcon name="Bed" size={13} /> Sleep</span>
+            {hkSyncedSleep && (
+              <span className="hk-pill" title="Pulled from Apple Health — tap +/− to override">
+                <UIIcon name="Heart" size={10} weight="fill" /> Health
+              </span>
+            )}
+          </div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
             <span className="value">
               {sleepHours !== null ? sleepHours : "—"}
               {sleepHours !== null && <span className="unit">hrs</span>}
             </span>
             <div className="context-stepper">
-              <button type="button" onClick={() => setSleepHours(Math.max(0, (sleepHours ?? 7) - 0.5))} aria-label="Decrease sleep">−</button>
-              <button type="button" onClick={() => setSleepHours(Math.min(14, (sleepHours ?? 6.5) + 0.5))} aria-label="Increase sleep">+</button>
+              <button type="button" onClick={() => { setSleepHours(Math.max(0, (sleepHours ?? 7) - 0.5)); setHkSyncedSleep(false); }} aria-label="Decrease sleep">−</button>
+              <button type="button" onClick={() => { setSleepHours(Math.min(14, (sleepHours ?? 6.5) + 0.5)); setHkSyncedSleep(false); }} aria-label="Increase sleep">+</button>
             </div>
           </div>
         </div>
@@ -5623,7 +6167,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     if (chatMessages.length > 0) localStorage.setItem("vela_chat_messages", JSON.stringify(chatMessages.slice(-20)));
   }, [chatMessages]);
 
-  const handleQuestion = (text) => {
+  const handleQuestion = async (text) => {
     if (!text.trim() || isTyping) return;
     track("ask_vela_used", { logCount: logs.length, gatedByDataMin: logs.length < 7 });
     const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
@@ -5631,14 +6175,53 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     setChatInput("");
     setIsTyping(true);
     haptic("Light");
-    setTimeout(() => {
-      const responseText = logs.length < 7
-        ? `Keep logging! I need at least 7 days of data to spot meaningful patterns. You're on day ${logs.length} — almost there!`
-        : generateResponse(matchQuestion(text), logs, profile);
-      setChatMessages((prev) => [...prev, { role: "assistant", text: responseText, time: new Date().toISOString() }]);
+
+    // Pre-flight: too little data for a meaningful answer
+    if (logs.length < 7) {
+      setChatMessages((prev) => [...prev, {
+        role: "assistant",
+        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${logs.length} — keep going.`,
+        time: new Date().toISOString(),
+      }]);
       setIsTyping(false);
       haptic("Light");
-    }, 600 + Math.random() * 400);
+      return;
+    }
+
+    try {
+      const summary = buildAskVelaSummary(logs);
+      // profile is the raw onboarding answers object: { 0: stageIdx, 1: [concernIdxs], 2: goalIdx-or-array, 3: guidanceIdx }
+      const stageIdx = profile?.[0];
+      const goalAns = profile?.[2];
+      const goalIdx = Array.isArray(goalAns) ? goalAns[0] : goalAns;
+      const profilePayload = {
+        stage: stageIdx != null ? QUESTIONS[0].opts[stageIdx]?.label : null,
+        goal: goalIdx != null ? QUESTIONS[2].opts[goalIdx]?.label : null,
+      };
+      // Try the real API first; fall back to the canned response engine
+      // if the function returns 5xx (key missing, model unreachable, etc.)
+      const r = await fetch("/api/ask-vela", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text.trim(), summary, profile: profilePayload }),
+      });
+      let answer;
+      if (r.ok) {
+        const data = await r.json();
+        answer = data.answer;
+      } else {
+        // Graceful degradation — show a real answer either way
+        answer = generateResponse(matchQuestion(text), logs, profile);
+      }
+      setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
+    } catch (err) {
+      // Network error — fall back to canned response
+      const answer = generateResponse(matchQuestion(text), logs, profile);
+      setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
+    } finally {
+      setIsTyping(false);
+      haptic("Light");
+    }
   };
 
   // ─── Data-state derivation ────────────────────────────────────────────────
@@ -5714,12 +6297,57 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     basis: `${uniqueDays} days of data`,
   }));
 
-  // Suggested next-week shelf (CBT lessons + experiments) — abbreviated subset
-  const shelfItems = [
-    { kicker: "lesson", icon: "Brain", title: "Why hot flashes peak in the afternoon", desc: "Cortisol, blood-sugar dips, and the perimenopausal thermostat — a 4-min read.", mins: "4 min · CBT-T" },
-    { kicker: "experiment", icon: "Sparkle", title: "Caffeine cutoff at 1 pm", desc: "Try it for one week. Vela will compare your night sweats against the prior week.", mins: "7 days · 1 tap to start" },
-    { kicker: "lesson", icon: "Brain", title: "Sleep windows, not sleep hours", desc: "Why a steady bedtime matters more than the total when symptoms are loud.", mins: "3 min · CBT-I" },
-  ];
+  // Cycle prediction (Premium-gated render below)
+  const cyclePrediction = predictNextCycle(logs);
+
+  // Experiments (Premium-gated render below). State is local so start/end
+  // actions re-render without a full app round-trip; persistence is via
+  // the safeStorage helper.
+  const [experiments, setExperiments] = useState(() => safeReadJSON("vela_experiments", []));
+  useEffect(() => {
+    try { localStorage.setItem("vela_experiments", JSON.stringify(experiments)); } catch { /* private mode */ }
+  }, [experiments]);
+  const activeExperiments = experiments.filter((e) => e.status === "active");
+  const completedExperiments = experiments.filter((e) => e.status === "completed");
+  const [experimentBrowserOpen, setExperimentBrowserOpen] = useState(false);
+  const [weekSheetOpen, setWeekSheetOpen] = useState(false);
+
+  // Weekly summary — computed live from logs. Card highlights on Sundays.
+  const weeklySummary = buildWeeklySummary(logs);
+  const isSunday = new Date().getDay() === 0;
+
+  function startExperiment(library) {
+    if (!isPremium) { onShowPaywall(); return; }
+    const newExp = {
+      id: `${library.id}_${Date.now()}`,
+      libraryId: library.id,
+      name: library.name,
+      desc: library.desc,
+      icon: library.icon,
+      duration: library.duration,
+      targets: library.targets,
+      startDate: new Date().toISOString().slice(0, 10),
+      status: "active",
+    };
+    setExperiments((prev) => [...prev, newExp]);
+    setExperimentBrowserOpen(false);
+    haptic("Medium");
+    track("experiment_started", { libraryId: library.id, duration: library.duration });
+  }
+
+  function endExperiment(id) {
+    setExperiments((prev) => prev.map((e) => e.id === id ? { ...e, status: "completed", endedAt: new Date().toISOString() } : e));
+    haptic("Light");
+  }
+
+  function abandonExperiment(id) {
+    setExperiments((prev) => prev.filter((e) => e.id !== id));
+    haptic("Light");
+  }
+
+  // The legacy "Try this week" CBT shelf was removed when real
+  // Experiments shipped — the EXPERIMENT_LIBRARY constant + the
+  // Experiment browser sheet replaced it.
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const suggestedQs = [
@@ -5884,6 +6512,196 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             )}
           </section>
 
+          {/* Sunday weekly summary — promoted on Sundays, present every
+              other day as a quieter card. Premium-gated content; free
+              tier sees the headline only and gets nudged to upgrade. */}
+          {weeklySummary && (
+            <button
+              type="button"
+              className={`week-summary-card${isSunday ? " sunday" : ""}${!isPremium ? " locked" : ""}`}
+              onClick={() => isPremium ? setWeekSheetOpen(true) : onShowPaywall()}
+            >
+              <div className="ws-eyebrow">
+                <UIIcon name="Sparkle" size={11} />
+                {isSunday ? "Your week" : "Last 7 days"}
+                {!isPremium && <span className="ws-tag">Premium</span>}
+              </div>
+              <p className="ws-summary">
+                {isPremium ? weeklySummary.summary : `${weeklySummary.daysLogged} of 7 days logged. Premium opens the full week-over-week comparison — sleep, mood, top symptoms, and what shifted.`}
+              </p>
+              <div className="ws-foot">
+                <span>{weeklySummary.daysLogged}/7 days</span>
+                {weeklySummary.mood && <span>· mood {weeklySummary.mood.label}</span>}
+                {weeklySummary.sleep && <span>· sleep {weeklySummary.sleep.avg.toFixed(1)}h</span>}
+                <span className="ws-arrow"><UIIcon name="ArrowRight" size={13} /></span>
+              </div>
+            </button>
+          )}
+
+          {/* Cycle prediction (Premium) — only render when there's enough
+              signal OR when free user, to surface the upsell */}
+          {cyclePrediction && (
+            <>
+              <div className="today-section-label">
+                <span>Cycle</span>
+                {isPremium && cyclePrediction.cyclesLogged >= 2 && (
+                  <span className="hint">
+                    {cyclePrediction.confidence === "high" ? "High confidence" :
+                     cyclePrediction.confidence === "medium" ? "Building confidence" : "Early signal"}
+                  </span>
+                )}
+                {!isPremium && <span className="hint" style={{ color: "var(--gold)" }}>Premium</span>}
+              </div>
+              <section className={`cycle-card${!isPremium ? " locked" : ""}`}>
+                {!isPremium ? (
+                  <>
+                    <div className="cycle-head">
+                      <span className="ico"><UIIcon name="Sparkle" size={16} /></span>
+                      <strong>Predict your next period</strong>
+                    </div>
+                    <p className="cycle-body">
+                      Vela learns your rhythm — even when cycles get irregular — and gives you a
+                      window for what's likely next. Helpful for planning, travel, and naming
+                      what your body's doing.
+                    </p>
+                    <button type="button" className="cycle-cta" onClick={onShowPaywall}>
+                      <UIIcon name="Star" size={13} weight="fill" /> Unlock with Premium
+                    </button>
+                  </>
+                ) : cyclePrediction.cyclesLogged < 2 ? (
+                  <>
+                    <div className="cycle-head">
+                      <span className="ico"><UIIcon name="Calendar" size={16} /></span>
+                      <strong>Building your baseline</strong>
+                    </div>
+                    <p className="cycle-body">{cyclePrediction.reason}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="cycle-head">
+                      <span className="ico"><UIIcon name="Calendar" size={16} /></span>
+                      <strong>
+                        {cyclePrediction.daysUntil < 0
+                          ? "Overdue window"
+                          : cyclePrediction.daysUntil === 0
+                          ? "Likely today"
+                          : `In about ${cyclePrediction.daysUntil} day${cyclePrediction.daysUntil === 1 ? "" : "s"}`}
+                      </strong>
+                    </div>
+                    <p className="cycle-window">
+                      {new Date(cyclePrediction.windowStart + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      {" – "}
+                      {new Date(cyclePrediction.windowEnd + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                    <p className="cycle-meta">
+                      Based on {cyclePrediction.cyclesLogged} cycles · avg length {cyclePrediction.cycleLengthMean} days
+                      {cyclePrediction.cycleLengthStddev > 0 && <> · ± {cyclePrediction.cycleLengthStddev}</>}
+                    </p>
+                  </>
+                )}
+              </section>
+            </>
+          )}
+
+          {/* Active experiments (Premium) — shows running experiments with
+              live progress + comparison snapshot. Browser sheet for adding
+              new ones is below. */}
+          {(activeExperiments.length > 0 || completedExperiments.length > 0) && (
+            <>
+              <div className="today-section-label">
+                <span>Experiments</span>
+                <button
+                  type="button"
+                  className="hint hint-btn"
+                  onClick={() => isPremium ? setExperimentBrowserOpen(true) : onShowPaywall()}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "var(--clay-dark)", fontWeight: 600 }}
+                >
+                  + New
+                </button>
+              </div>
+              {activeExperiments.map((exp) => {
+                const startDate = new Date(exp.startDate + "T00:00:00");
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const elapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+                const remaining = Math.max(0, exp.duration - elapsed);
+                const pct = Math.min(100, Math.max(0, (elapsed / exp.duration) * 100));
+                const comp = compareExperiment(exp, logs);
+                return (
+                  <article key={exp.id} className="exp-card active">
+                    <div className="exp-head">
+                      <span className="ico"><UIIcon name={exp.icon || "Sparkle"} size={16} /></span>
+                      <div className="ttl">
+                        <strong>{exp.name}</strong>
+                        <small>Day {Math.min(elapsed + 1, exp.duration)} of {exp.duration} · {remaining > 0 ? `${remaining} day${remaining === 1 ? "" : "s"} left` : "ready to wrap up"}</small>
+                      </div>
+                    </div>
+                    <div className="exp-progress"><div className="fill" style={{ width: `${pct}%` }} /></div>
+                    {comp.sampleOk && comp.targets.length > 0 && (
+                      <div className="exp-deltas">
+                        {comp.targets.slice(0, 2).map((t) => (
+                          <div key={t.symptom} className="exp-delta">
+                            <span className="sym">{t.symptom}</span>
+                            <span className={`val${t.delta < 0 ? " good" : t.delta > 0 ? " bad" : ""}`}>
+                              {t.delta < 0 ? "↓ " : t.delta > 0 ? "↑ " : "— "}
+                              {t.summary}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {remaining === 0 && (
+                      <div className="exp-actions">
+                        <button type="button" className="exp-btn primary" onClick={() => endExperiment(exp.id)}>See results</button>
+                      </div>
+                    )}
+                    {remaining > 0 && (
+                      <div className="exp-actions">
+                        <button type="button" className="exp-btn secondary" onClick={() => abandonExperiment(exp.id)}>Stop</button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+              {completedExperiments.slice(-2).reverse().map((exp) => {
+                const comp = compareExperiment(exp, logs);
+                return (
+                  <article key={exp.id} className="exp-card completed">
+                    <div className="exp-head">
+                      <span className="ico"><UIIcon name={exp.icon || "Sparkle"} size={16} /></span>
+                      <div className="ttl">
+                        <strong>{exp.name}</strong>
+                        <small>Completed · {exp.duration} days</small>
+                      </div>
+                      <span className="exp-badge">Done</span>
+                    </div>
+                    {comp.targets.length > 0 && (
+                      <div className="exp-deltas">
+                        {comp.targets.map((t) => (
+                          <div key={t.symptom} className="exp-delta">
+                            <span className="sym">{t.symptom}</span>
+                            <span className={`val${t.delta < 0 ? " good" : t.delta > 0 ? " bad" : ""}`}>
+                              {t.delta < 0 ? "↓ " : t.delta > 0 ? "↑ " : "— "}
+                              {t.summary}
+                            </span>
+                          </div>
+                        ))}
+                        {comp.moodDelta !== null && Math.abs(comp.moodDelta) >= 0.3 && (
+                          <div className="exp-delta">
+                            <span className="sym">Mood</span>
+                            <span className={`val${comp.moodDelta > 0 ? " good" : " bad"}`}>
+                              {comp.moodDelta > 0 ? "↑ " : "↓ "}
+                              {Math.abs(comp.moodDelta).toFixed(1)} pts
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </>
+          )}
+
           {patternFindings.length > 0 && (
             <>
               <div className="today-section-label">
@@ -5938,20 +6756,29 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
           </button>
 
-          <div className="today-section-label">
-            <span>Try this week</span>
-            <span className="hint">From your patterns</span>
-          </div>
-          <div className="shelf-row" role="list">
-            {shelfItems.map((it, i) => (
-              <article className="shelf-card" key={i} role="listitem">
-                <div className="kicker"><UIIcon name={it.icon} size={11} /> {it.kicker === "lesson" ? "Lesson" : "Experiment"}</div>
-                <div className="ttl">{it.title}</div>
-                <div className="desc">{it.desc}</div>
-                <div className="mins">{it.mins}</div>
-              </article>
-            ))}
-          </div>
+          {/* Experiments entry — only show "Try one" CTA if no active
+              experiments and no completed history yet (otherwise the
+              section above already exposes "+ New") */}
+          {activeExperiments.length === 0 && completedExperiments.length === 0 && (
+            <>
+              <div className="today-section-label">
+                <span>Try an experiment</span>
+                <span className="hint">{isPremium ? "From your patterns" : <span style={{ color: "var(--gold)" }}>Premium</span>}</span>
+              </div>
+              <button
+                type="button"
+                className="exp-promo"
+                onClick={() => isPremium ? setExperimentBrowserOpen(true) : onShowPaywall()}
+              >
+                <div className="ico"><UIIcon name="Flask" size={18} /></div>
+                <div className="body">
+                  <h4>Run a small experiment</h4>
+                  <p>Pick one change for 7-14 days. Vela compares the symptom days against the week before — no guessing.</p>
+                </div>
+                <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
+              </button>
+            </>
+          )}
         </>
       )}
 
@@ -6035,6 +6862,133 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           </button>
         </div>
       </aside>
+
+      {/* Experiment browser sheet */}
+      <div className={`av-scrim${experimentBrowserOpen ? " show" : ""}`} onClick={() => setExperimentBrowserOpen(false)} />
+      <aside className={`av-sheet${experimentBrowserOpen ? " show" : ""}`} role="dialog" aria-modal="true" aria-label="Choose an experiment" style={{ maxHeight: "82vh" }}>
+        <div className="av-handle" />
+        <div className="av-head" style={{ marginBottom: 8 }}>
+          <div className="av-avatar" style={{ background: "var(--sage)" }}><UIIcon name="Flask" size={18} /></div>
+          <div>
+            <div className="av-name">Pick an experiment</div>
+            <div className="av-sub">One change at a time. Vela does the comparison for you.</div>
+          </div>
+        </div>
+        <div className="exp-library">
+          {EXPERIMENT_LIBRARY.map((lib) => {
+            const alreadyActive = activeExperiments.some((e) => e.libraryId === lib.id);
+            return (
+              <button
+                key={lib.id}
+                type="button"
+                className="exp-lib-card"
+                disabled={alreadyActive}
+                onClick={() => startExperiment(lib)}
+              >
+                <div className="exp-lib-head">
+                  <span className="ico"><UIIcon name={lib.icon} size={16} /></span>
+                  <strong>{lib.name}</strong>
+                  <span className="dur">{lib.duration} days</span>
+                </div>
+                <p className="exp-lib-desc">{lib.desc}</p>
+                <div className="exp-lib-targets">
+                  Watching: {lib.targets.join(" · ")}
+                </div>
+                {alreadyActive && <span className="exp-lib-status">Already running</span>}
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Weekly summary sheet */}
+      <div className={`av-scrim${weekSheetOpen ? " show" : ""}`} onClick={() => setWeekSheetOpen(false)} />
+      <aside className={`av-sheet${weekSheetOpen ? " show" : ""}`} role="dialog" aria-modal="true" aria-label="Your week" style={{ maxHeight: "85vh" }}>
+        <div className="av-handle" />
+        {weeklySummary && (
+          <div className="ws-sheet-body">
+            <div className="ws-sheet-head">
+              <span className="eye"><UIIcon name="Sparkle" size={11} /> Your week</span>
+              <h2>
+                {new Date(weeklySummary.windowStart + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {" – "}
+                {new Date(weeklySummary.windowEnd + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </h2>
+              <p className="ws-sheet-summary">{weeklySummary.summary}</p>
+            </div>
+
+            <div className="ws-stat-row">
+              <div className="ws-stat">
+                <div className="v">{weeklySummary.daysLogged}<small>/7</small></div>
+                <div className="l">Days logged</div>
+              </div>
+              {weeklySummary.mood && (
+                <div className="ws-stat">
+                  <div className="v" style={{ color: "var(--clay)", display: "inline-flex", justifyContent: "center" }}>
+                    <MoodFace kind={["rough", "low", "okay", "good", "great"][Math.round(weeklySummary.mood.avg)]} size={28} />
+                  </div>
+                  <div className="l">Avg mood{weeklySummary.mood.delta != null && Math.abs(weeklySummary.mood.delta) >= 0.4 && (
+                    <span className={`delta ${weeklySummary.mood.delta > 0 ? "up" : "down"}`}>
+                      {weeklySummary.mood.delta > 0 ? " ↑" : " ↓"}
+                    </span>
+                  )}</div>
+                </div>
+              )}
+              {weeklySummary.sleep && (
+                <div className="ws-stat">
+                  <div className="v">{weeklySummary.sleep.avg.toFixed(1)}<small>h</small></div>
+                  <div className="l">Avg sleep{weeklySummary.sleep.delta != null && Math.abs(weeklySummary.sleep.delta) >= 0.4 && (
+                    <span className={`delta ${weeklySummary.sleep.delta > 0 ? "up" : "down"}`}>
+                      {weeklySummary.sleep.delta > 0 ? " ↑" : " ↓"}
+                    </span>
+                  )}</div>
+                </div>
+              )}
+            </div>
+
+            {weeklySummary.topSymptoms.length > 0 && (
+              <div className="ws-section">
+                <div className="ws-section-label">Top symptoms vs prior week</div>
+                {weeklySummary.topSymptoms.map((s) => (
+                  <div key={s.sym} className="ws-symptom-row">
+                    <span className="ico"><SymptomIcon name={s.icon} size={14} /></span>
+                    <span className="sym">{s.sym}</span>
+                    <span className="counts">
+                      {s.count} <small>(was {s.prior})</small>
+                    </span>
+                    <span className={`delta ${s.delta < 0 ? "good" : s.delta > 0 ? "bad" : "flat"}`}>
+                      {s.delta < 0 ? `↓ ${Math.abs(s.delta)}` : s.delta > 0 ? `↑ ${s.delta}` : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {weeklySummary.periodDays > 0 && (
+              <div className="ws-pill-row">
+                <UIIcon name="Drop" size={12} />
+                {weeklySummary.periodDays} period day{weeklySummary.periodDays === 1 ? "" : "s"} this week
+              </div>
+            )}
+
+            {weeklySummary.stress && weeklySummary.stress.delta != null && Math.abs(weeklySummary.stress.delta) >= 0.4 && (
+              <div className="ws-pill-row">
+                <UIIcon name="CloudLightning" size={12} />
+                Stress {weeklySummary.stress.delta > 0 ? "up" : "down"} {Math.abs(weeklySummary.stress.delta).toFixed(1)} from the week before
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="ws-pdf-btn"
+              onClick={() => { generateDoctorReport(logs, profile); setWeekSheetOpen(false); }}
+            >
+              <UIIcon name="FileText" size={14} />
+              Save this week to PDF
+            </button>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
@@ -6043,6 +6997,16 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
 function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const [plan, setPlan] = useState("annual");
 
+  // Pillar copy must match what actually ships. Each pillar below maps to
+  // a real feature with shipping code:
+  //   doctor-ready report  → generateDoctorReport (jsPDF)
+  //   pattern history      → History screen unlock past 7 days
+  //   experiments          → EXPERIMENT_LIBRARY + compareExperiment
+  //   cycle prediction     → predictNextCycle on Insights
+  //   weekly summary       → buildWeeklySummary + sheet
+  //   Ask Vela             → /api/ask-vela Netlify function (Claude-backed)
+  //   Apple Health sync    → src/healthkit.js wrapper
+  // Don't add a pillar without a wired feature behind it.
   const pillars = [
     {
       icon: "FileText",
@@ -6051,22 +7015,40 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       body: "A printable PDF of your patterns, written for your provider. Charts, dates, and what's been working.",
     },
     {
-      icon: "ChartBar",
+      icon: "ChatCircle",
       tone: "sage",
-      title: "Pattern history",
-      body: "Look back across months — see how this autumn compares to last spring. Connect the threads only time can show.",
+      title: "Ask Vela",
+      body: "Ask anything about your data. Real answers grounded in your symptoms, sleep, and cycle — not generic web advice.",
     },
     {
       icon: "Flask",
       tone: "gold",
-      title: "Gentle experiments",
-      body: "Try one change for two weeks. Vela tracks the difference — caffeine, evening walks, magnesium, whatever you choose.",
+      title: "Run experiments",
+      body: "Pick one change for 7-14 days — caffeine cutoff, evening walks, magnesium. Vela compares the symptom days against the week before.",
     },
     {
-      icon: "ChatCircle",
+      icon: "Calendar",
+      tone: "sage",
+      title: "Cycle prediction",
+      body: "Even when cycles are irregular, Vela learns your rhythm and gives you a window for what's likely next.",
+    },
+    {
+      icon: "Sparkle",
       tone: "clay",
-      title: "Ask Vela companion",
-      body: "Ask anything about your patterns. Answers stay on-device — your data never leaves your phone.",
+      title: "Weekly summary",
+      body: "Every Sunday: a quiet read on your week — top symptoms, sleep, mood, what shifted. One scroll, no work.",
+    },
+    {
+      icon: "Heart",
+      tone: "gold",
+      title: "Apple Health sync",
+      body: "Pull sleep and HRV from your watch automatically, so you don't retype what your wrist already knows.",
+    },
+    {
+      icon: "ChartBar",
+      tone: "sage",
+      title: "Full pattern history",
+      body: "Look back across months — see how this autumn compares to last spring. Free shows the last 7 days.",
     },
   ];
 
@@ -6536,6 +7518,31 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
 
 function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime, onNavigate }) {
   const [themePref, setThemePref] = useState(() => getThemePref());
+  const [hkOn, setHkOn] = useState(() => isHealthKitEnabled());
+  const [hkStatus, setHkStatus] = useState("checking");
+  const [hkBusy, setHkBusy] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getHealthKitStatus().then((s) => { if (!cancelled) setHkStatus(s); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function toggleHealthKit() {
+    if (!isPremium) { onShowPaywall(); return; }
+    if (hkStatus !== "available") return;
+    setHkBusy(true);
+    try {
+      if (hkOn) {
+        await disableHealthKit();
+        setHkOn(false);
+      } else {
+        const r = await enableHealthKit();
+        if (r.ok) setHkOn(true);
+      }
+    } finally {
+      setHkBusy(false);
+    }
+  }
 
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
   const guidanceLabels = ["Daily check-ins", "Weekly summaries", "Only when I ask", "Let Vela decide"];
@@ -6739,6 +7746,34 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Connected health */}
+      <div className="set-section-label"><span>Connected health</span></div>
+      <div className="set-card">
+        <button
+          className="set-row"
+          onClick={toggleHealthKit}
+          disabled={hkBusy || (hkStatus !== "available" && isPremium)}
+          style={{ opacity: (hkStatus !== "available" && isPremium) ? 0.55 : 1 }}
+        >
+          <span className="glyph" style={{ background: hkOn ? "var(--sage-light)" : undefined, color: hkOn ? "var(--sage-dark)" : undefined }}>
+            <UIIcon name="Heart" size={16} weight={hkOn ? "fill" : "duotone"} />
+          </span>
+          <span className="body">
+            <span className="label">Apple Health</span>
+            <span className="sub">
+              {!isPremium ? "Auto-fill sleep + HRV from your watch" :
+                hkStatus === "no-native" ? "Available on iOS only" :
+                hkStatus === "no-plugin" ? "HealthKit not installed in this build" :
+                hkOn ? "Pulling sleep on every Today open" :
+                "Tap to grant permission"}
+            </span>
+          </span>
+          <span className={`value${!isPremium ? " gold" : hkOn ? " sage" : ""}`}>
+            {!isPremium ? "Premium" : hkOn ? "On" : (hkStatus === "available" ? "Off" : "—")}
+          </span>
+        </button>
       </div>
 
       {/* Privacy & Data */}

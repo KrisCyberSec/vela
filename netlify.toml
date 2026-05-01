@@ -1,0 +1,18 @@
+# Netlify config for the main Vela web build (ePWA + Capacitor host).
+# The landing page lives in /landing with its own netlify.toml.
+
+[build]
+  publish = "build"
+  command = "npm run build"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Functions need Anthropic SDK shape; bundling with esbuild keeps cold
+# starts fast and avoids the legacy zisi packager.
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
