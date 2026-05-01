@@ -2541,6 +2541,121 @@ const css = `
   .onb-summary-edits { margin-top: 14px; padding: 12px 16px; border-radius: 14px; background: rgba(140,78,50,0.04); font-size: 12px; color: var(--ink-mid); display: flex; align-items: center; gap: 8px; }
   .onb-summary-edits a { color: var(--clay-dark); font-weight: 600; text-decoration: underline; cursor: pointer; }
 
+  /* ════════════════════════════════════════════════════════════════════════
+     History screen redesign (Claude Design handoff, Apr 30 2026)
+     ════════════════════════════════════════════════════════════════════════ */
+  .history-greeting { padding: 18px 0 12px; }
+  .history-greeting h1 { margin: 0 0 4px; font-family: var(--font-serif); font-weight: 400; font-size: 28px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); }
+  .history-greeting h1 em { font-style: italic; color: var(--clay); }
+  .history-greeting .meta { margin: 0; font-size: 13px; color: var(--ink-mid); }
+  .history-greeting .meta .dot { margin: 0 7px; color: var(--ink-light); }
+
+  .empty-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 22px 24px; text-align: center; }
+  .empty-card .glyph { width: 56px; height: 56px; border-radius: 16px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .empty-card h3 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.2; margin: 0 0 10px; color: var(--ink); }
+  .empty-card h3 em { font-style: italic; color: var(--clay); }
+  .empty-card p { font-size: 14px; line-height: 1.55; color: var(--ink-mid); margin: 0 0 18px; }
+  .empty-card .cta { display: inline-flex; align-items: center; gap: 6px; padding: 12px 18px; border-radius: 12px; background: var(--clay); color: #fff; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+
+  .streak-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-cell { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 2px; min-height: 70px; justify-content: center; }
+  .stat-cell .v { font-family: var(--font-serif); font-size: 24px; line-height: 1; letter-spacing: -0.01em; color: var(--ink); }
+  .stat-cell .v small { font-family: var(--font-sans); font-size: 12px; color: var(--ink-mid); font-weight: 500; margin-left: 3px; }
+  .stat-cell .l { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); margin-top: 2px; }
+
+  .cal-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 14px 14px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-month { font-family: var(--font-serif); font-size: 18px; letter-spacing: -0.005em; color: var(--ink); }
+  .cal-month em { font-style: italic; color: var(--clay); }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-nav button { width: 28px; height: 28px; border-radius: 9px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+  .cal-nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .cal-nav button:active:not(:disabled) { transform: scale(0.94); }
+  .cal-dows { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 6px; }
+  .cal-dows span { font-size: 10px; color: var(--ink-light); letter-spacing: 0.04em; text-align: center; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 12px; color: var(--ink); background: rgba(140,78,50,0.04); border: none; cursor: pointer; transition: transform 100ms ease, background 200ms ease; }
+  .cal-cell.empty { background: transparent; pointer-events: none; cursor: default; }
+  .cal-cell.future { color: var(--ink-light); background: transparent; opacity: 0.4; pointer-events: none; cursor: default; }
+  .cal-cell.today { outline: 2px solid var(--clay); outline-offset: -1px; font-weight: 600; }
+  .cal-cell.has-entry { background: rgba(201,123,92,0.18); }
+  .cal-cell.h2 { background: rgba(201,123,92,0.32); }
+  .cal-cell.h3 { background: rgba(201,123,92,0.50); color: #fff; }
+  .cal-cell.h4 { background: var(--clay); color: #fff; }
+  .cal-cell.locked { color: var(--ink-light); cursor: not-allowed; }
+  .cal-cell.locked::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, transparent 0 4px, rgba(140,78,50,0.06) 4px 5px); border-radius: inherit; pointer-events: none; }
+  .cal-cell .period { position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 3px; background: var(--sage-dark); }
+  .cal-cell.h3 .period, .cal-cell.h4 .period { background: #fff; }
+  .cal-cell:active:not(.empty):not(.future):not(.locked) { transform: scale(0.92); }
+  .cal-legend { display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--ink-light); letter-spacing: 0.04em; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .cal-legend .row { display: inline-flex; align-items: center; gap: 4px; }
+  .cal-legend .scale { display: inline-flex; gap: 2px; }
+  .cal-legend .scale i { width: 11px; height: 11px; border-radius: 3px; display: block; }
+
+  .filter-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px 4px; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; background: rgba(140,78,50,0.06); color: var(--ink-mid); border: 1px solid transparent; white-space: nowrap; cursor: pointer; font-family: inherit; transition: background 150ms ease, color 150ms ease, border-color 150ms ease; }
+  .filter-chip.on { background: var(--clay-light); color: var(--clay-dark); border-color: var(--clay); }
+  .filter-chip .ct { font-size: 10px; opacity: 0.7; }
+
+  .day-group { margin-top: 4px; }
+  .day-label { display: flex; align-items: baseline; gap: 8px; margin: 18px 2px 8px; }
+  .day-label .num { font-family: var(--font-serif); font-size: 24px; color: var(--ink); letter-spacing: -0.01em; line-height: 1; }
+  .day-label .num em { font-style: italic; color: var(--clay); }
+  .day-label .day { font-size: 11px; color: var(--ink-light); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; }
+  .day-label .relative { font-size: 11px; color: var(--ink-light); margin-left: auto; }
+
+  .entry-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; text-align: left; cursor: pointer; font-family: inherit; width: 100%; transition: transform 100ms ease, border-color 200ms ease; }
+  .entry-card:active { transform: scale(0.985); }
+  .entry-card.standout { background: var(--glass-sage-card); border-color: var(--sage); }
+  .entry-card .top-row { display: flex; align-items: center; gap: 10px; }
+  .entry-card .e-mood { width: 32px; height: 32px; font-size: 22px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .entry-card .e-meta { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-mid); line-height: 1.4; }
+  .entry-card .e-meta strong { color: var(--ink); font-weight: 600; }
+  .entry-card .e-time { font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0; }
+  .entry-card .e-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .entry-card .pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 999px; background: var(--clay-light); color: var(--clay-dark); }
+  .entry-card .pill.sage { background: var(--sage-light); color: var(--sage-dark); }
+  .entry-card .e-note { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 14px; line-height: 1.5; color: var(--ink); padding-left: 10px; border-left: 2px solid var(--clay-light); }
+  .entry-card .e-context { display: flex; gap: 12px; align-items: center; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; color: var(--ink-mid); }
+  .entry-card .e-context span { display: inline-flex; align-items: center; gap: 4px; }
+  .entry-card .e-context strong { color: var(--ink); font-weight: 600; }
+  .entry-card.skipped { background: transparent; border: 1px dashed var(--border); color: var(--ink-light); font-size: 12px; padding: 10px 14px; display: flex; flex-direction: row; align-items: center; gap: 8px; }
+  .entry-card.skipped:active { transform: none; }
+
+  .lock-banner { margin-top: 18px; background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 18px; padding: 18px 16px; text-align: center; position: relative; overflow: hidden; }
+  .lock-banner::before { content: ""; position: absolute; left: 0; right: 0; top: -28px; height: 28px; background: linear-gradient(to bottom, transparent, var(--cream)); pointer-events: none; }
+  .lock-banner .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+  .lock-banner h4 { font-family: var(--font-serif); font-weight: 400; font-size: 18px; margin: 0 0 6px; color: var(--ink); }
+  .lock-banner h4 em { font-style: italic; color: var(--clay); }
+  .lock-banner p { font-size: 13px; color: var(--ink-mid); line-height: 1.5; margin: 0 0 14px; }
+  .lock-banner button { padding: 10px 18px; border-radius: 12px; background: var(--clay); color: #fff; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+
+  .dd-scrim { position: fixed; inset: 0; background: var(--glass-modal-scrim); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
+  .dd-scrim.show { opacity: 1; pointer-events: auto; }
+  .dd-sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; max-width: 420px; margin: 0 auto; border-radius: 24px; background: var(--cream); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 18px 50px rgba(140, 78, 50, 0.20); z-index: 51; padding: 18px; max-height: 78vh; display: flex; flex-direction: column; transform: translateY(40px); opacity: 0; pointer-events: none; transition: transform 260ms cubic-bezier(0.2,0.8,0.3,1), opacity 240ms ease; overflow-y: auto; }
+  .dd-sheet.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .dd-handle { width: 36px; height: 4px; border-radius: 3px; background: rgba(140,78,50,0.2); margin: -6px auto 14px; }
+  .dd-head { margin-bottom: 14px; }
+  .dd-head .num { font-family: var(--font-serif); font-size: 30px; line-height: 1; letter-spacing: -0.01em; color: var(--ink); }
+  .dd-head .num em { font-style: italic; color: var(--clay); }
+  .dd-head .day { font-size: 11px; color: var(--ink-light); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+  .dd-section { margin-top: 16px; }
+  .dd-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 8px; }
+  .dd-mood-row { display: flex; align-items: center; gap: 12px; }
+  .dd-mood-row .em { font-size: 36px; line-height: 1; }
+  .dd-mood-row .lbl { font-family: var(--font-serif); font-size: 22px; color: var(--ink); }
+  .dd-mood-row .lbl small { display: block; font-family: var(--font-sans); font-size: 12px; color: var(--ink-mid); margin-top: 3px; }
+  .dd-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dd-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 7px 11px; border-radius: 999px; background: var(--clay-light); color: var(--clay-dark); }
+  .dd-pill .sev { font-family: var(--font-serif); font-size: 10px; background: rgba(255,255,255,0.55); padding: 1px 5px; border-radius: 4px; }
+  .dd-context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dd-context-cell { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+  .dd-context-cell .lab { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 4px; display: inline-flex; align-items: center; gap: 5px; }
+  .dd-context-cell .v { font-family: var(--font-serif); font-size: 20px; color: var(--ink); }
+  .dd-context-cell .v small { font-family: var(--font-sans); font-size: 11px; color: var(--ink-mid); margin-left: 3px; }
+  .dd-note { font-family: var(--font-serif); font-style: italic; font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
   .screen { display: none; flex-direction: column; padding-bottom: 96px; animation: fadeIn 0.3s ease; }
@@ -4942,104 +5057,403 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
 // ─── History Screen ──────────────────────────────────────────────────────────
 
 function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
-  if (logs.length === 0) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [filter, setFilter] = useState(null);
+  const [openDay, setOpenDay] = useState(null);
+
+  const TODAY = new Date();
+  const MOOD_EMOJI_HX = ["😔", "😕", "😐", "🙂", "😊"];
+  const MOOD_LABEL_HX = ["Rough", "Low", "Okay", "Good", "Great"];
+
+  // ─── Build a normalized entries array from real logs ────────────────────
+  // Each log groups by day and merges into one entry per day.
+  const dailyEntries = (() => {
+    const byDay = {};
+    logs.forEach((l) => {
+      const dayIso = l.date.slice(0, 10);
+      const date = new Date(dayIso + "T12:00:00");
+      if (!byDay[dayIso]) {
+        byDay[dayIso] = {
+          d: dayIso,
+          date,
+          mood: null,
+          symptoms: [],
+          severities: {},
+          sleep: null,
+          stress: null,
+          period: null,
+          notes: null,
+          time: null,
+        };
+      }
+      const e = byDay[dayIso];
+      // Track latest log time
+      const t = new Date(l.date);
+      if (!e.time || t > e.time) e.time = t;
+      if (l.mood !== null && l.mood !== undefined) e.mood = l.mood;
+      Object.keys(l.symptoms || {}).forEach((name) => {
+        if (!e.symptoms.find((s) => s.n === name)) {
+          const def = SYMPTOMS.find((s) => s.name === name);
+          e.symptoms.push({ n: name, icon: def?.icon || "Sparkle" });
+        }
+        if (l.severities?.[name]) e.severities[name] = l.severities[name];
+      });
+      if (l.context?.sleepHours != null) e.sleep = l.context.sleepHours;
+      if (l.context?.stress != null) e.stress = l.context.stress;
+      if (l.context?.period && l.context.period !== "none") {
+        e.period = l.context.period.charAt(0).toUpperCase() + l.context.period.slice(1);
+      }
+      if (l.notes && (!e.notes || l.notes.length > e.notes.length)) e.notes = l.notes;
+    });
+    return Object.values(byDay).sort((a, b) => a.date - b.date);
+  })();
+
+  if (dailyEntries.length === 0) {
     return (
       <div className="screen active">
-        <div className="history-header">
-          <h2>History</h2>
-          <p>Your logged entries</p>
-        </div>
-        <div className="history-empty">
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📖</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>Your story starts today</div>
-          <div style={{ marginBottom: 16 }}>Each entry builds a picture of your patterns. After 7 days, Vela starts connecting the dots.</div>
-          <button className="history-empty-cta" onClick={() => onNavigate("tracker")}>Log your first entry</button>
-        </div>
+        <section className="history-greeting">
+          <h1>Your <em>journal.</em></h1>
+          <p className="meta">Begin your record</p>
+        </section>
+        <section className="empty-card">
+          <div className="glyph"><UIIcon name="FileText" size={26} /></div>
+          <h3>Your story <em>starts today.</em></h3>
+          <p>Each entry builds a picture of your patterns. After seven days, Vela starts connecting the dots — until then, this is your private journal.</p>
+          <button className="cta" type="button" onClick={() => onNavigate && onNavigate("tracker")}>
+            <UIIcon name="Sparkle" size={14} /> Log your first entry
+          </button>
+        </section>
       </div>
     );
   }
 
-  // Group logs by date
-  const grouped = {};
-  logs.forEach((log) => {
-    const dayStr = log.date.slice(0, 10);
-    if (!grouped[dayStr]) grouped[dayStr] = [];
-    grouped[dayStr].push(log);
-  });
+  // Apply filter
+  const filteredEntries = filter
+    ? dailyEntries.filter((e) => e.symptoms.some((s) => s.n === filter))
+    : dailyEntries;
 
-  const sortedDays = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  // Reverse for newest-first display
+  const visibleEntries = [...filteredEntries].reverse();
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoff = localDateStr(sevenDaysAgo);
-  const visibleDays = isPremium ? sortedDays : sortedDays.filter((d) => d >= cutoff);
-  const lockedDays = isPremium ? [] : sortedDays.filter((d) => d < cutoff);
+  // ─── Stats ────────────────────────────────────────────────────────────────
+  const totalEntries = dailyEntries.length;
+  const stats = computeGamificationStats(logs);
+  const currentStreak = stats.streak;
+  const longestStreak = (() => {
+    if (dailyEntries.length === 0) return 0;
+    let cur = 1, best = 1;
+    for (let i = 1; i < dailyEntries.length; i++) {
+      const prev = dailyEntries[i - 1].date;
+      const curD = dailyEntries[i].date;
+      const diffDays = Math.round((curD - prev) / 86400000);
+      if (diffDays === 1) { cur++; best = Math.max(best, cur); } else { cur = 1; }
+    }
+    return best;
+  })();
+
+  // ─── Top symptoms for filter chips ────────────────────────────────────────
+  const symFreq = {};
+  dailyEntries.forEach((e) => e.symptoms.forEach((s) => { symFreq[s.n] = (symFreq[s.n] || 0) + 1; }));
+  const topSymptoms = Object.entries(symFreq).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+  // ─── Calendar setup ──────────────────────────────────────────────────────
+  const base = new Date(TODAY); base.setDate(1); base.setMonth(base.getMonth() + monthOffset);
+  const year = base.getFullYear(); const month = base.getMonth();
+  const monthLong = base.toLocaleDateString("en-US", { month: "long" });
+  const yearStr = String(year);
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  function dateIso(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  const lockedBefore = !isPremium ? (() => { const d = new Date(TODAY); d.setDate(d.getDate() - 7); d.setHours(0,0,0,0); return d; })() : null;
+
+  function loadClass(entry) {
+    if (!entry) return "";
+    const c = entry.symptoms?.length || 0;
+    if (c === 0) return "has-entry";
+    if (c <= 1) return "has-entry";
+    if (c <= 2) return "h2";
+    if (c <= 3) return "h3";
+    return "h4";
+  }
+
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push({ empty: true, key: `e-${i}` });
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dayIso = dateIso(date);
+    const entry = dailyEntries.find((e) => e.d === dayIso);
+    const isFuture = date > TODAY;
+    const isToday = dayIso === dateIso(TODAY);
+    const locked = lockedBefore && date < lockedBefore && !isFuture;
+    cells.push({ key: dayIso, day: d, entry, isFuture, isToday, locked, dayIso });
+  }
+
+  const lockedCount = lockedBefore ? dailyEntries.filter((e) => e.date < lockedBefore).length : 0;
+
+  // Group visible entries by day for the feed
+  const grouped = (() => {
+    const map = new Map();
+    visibleEntries.forEach((e) => {
+      if (!map.has(e.d)) map.set(e.d, []);
+      map.get(e.d).push(e);
+    });
+    return Array.from(map.entries());
+  })();
+
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const openEntry = openDay ? dailyEntries.find((e) => e.d === openDay) : null;
 
   return (
     <div className="screen active">
-      <div className="history-header">
-        <h2>History</h2>
-        <p>{logs.length} entr{logs.length === 1 ? "y" : "ies"} total</p>
+      <section className="history-greeting">
+        <h1>Your <em>journal.</em></h1>
+        <p className="meta">
+          {!isPremium ? `Last 7 days${lockedCount > 0 ? ` · ${lockedCount} more locked` : ""}` : `${totalEntries} entries`}
+          <span className="dot">·</span>{today}
+        </p>
+      </section>
+
+      {/* Stats strip */}
+      <div className="streak-strip">
+        <div className="stat-cell">
+          <div className="v">{currentStreak}<small>days</small></div>
+          <div className="l">Current streak</div>
+        </div>
+        <div className="stat-cell">
+          <div className="v">{longestStreak}<small>days</small></div>
+          <div className="l">Longest run</div>
+        </div>
+        <div className="stat-cell">
+          <div className="v">{totalEntries}</div>
+          <div className="l">Total entries</div>
+        </div>
       </div>
 
-      {visibleDays.map((dayStr) => {
-        const dayDate = new Date(dayStr + "T12:00:00");
-        const label = dayDate.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        });
+      {/* Calendar */}
+      <div className="today-section-label"><span>Calendar</span></div>
+      <section className="cal-card">
+        <div className="cal-head">
+          <div className="cal-month">{monthLong} <em>{yearStr}</em></div>
+          <div className="cal-nav">
+            <button type="button" onClick={() => setMonthOffset(monthOffset - 1)} aria-label="Previous month">‹</button>
+            <button type="button" onClick={() => setMonthOffset(Math.min(0, monthOffset + 1))} disabled={monthOffset >= 0} aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div className="cal-dows">
+          {["S","M","T","W","T","F","S"].map((d, i) => <span key={i}>{d}</span>)}
+        </div>
+        <div className="cal-grid">
+          {cells.map((c) => {
+            if (c.empty) return <div key={c.key} className="cal-cell empty" />;
+            const cls = ["cal-cell", c.isFuture ? "future" : "", c.isToday ? "today" : "", c.locked ? "locked" : loadClass(c.entry)].filter(Boolean).join(" ");
+            return (
+              <button key={c.key} className={cls} onClick={() => !c.isFuture && !c.locked && c.entry && setOpenDay(c.dayIso)}>
+                <span>{c.day}</span>
+                {c.entry?.period && <span className="period" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="cal-legend">
+          <span className="row">Symptom load
+            <span className="scale">
+              <i style={{ background: "rgba(201,123,92,0.18)" }} />
+              <i style={{ background: "rgba(201,123,92,0.32)" }} />
+              <i style={{ background: "rgba(201,123,92,0.50)" }} />
+              <i style={{ background: "var(--clay)" }} />
+            </span>
+          </span>
+          <span className="row" style={{ marginLeft: "auto" }}>
+            <span style={{ width: 5, height: 5, borderRadius: 3, background: "var(--sage-dark)", display: "inline-block" }} /> Period
+          </span>
+        </div>
+      </section>
+
+      {/* Filter chips */}
+      {topSymptoms.length > 0 && (
+        <>
+          <div className="today-section-label">
+            <span>Filter</span>
+            {filter && <span className="hint">showing "{filter}"</span>}
+          </div>
+          <div className="filter-row">
+            <button className={`filter-chip${filter === null ? " on" : ""}`} onClick={() => setFilter(null)}>All</button>
+            {topSymptoms.map(([name, ct]) => (
+              <button
+                key={name}
+                className={`filter-chip${filter === name ? " on" : ""}`}
+                onClick={() => setFilter(filter === name ? null : name)}
+              >
+                {name} <span className="ct">{ct}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Entries feed */}
+      <div className="today-section-label">
+        <span>Entries</span>
+        <span className="hint">{visibleEntries.length} shown · newest first</span>
+      </div>
+
+      {grouped.map(([dayIso, items]) => {
+        const date = items[0].date;
+        const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+        const monthDay = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const diffDays = Math.round((TODAY.setHours(0,0,0,0) - new Date(date).setHours(0,0,0,0)) / 86400000);
+        const relative = diffDays === 0 ? "Today" : diffDays === 1 ? "Yesterday" : `${diffDays} days ago`;
+        const [mon, dnum] = monthDay.split(" ");
         return (
-          <div key={dayStr} className="history-day">
-            <div className="history-day-label">{label}</div>
-            {grouped[dayStr].map((log, i) => {
-              const time = new Date(log.date).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              });
-              const symptoms = Object.keys(log.symptoms || {});
+          <div key={dayIso} className="day-group">
+            <div className="day-label">
+              <span className="num">{mon} <em>{dnum}</em></span>
+              <span className="day">{dayName}</span>
+              <span className="relative">{relative}</span>
+            </div>
+            {items.map((entry, i) => {
+              const standout = entry.symptoms.length === 0 && entry.mood >= 3;
+              const timeStr = entry.time
+                ? entry.time.toLocaleTimeString("en-US", { hour: "numeric" }).replace(" ", "").toLowerCase()
+                : "";
               return (
-                <div key={i} className="history-entry">
-                  <div className="he-top">
-                    {log.mood !== null && log.mood !== undefined && (
-                      <span className="he-mood">{MOODS[log.mood]}</span>
-                    )}
-                    <span className="he-time">{time}</span>
+                <button
+                  key={i}
+                  type="button"
+                  className={`entry-card${standout ? " standout" : ""}`}
+                  onClick={() => setOpenDay(entry.d)}
+                >
+                  <div className="top-row">
+                    <span className="e-mood">{entry.mood !== null ? MOOD_EMOJI_HX[entry.mood] : "·"}</span>
+                    <div className="e-meta">
+                      <strong>{entry.mood !== null ? MOOD_LABEL_HX[entry.mood] : "Logged"}</strong>
+                      {entry.symptoms.length > 0 && <> · {entry.symptoms.length} symptom{entry.symptoms.length !== 1 ? "s" : ""}</>}
+                      {entry.symptoms.length === 0 && entry.mood !== null && " · clear day"}
+                    </div>
+                    <span className="e-time">{timeStr}</span>
                   </div>
-                  {symptoms.length > 0 && (
-                    <div className="he-symptoms">
-                      {symptoms.map((s) => (
-                        <span key={s} className="he-pill">
-                          {s}
-                          {log.severities?.[s] ? ` · ${log.severities[s]}/3` : ""}
+                  {entry.symptoms.length > 0 && (
+                    <div className="e-pills">
+                      {entry.symptoms.slice(0, 4).map((s) => (
+                        <span key={s.n} className="pill">
+                          <SymptomIcon name={s.icon} size={11} />
+                          {s.n}
                         </span>
                       ))}
+                      {entry.period && <span className="pill sage"><UIIcon name="Drop" size={11} />{entry.period}</span>}
                     </div>
                   )}
-                  {log.notes && <div className="he-notes">"{log.notes}"</div>}
-                </div>
+                  {entry.notes && <div className="e-note">"{entry.notes}"</div>}
+                  {(entry.sleep != null || entry.stress != null) && (
+                    <div className="e-context">
+                      {entry.sleep != null && <span><UIIcon name="Bed" size={12} /> <strong>{entry.sleep}h</strong> sleep</span>}
+                      {entry.stress != null && <span><UIIcon name="CloudLightning" size={12} /> stress <strong>{entry.stress}/5</strong></span>}
+                    </div>
+                  )}
+                </button>
               );
             })}
           </div>
         );
       })}
 
-      {lockedDays.length > 0 && (
-        <div className="history-locked">
-          <div className="history-locked-icon">🔒</div>
-          <div className="history-locked-text">
-            {lockedDays.length} more day{lockedDays.length !== 1 ? "s" : ""} of history
-          </div>
-          <button className="unlock-btn" onClick={onShowPaywall}>
-            Unlock full history
-          </button>
+      {/* Locked banner for non-premium users */}
+      {!isPremium && lockedCount > 0 && (
+        <div className="lock-banner">
+          <div className="ico"><UIIcon name="Lock" size={20} /></div>
+          <h4>{lockedCount} more days of <em>your story</em></h4>
+          <p>Free tier shows your last 7 days. Vela Premium unlocks your full history, exports, and pattern tracking across cycles.</p>
+          <button type="button" onClick={onShowPaywall}>Unlock with Premium</button>
         </div>
       )}
+
+      <div className="privacy-footer">
+        <UIIcon name="Lock" size={12} />
+        <span>Your journal stays on this device.</span>
+      </div>
+
+      {/* Day detail bottom sheet */}
+      <div className={`dd-scrim${openDay ? " show" : ""}`} onClick={() => setOpenDay(null)} />
+      <aside className={`dd-sheet${openDay ? " show" : ""}`} role="dialog" aria-modal="true">
+        <div className="dd-handle" />
+        {openEntry && (
+          <>
+            <div className="dd-head">
+              <div className="num">
+                {openEntry.date.toLocaleDateString("en-US", { month: "short" })} <em>{openEntry.date.getDate()}</em>
+              </div>
+              <div className="day">{openEntry.date.toLocaleDateString("en-US", { weekday: "long" })}</div>
+            </div>
+
+            {openEntry.mood !== null && (
+              <div className="dd-section">
+                <div className="dd-label">Mood</div>
+                <div className="dd-mood-row">
+                  <span className="em">{MOOD_EMOJI_HX[openEntry.mood]}</span>
+                  <div className="lbl">
+                    {MOOD_LABEL_HX[openEntry.mood]}
+                    {openEntry.time && <small>logged at {openEntry.time.toLocaleTimeString("en-US", { hour: "numeric" }).replace(" ", "").toLowerCase()}</small>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {openEntry.symptoms.length > 0 && (
+              <div className="dd-section">
+                <div className="dd-label">Symptoms</div>
+                <div className="dd-pills">
+                  {openEntry.symptoms.map((s) => (
+                    <span key={s.n} className="dd-pill">
+                      <SymptomIcon name={s.icon} size={12} />
+                      {s.n}
+                      {openEntry.severities[s.n] && <span className="sev">{openEntry.severities[s.n]}/3</span>}
+                    </span>
+                  ))}
+                  {openEntry.period && (
+                    <span className="dd-pill" style={{ background: "var(--sage-light)", color: "var(--sage-dark)" }}>
+                      <UIIcon name="Drop" size={12} />
+                      {openEntry.period}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(openEntry.sleep != null || openEntry.stress != null) && (
+              <div className="dd-section">
+                <div className="dd-label">Context</div>
+                <div className="dd-context-grid">
+                  {openEntry.sleep != null && (
+                    <div className="dd-context-cell">
+                      <div className="lab"><UIIcon name="Bed" size={12} /> Sleep</div>
+                      <div className="v">{openEntry.sleep}<small>hrs</small></div>
+                    </div>
+                  )}
+                  {openEntry.stress != null && (
+                    <div className="dd-context-cell">
+                      <div className="lab"><UIIcon name="CloudLightning" size={12} /> Stress</div>
+                      <div className="v">{openEntry.stress}<small>/5</small></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {openEntry.notes && (
+              <div className="dd-section">
+                <div className="dd-label">Note</div>
+                <div className="dd-note">"{openEntry.notes}"</div>
+              </div>
+            )}
+          </>
+        )}
+      </aside>
     </div>
   );
 }
-
-// ─── SVG Chart Components ────────────────────────────────────────────────────
 
 function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   // ─── Persistent Ask-Vela chat (kept from previous implementation) ──────────
@@ -5459,6 +5873,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     </div>
   );
 }
+
 
 function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const [plan, setPlan] = useState("annual");
