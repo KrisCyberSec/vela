@@ -281,18 +281,6 @@ function getStreak(logs) {
   return streak;
 }
 
-function applyStreakFreeze() {
-  const today = localDateStr(new Date());
-  const freezes = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freezes") || "[]"); } catch { return []; } })();
-  if (freezes.includes(today)) return false; // already frozen today
-  const available = (() => { try { return JSON.parse(localStorage.getItem("vela_streak_freeze_count") || "0"); } catch { return 0; } })();
-  if (available <= 0) return false;
-  freezes.push(today);
-  localStorage.setItem("vela_streak_freezes", JSON.stringify(freezes.slice(-30)));
-  localStorage.setItem("vela_streak_freeze_count", JSON.stringify(available - 1));
-  return true;
-}
-
 function getJourneyLabel(profileIndex) {
   const labels = [
     "regular cycles",
@@ -2327,6 +2315,69 @@ const css = `
   .av-input input { flex: 1; background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-family: var(--font-sans); font-size: 13px; color: var(--ink); outline: none; }
   .av-input input::placeholder { color: var(--ink-light); font-style: italic; }
   .av-input button { background: var(--clay); color: #fff; width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Settings screen redesign (Claude Design handoff, Apr 30 2026)
+     ════════════════════════════════════════════════════════════════════════ */
+  .set-greeting { padding: 18px 0 18px; }
+  .set-greeting h1 { margin: 0 0 6px; font-family: var(--font-serif); font-weight: 400; font-size: 30px; line-height: 1.08; letter-spacing: -0.01em; color: var(--ink); }
+  .set-greeting h1 em { font-style: italic; color: var(--clay); }
+  .set-greeting .meta { margin: 0; font-size: 13px; color: var(--ink-mid); }
+
+  .journey-card { position: relative; border-radius: 22px; padding: 20px 20px 18px; background: var(--glass-sage-card); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 8px 24px rgba(61, 107, 79, 0.08); overflow: hidden; margin-bottom: 4px; }
+  .journey-card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 80% at 0% 0%, rgba(122,158,135,0.18), transparent 55%); pointer-events: none; }
+  .journey-card .eye { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sage-dark); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .journey-card .name { font-family: var(--font-serif); font-size: 22px; line-height: 1.2; margin: 0 0 4px; color: var(--ink); }
+  .journey-card .name em { font-style: italic; color: var(--sage-dark); }
+  .journey-card .since { font-size: 12px; color: var(--ink-mid); margin: 0 0 14px; }
+  .journey-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+  .journey-cell { text-align: left; }
+  .journey-cell .v { font-family: var(--font-serif); font-size: 26px; line-height: 1; color: var(--ink); letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 4px; }
+  .journey-cell .v small { font-family: var(--font-sans); font-size: 11px; font-weight: 500; color: var(--ink-mid); letter-spacing: 0.04em; text-transform: uppercase; }
+  .journey-cell .l { font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-top: 4px; }
+  .journey-arc { position: relative; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 4px 0 14px; }
+  .journey-arc .marker { position: absolute; top: -3px; width: 7px; height: 7px; border-radius: 999px; background: var(--sage-dark); box-shadow: 0 0 0 3px rgba(122,158,135,0.18); }
+  .journey-card .quote { font-family: var(--font-serif); font-style: italic; font-size: 14px; line-height: 1.5; color: var(--sage-dark); margin: 0; }
+
+  .set-section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-light); margin: 22px 4px 10px; display: flex; align-items: center; justify-content: space-between; }
+
+  .set-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .set-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border); width: 100%; text-align: left; background: transparent; color: inherit; cursor: pointer; font-family: var(--font-sans); transition: background 150ms ease; }
+  .set-row:last-child { border-bottom: none; }
+  .set-row:active { background: rgba(140,78,50,0.06); }
+  .set-row .glyph { width: 32px; height: 32px; border-radius: 10px; background: var(--clay-light); color: var(--clay-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .set-row .body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .set-row .label { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .set-row .sub { font-size: 12px; color: var(--ink-light); margin-top: 1px; }
+  .set-row .value { font-size: 13px; color: var(--ink-mid); margin-right: 4px; }
+  .set-row .value.gold { color: var(--gold); font-weight: 600; }
+  .set-row .value.sage { color: var(--sage-dark); font-weight: 600; }
+  .set-row .arrow { font-size: 18px; color: var(--ink-light); font-weight: 300; margin-left: 2px; }
+
+  .set-toggle { position: relative; width: 44px; height: 26px; border-radius: 999px; background: rgba(140,78,50,0.18); transition: background 200ms ease; flex-shrink: 0; cursor: pointer; }
+  .set-toggle .thumb { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.18); transition: left 200ms ease; }
+  .set-toggle.on { background: var(--sage); }
+  .set-toggle.on .thumb { left: 20px; }
+
+  .set-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin: 4px 14px 14px; background: var(--clay-light); border-radius: 12px; }
+  .set-seg button { padding: 9px 6px; border-radius: 9px; font-size: 12px; font-weight: 500; color: var(--ink-mid); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; border: none; background: transparent; cursor: pointer; transition: all 200ms ease; }
+  .set-seg button.on { background: var(--clay); color: #fff; font-weight: 600; }
+
+  .set-time { font-size: 13px; color: var(--ink); font-family: inherit; background: rgba(140,78,50,0.06); border: none; border-radius: 8px; padding: 6px 10px; font-weight: 500; }
+
+  .set-premium-row { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.10)); border: 1px solid rgba(212,168,83,0.3); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px; font-family: inherit; text-align: left; width: 100%; cursor: pointer; }
+  .set-premium-row .crest { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(212,168,83,0.3); }
+  .set-premium-row .body { flex: 1; }
+  .set-premium-row .body strong { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .set-premium-row .body small { display: block; font-size: 12px; color: var(--ink-mid); margin-top: 2px; line-height: 1.4; }
+  .set-premium-row .cta { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--clay-dark); text-transform: uppercase; }
+
+  .set-danger { display: block; width: 100%; margin: 22px 0 12px; padding: 14px; border-radius: 14px; background: transparent; color: #B0463A; font-size: 13px; font-weight: 500; border: 1px solid rgba(176,70,58,0.2); font-family: inherit; cursor: pointer; }
+  .set-danger:active { background: rgba(176,70,58,0.05); }
+
+  .set-footer { text-align: center; padding: 20px 0 16px; font-size: 11px; color: var(--ink-light); letter-spacing: 0.02em; line-height: 1.6; }
+  .set-footer a { color: var(--clay-dark); text-decoration: underline; text-decoration-color: rgba(140,78,50,0.3); }
+  .set-footer .v { font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
 
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
@@ -5628,352 +5679,294 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
 
 // ─── Milestones Card (collapsible) ────────────────────────────────────────────
 
-function MilestonesCard({ earned, locked, totalCount }) {
-  const [expanded, setExpanded] = useState(false);
-  const PREVIEW_COUNT = 3;
-  const visibleLocked = expanded ? locked : locked.slice(0, PREVIEW_COUNT);
-  const hiddenCount = locked.length - PREVIEW_COUNT;
-
-  return (
-    <div className="settings-card" style={{ marginTop: 8 }}>
-      <div className="gam-badges-title">Milestones ({earned.length}/{totalCount})</div>
-      <div className="gam-badges-grid">
-        {earned.map((b) => (
-          <div key={b.id} className="gam-badge earned">
-            <div className="gam-badge-icon">{b.icon}</div>
-            <div className="gam-badge-name">{b.name}</div>
-            <div className="gam-badge-desc">{b.desc}</div>
-          </div>
-        ))}
-        {visibleLocked.map((b) => (
-          <div key={b.id} className="gam-badge locked">
-            <div className="gam-badge-icon">🔒</div>
-            <div className="gam-badge-name">{b.name}</div>
-            <div className="gam-badge-desc">{b.desc}</div>
-          </div>
-        ))}
-      </div>
-      {!expanded && hiddenCount > 0 && (
-        <button className="milestones-expand" onClick={() => setExpanded(true)}>
-          Show {hiddenCount} more milestones
-        </button>
-      )}
-      {expanded && locked.length > PREVIEW_COUNT && (
-        <button className="milestones-expand" onClick={() => setExpanded(false)}>
-          Show less
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ─── Settings Screen ──────────────────────────────────────────────────────────
-
 function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestion, onClearData, remindersEnabled, onToggleReminders, reminderTimes, onUpdateReminderTime, onNavigate }) {
   const [themePref, setThemePref] = useState(() => getThemePref());
+
   const journeyStage = profile ? getJourneyLabel(profile[0]) : "Not set";
-  const guidanceLabels = ["Daily check-ins & reminders", "Weekly summaries", "Only when I ask", "Let the app decide"];
+  const guidanceLabels = ["Daily check-ins", "Weekly summaries", "Only when I ask", "Let Vela decide"];
   const guidancePref = profile && profile[3] !== undefined && profile[3] !== null ? profile[3] : 3;
-  const goalLabels = [
-    "Understand my body",
-    "Track for my doctor",
-    "Find relief strategies",
-    "Connect with others",
-  ];
+  const goalLabels = ["Understand my body", "Track for my doctor", "Find relief strategies", "Connect with others"];
   const goalArr = profile ? (Array.isArray(profile[2]) ? profile[2].map((i) => goalLabels[i]) : [goalLabels[profile[2]]]) : [];
   const goal = goalArr.length === 0 ? "Not set" : goalArr.length === 1 ? goalArr[0] : `${goalArr[0]} +${goalArr.length - 1} more`;
+  const concernCount = profile && Array.isArray(profile[1]) ? profile[1].length : (profile?.[1] != null ? 1 : 0);
+
+  const stats = computeGamificationStats(logs);
+  const days = stats.uniqueDays;
+  const streak = stats.streak;
+  const entries = logs.length;
+
+  // First log date for "Tracking since"
+  const trackingSince = (() => {
+    if (logs.length === 0) return "today";
+    const earliest = logs.map((l) => l.date).sort()[0];
+    const d = new Date(earliest);
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  })();
+
+  // Position the marker on a 5-stage arc (Regular cycles → Perimenopause → Postmenopause → Surgical)
+  const stagePosition = profile && profile[0] !== undefined ? [0.10, 0.45, 0.85, 0.65][profile[0]] || 0.45 : 0.45;
+
+  // Recent quote — pull from the strongest correlation if we have one
+  const correlations = analyzeCorrelations(logs);
+  const journeyQuote = correlations[0]?.text
+    || (days > 0 ? `${days} days of data, still listening for the patterns that matter to you.` : "Your journey starts the day you begin to log.");
 
   return (
     <div className="screen active">
-      <div className="settings-header">
-        <h2>Settings</h2>
-        <p>Manage your profile and preferences</p>
+      <div className="set-greeting" style={{ padding: "0 0 18px" }}>
+        <h1>Settings <em>&amp; you.</em></h1>
+        <p className="meta">Profile, preferences, and exports.</p>
       </div>
 
-      <div className="settings-section">
-        <div className="settings-section-label">Profile</div>
-        <div className="settings-card">
-          <div className="settings-row" onClick={() => onEditQuestion(0)}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="Flower" /></span>
-              <span className="sr-label">Hormonal stage</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span className="sr-value">{journeyStage || "Not set"}</span>
-              <span className="sr-arrow">›</span>
-            </div>
+      {/* Journey card — replaces the old XP/level/badges grid */}
+      <section className="journey-card">
+        <span className="eye"><UIIcon name="Sparkle" size={11} /> Your record</span>
+        <h2 className="name">
+          {days < 7 ? <>Just <em>getting started.</em></>
+            : days < 30 ? <>Building the <em>baseline.</em></>
+            : <>{Math.floor(days/30)} {days < 60 ? "month" : "months"} in, <em>finding the rhythm.</em></>}
+        </h2>
+        <p className="since">Tracking since {trackingSince}</p>
+
+        <div className="journey-grid">
+          <div className="journey-cell">
+            <div className="v">{days}<small>days</small></div>
+            <div className="l">Tracked</div>
           </div>
-          <div className="settings-row" onClick={() => onEditQuestion(2)}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="Target" /></span>
-              <span className="sr-label">Primary goal</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span className="sr-value">{goal}</span>
-              <span className="sr-arrow">›</span>
-            </div>
+          <div className="journey-cell">
+            <div className="v">{streak}<small>days</small></div>
+            <div className="l">Current streak</div>
           </div>
+          <div className="journey-cell">
+            <div className="v">{entries}</div>
+            <div className="l">Entries</div>
+          </div>
+        </div>
+
+        <div className="journey-arc" aria-label="Stage marker">
+          <span className="marker" style={{ left: `${stagePosition * 100}%` }} />
+        </div>
+
+        <p className="quote">"{journeyQuote}"</p>
+      </section>
+
+      {/* Profile */}
+      <div className="set-section-label"><span>Profile</span></div>
+      <div className="set-card">
+        <button className="set-row" onClick={() => onEditQuestion(0)}>
+          <span className="glyph"><UIIcon name="Flower" size={16} /></span>
+          <span className="body"><span className="label">Hormonal stage</span></span>
+          <span className="value">{journeyStage || "Not set"}</span>
+          <span className="arrow">›</span>
+        </button>
+        <button className="set-row" onClick={() => onEditQuestion(2)}>
+          <span className="glyph"><UIIcon name="Target" size={16} /></span>
+          <span className="body"><span className="label">Primary goal</span></span>
+          <span className="value">{goal}</span>
+          <span className="arrow">›</span>
+        </button>
+        <button className="set-row" onClick={() => onEditQuestion(1)}>
+          <span className="glyph"><UIIcon name="MagnifyingGlass" size={16} /></span>
+          <span className="body"><span className="label">Tracked concerns</span></span>
+          <span className="value">{concernCount > 0 ? `${concernCount} chosen` : "Not set"}</span>
+          <span className="arrow">›</span>
+        </button>
+      </div>
+
+      {/* Subscription */}
+      <div className="set-section-label"><span>Subscription</span></div>
+      {isPremium ? (
+        <div className="set-card">
+          <div className="set-row" style={{ cursor: "default" }}>
+            <span className="glyph" style={{ background: "var(--sage-light)", color: "var(--sage-dark)" }}><UIIcon name="CheckCircle" size={16} /></span>
+            <span className="body">
+              <span className="label">Vela Premium</span>
+              <span className="sub">All features unlocked</span>
+            </span>
+            <span className="value sage">Active</span>
+          </div>
+        </div>
+      ) : (
+        <button className="set-premium-row" onClick={onShowPaywall}>
+          <span className="crest"><UIIcon name="Star" size={20} /></span>
+          <span className="body">
+            <strong>Upgrade to Vela Premium</strong>
+            <small>Unlock pattern history, doctor reports, and Ask Vela</small>
+          </span>
+          <span className="cta">$5.99/mo</span>
+        </button>
+      )}
+
+      {/* Reminders */}
+      <div className="set-section-label">
+        <span>Reminders</span>
+        {!remindersEnabled && <span style={{ fontSize: 11, color: "var(--ink-light)", textTransform: "none", letterSpacing: 0 }}>Off</span>}
+      </div>
+      <div className="set-card">
+        <div className="set-row" style={{ cursor: "default" }}>
+          <span className="glyph"><UIIcon name="Bell" size={16} /></span>
+          <span className="body">
+            <span className="label">Notifications</span>
+            <span className="sub">{remindersEnabled ? "On" : "Off — you'll come to us"}</span>
+          </span>
+          <span
+            className={`set-toggle${remindersEnabled ? " on" : ""}`}
+            onClick={(e) => { e.stopPropagation(); onToggleReminders(!remindersEnabled); haptic("Light"); }}
+            role="switch"
+            aria-checked={remindersEnabled}
+          >
+            <span className="thumb" />
+          </span>
+        </div>
+        <button className="set-row" onClick={() => onEditQuestion(3)}>
+          <span className="glyph"><UIIcon name="ListChecks" size={16} /></span>
+          <span className="body"><span className="label">Cadence</span></span>
+          <span className="value">{guidanceLabels[guidancePref]}</span>
+          <span className="arrow">›</span>
+        </button>
+        {remindersEnabled && guidancePref === 0 && (
+          <>
+            <div className="set-row" style={{ cursor: "default" }}>
+              <span className="glyph"><UIIcon name="SunHorizon" size={16} /></span>
+              <span className="body"><span className="label">Morning nudge</span></span>
+              <input type="time" className="set-time" value={reminderTimes.morning} onChange={(e) => onUpdateReminderTime("morning", e.target.value)} />
+            </div>
+            <div className="set-row" style={{ cursor: "default" }}>
+              <span className="glyph"><UIIcon name="Moon" size={16} /></span>
+              <span className="body"><span className="label">Evening check-in</span></span>
+              <input type="time" className="set-time" value={reminderTimes.evening} onChange={(e) => onUpdateReminderTime("evening", e.target.value)} />
+            </div>
+          </>
+        )}
+        {remindersEnabled && guidancePref === 1 && (
+          <div className="set-row" style={{ cursor: "default" }}>
+            <span className="glyph"><UIIcon name="Calendar" size={16} /></span>
+            <span className="body"><span className="label">Sunday summary</span></span>
+            <input type="time" className="set-time" value={reminderTimes.weekly} onChange={(e) => onUpdateReminderTime("weekly", e.target.value)} />
+          </div>
+        )}
+        {(!remindersEnabled || guidancePref === 2) && (
+          <div className="set-row" style={{ cursor: "default" }}>
+            <span className="glyph"><UIIcon name="Smiley" size={16} /></span>
+            <span className="body">
+              <span className="label">{remindersEnabled ? "Quiet by design" : "We won't reach out"}</span>
+              <span className="sub">Open Vela whenever you'd like</span>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Appearance */}
+      <div className="set-section-label"><span>Appearance</span></div>
+      <div className="set-card">
+        <div className="set-row" style={{ cursor: "default", borderBottom: "none" }}>
+          <span className="glyph"><UIIcon name="Palette" size={16} /></span>
+          <span className="body">
+            <span className="label">Theme</span>
+            <span className="sub">Candle mode is gentle on tired eyes</span>
+          </span>
+        </div>
+        <div className="set-seg" role="radiogroup" aria-label="Theme">
+          {[
+            { id: "light", label: "Light", icon: "Sun" },
+            { id: "system", label: "System", icon: "DeviceMobile" },
+            { id: "dark", label: "Candle", icon: "Moon" },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              className={themePref === opt.id ? "on" : ""}
+              onClick={() => { setTheme(opt.id); setThemePref(opt.id); haptic("Light"); }}
+              role="radio"
+              aria-checked={themePref === opt.id}
+            >
+              <UIIcon name={opt.icon} size={13} />
+              <span>{opt.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {(() => {
-        const stats = computeGamificationStats(logs);
-        const xp = computeXP(logs);
-        const lvl = getLevel(xp);
-        const earned = BADGES.filter((b) => b.check(stats));
-        const locked = BADGES.filter((b) => !b.check(stats));
-        return (
-          <div className="settings-section">
-            <div className="settings-section-label">Your journey</div>
-            <div className="settings-card">
-              <div className="gam-profile">
-                <div className="gam-profile-level">
-                  <div className="gam-big-name">{lvl.name}</div>
-                </div>
-                <div className="gam-profile-stats">
-                  <div className="gam-ps"><div className="gam-ps-val">{stats.uniqueDays}</div><div className="gam-ps-label">days tracked</div></div>
-                  <div className="gam-ps"><div className="gam-ps-val">{earned.length}</div><div className="gam-ps-label">milestones</div></div>
-                  <div className="gam-ps"><div className="gam-ps-val">{stats.streak}</div><div className="gam-ps-label">streak</div></div>
-                </div>
-                {isPremium && (
-                  <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: "1px solid var(--border)" }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>🛡️ Streak freezes</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-light)" }}>Protect your streak on off days</div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--sage)" }}>{JSON.parse(localStorage.getItem("vela_streak_freeze_count") || "2")}</span>
-                      <button style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid var(--sage)", background: "transparent", color: "var(--sage)", fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
-                        onClick={() => {
-                          if (applyStreakFreeze()) { haptic("Medium"); window.location.reload(); }
-                          else alert("No freezes available or already used today.");
-                        }}>Use today</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <MilestonesCard earned={earned} locked={locked} totalCount={BADGES.length} />
-          </div>
-        );
-      })()}
-
-      {(() => {
-        const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
-        const p = getPersonalization(profile);
-        const hasExperiment = !!localStorage.getItem("vela_active_experiment");
-        const hasCBT = !!localStorage.getItem("vela_active_cbt");
-        const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]").length;
-        const steps = [];
-        if (uniqueDays < 7) steps.push({ icon: "ChartBar", text: `Log ${7 - uniqueDays} more day${7 - uniqueDays > 1 ? "s" : ""} to unlock your first insights`, action: "today" });
-        if (uniqueDays >= 7 && uniqueDays < 14) steps.push({ icon: "MagnifyingGlass", text: "Check your Insights tab — your patterns are ready!", action: "insights" });
-        if (!hasExperiment && uniqueDays >= 3) steps.push({ icon: "Flask", text: p?.topConcernNames?.[0] ? `Try an experiment for your ${p.topConcernNames[0]}` : "Start a self-experiment to test what helps", action: "insights" });
-        if (!hasCBT && uniqueDays >= 5 && p?.recommendedCBT?.length > 0) steps.push({ icon: "Brain", text: "Start a recommended CBT program", action: "insights" });
-        if (completedLessons < 3) steps.push({ icon: "Lightbulb", text: "Read today's daily insight", action: "today" });
-        if (p?.wantsDoctor && uniqueDays >= 14) steps.push({ icon: "FirstAidKit", text: "Generate your doctor report from your 2 weeks of data", action: "export" });
-        if (p?.wantsCommunity) steps.push({ icon: "ChatCircleText", text: "Join the community — you're not alone in this", action: "community" });
-        if (steps.length === 0) return null;
-        return (
-          <div className="settings-section">
-            <div className="settings-section-label">Suggested next steps</div>
-            <div className="settings-card">
-              {steps.slice(0, 3).map((s, i) => (
-                <div key={i} className="settings-row" style={{ cursor: "default" }}>
-                  <div className="sr-left">
-                    <span className="sr-icon"><UIIcon name={s.icon} /></span>
-                    <span className="sr-label">{s.text}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      <div className="settings-section">
-        <div className="settings-section-label">Appearance</div>
-        <div className="settings-card">
-          <div className="settings-row" style={{ borderBottom: "none", cursor: "default" }}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="Palette" /></span>
-              <span className="sr-label">Theme</span>
-            </div>
-          </div>
-          <div className="seg-control" role="radiogroup" aria-label="Theme preference">
-            {[
-              { id: "light", label: "Light", icon: "Sun" },
-              { id: "system", label: "System", icon: "Gear" },
-              { id: "dark", label: "Dark", icon: "Moon" },
-            ].map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                role="radio"
-                aria-checked={themePref === opt.id}
-                className={`seg-control-btn${themePref === opt.id ? " active" : ""}`}
-                onClick={() => { setTheme(opt.id); setThemePref(opt.id); haptic("Light"); }}
-              >
-                <UIIcon name={opt.icon} size={16} />
-                <span>{opt.label}</span>
-              </button>
-            ))}
-          </div>
+      {/* Privacy & Data */}
+      <div className="set-section-label"><span>Privacy &amp; Data</span></div>
+      <div className="set-card">
+        <button className="set-row" onClick={() => window.open("/privacy.html", "_blank")}>
+          <span className="glyph"><UIIcon name="Lock" size={16} /></span>
+          <span className="body"><span className="label">Privacy policy</span></span>
+          <span className="arrow">›</span>
+        </button>
+        <button className="set-row" onClick={() => window.open("/terms.html", "_blank")}>
+          <span className="glyph"><UIIcon name="FileText" size={16} /></span>
+          <span className="body"><span className="label">Terms of service</span></span>
+          <span className="arrow">›</span>
+        </button>
+        <div className="set-row" style={{ cursor: "default" }}>
+          <span className="glyph"><UIIcon name="DeviceMobile" size={16} /></span>
+          <span className="body">
+            <span className="label">Data storage</span>
+            <span className="sub">Encrypted, on this device only</span>
+          </span>
+          <span className="value">On-device</span>
         </div>
       </div>
 
-      <div className="settings-section">
-        <div className="settings-section-label">Reminders</div>
-        <div className="settings-card">
-          <div className="settings-row">
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="Bell" /></span>
-              <span className="sr-label">Reminders</span>
-            </div>
-            <div className="toggle-wrap" onClick={() => onToggleReminders(!remindersEnabled)}>
-              <div className={`toggle-track${remindersEnabled ? " on" : ""}`} />
-              <div className={`toggle-thumb${remindersEnabled ? " on" : ""}`} />
-            </div>
-          </div>
-          <div className="settings-row" onClick={() => onEditQuestion(3)}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="ListChecks" /></span>
-              <span className="sr-label">Frequency</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span className="sr-value">{guidanceLabels[guidancePref]}</span>
-              <span className="sr-arrow">›</span>
-            </div>
-          </div>
-          {remindersEnabled && guidancePref !== 2 && (
-            <>
-              {(guidancePref === 0) && (
-                <div className="settings-row">
-                  <div className="sr-left">
-                    <span className="sr-icon"><UIIcon name="SunHorizon" /></span>
-                    <span className="sr-label">Morning</span>
-                  </div>
-                  <input type="time" className="reminder-time-input" value={reminderTimes.morning} onChange={(e) => onUpdateReminderTime("morning", e.target.value)} />
-                </div>
-              )}
-              {(guidancePref === 0 || guidancePref === 3) && (
-                <div className="settings-row">
-                  <div className="sr-left">
-                    <span className="sr-icon"><UIIcon name="Moon" /></span>
-                    <span className="sr-label">Evening</span>
-                  </div>
-                  <input type="time" className="reminder-time-input" value={reminderTimes.evening} onChange={(e) => onUpdateReminderTime("evening", e.target.value)} />
-                </div>
-              )}
-              {guidancePref === 1 && (
-                <div className="settings-row">
-                  <div className="sr-left">
-                    <span className="sr-icon"><UIIcon name="Calendar" /></span>
-                    <span className="sr-label">Sunday</span>
-                  </div>
-                  <input type="time" className="reminder-time-input" value={reminderTimes.weekly} onChange={(e) => onUpdateReminderTime("weekly", e.target.value)} />
-                </div>
-              )}
-            </>
-          )}
-          {remindersEnabled && guidancePref === 2 && (
-            <div className="settings-row">
-              <div className="sr-left">
-                <span className="sr-icon"><UIIcon name="Smiley" /></span>
-                <span className="sr-label" style={{ color: "var(--ink-light)" }}>No reminders scheduled</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <div className="settings-section-label">Subscription</div>
-        <div className="settings-card">
-          <div className="settings-row" onClick={isPremium ? undefined : onShowPaywall}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name={isPremium ? "CheckCircle" : "Star"} /></span>
-              <span className="sr-label">{isPremium ? "Premium active" : "Upgrade to Premium"}</span>
-            </div>
-            {!isPremium && <span className="sr-arrow">›</span>}
-          </div>
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <div className="settings-section-label">Privacy & Data</div>
-        <div className="settings-card">
-          <div className="settings-row" onClick={() => window.open("/privacy.html", "_blank")}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="Lock" /></span>
-              <span className="sr-label">Privacy policy</span>
-            </div>
-            <span className="sr-arrow">›</span>
-          </div>
-          <div className="settings-row" onClick={() => window.open("/terms.html", "_blank")}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="FileText" /></span>
-              <span className="sr-label">Terms of service</span>
-            </div>
-            <span className="sr-arrow">›</span>
-          </div>
-          <div className="settings-row">
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="DeviceMobile" /></span>
-              <span className="sr-label">Data storage</span>
-            </div>
-            <span className="sr-value">On-device only</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <div className="settings-section-label">Export</div>
-        <div className="settings-card">
-          <div className="settings-row" onClick={() => {
+      {/* Export */}
+      <div className="set-section-label"><span>Export</span></div>
+      <div className="set-card">
+        <button
+          className="set-row"
+          onClick={() => {
             if (!isPremium) { onShowPaywall(); return; }
             generateDoctorReport(logs, profile);
-          }}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="FileText" /></span>
-              <span className="sr-label">Doctor report (PDF)</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {!isPremium && <span className="sr-value" style={{ color: "var(--gold)" }}>Premium</span>}
-              <span className="sr-arrow">›</span>
-            </div>
-          </div>
-          <div className="settings-row" onClick={() => exportCSV(logs)}>
-            <div className="sr-left">
-              <span className="sr-icon"><UIIcon name="ChartBar" /></span>
-              <span className="sr-label">Export data (CSV)</span>
-            </div>
-            <span className="sr-arrow">›</span>
-          </div>
-        </div>
+          }}
+        >
+          <span className="glyph"><UIIcon name="FileText" size={16} /></span>
+          <span className="body">
+            <span className="label">Doctor report</span>
+            <span className="sub">A printable PDF for your next appointment</span>
+          </span>
+          <span className={`value${isPremium ? "" : " gold"}`}>{isPremium ? "PDF" : "Premium"}</span>
+        </button>
+        <button
+          className="set-row"
+          onClick={() => exportCSV(logs)}
+        >
+          <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
+          <span className="body">
+            <span className="label">Export data</span>
+            <span className="sub">CSV — for your records</span>
+          </span>
+          <span className="arrow">›</span>
+        </button>
       </div>
 
-      <button className="settings-danger-btn" onClick={onClearData}>
-        Reset all data
-      </button>
+      <button className="set-danger" onClick={onClearData}>Reset all data</button>
 
-      <div className="settings-footer">
-        <p onClick={() => {
-          const count = parseInt(sessionStorage.getItem("_debug_taps") || "0") + 1;
-          sessionStorage.setItem("_debug_taps", String(count));
-          if (count >= 5) { sessionStorage.removeItem("_debug_taps"); onNavigate && onNavigate("debug"); }
-        }} style={{ cursor: "default", userSelect: "none" }}>Vela v1.0.0</p>
-        <p style={{ marginTop: 4 }}>
+      <div className="set-footer">
+        <div className="v">Vela 1.0.0</div>
+        <div style={{ marginTop: 6 }}>Made for the years between.</div>
+        <div style={{ marginTop: 6 }}>
           Questions? <a href="mailto:support@velahealth.health">support@velahealth.health</a>
-        </p>
-        <p style={{ marginTop: 8, fontSize: 11 }}>
-          Vela is not medical advice. Always consult your healthcare provider.
-        </p>
+        </div>
+        <div style={{ marginTop: 12, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
+          Vela is not medical advice. Please consult your healthcare provider.
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            onClick={() => {
+              const count = parseInt(sessionStorage.getItem("_debug_taps") || "0") + 1;
+              sessionStorage.setItem("_debug_taps", String(count));
+              if (count >= 5) { sessionStorage.removeItem("_debug_taps"); onNavigate && onNavigate("debug"); }
+            }}
+            style={{ background: "transparent", border: "none", color: "var(--ink-light)", fontSize: 11, cursor: "default", userSelect: "none", padding: 4 }}
+          >
+            tap 5×
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
-// ─── Community Screen ─────────────────────────────────────────────────────────
 
 const COMMUNITY_REACTIONS = [
   { type: "hug", emoji: "\u{1F917}", label: "Hug" },
