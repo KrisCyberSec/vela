@@ -13,7 +13,7 @@ import {
   CloudMoon, Heartbeat, Question, ChatTeardrop, Target, Waveform, HourglassLow,
   Aperture, Sparkle, Bone, PersonSimple, Spiral, Snowflake, ArrowsClockwise,
   SpeakerHigh, Hand, Footprints, Drop, SunDim, Heart, Scales, DropHalfBottom,
-  HeartBreak, Circle, Smiley, ArrowUp, Repeat, Wind, Eye, Tooth, Bug,
+  HeartBreak, Circle, Smiley, ArrowUp, ArrowRight, Repeat, Wind, Eye, Tooth, Bug,
   // UI / settings icons
   Flower, Palette, Bell, ListChecks, SunHorizon, Moon, Calendar, CheckCircle, Star,
   Lock, FileText, DeviceMobile, ChartBar, MagnifyingGlass, Flask, Lightbulb,
@@ -44,13 +44,26 @@ function SymptomIcon({ name, size = 24, weight = "duotone", style }) {
 }
 
 // UI icons (settings rows, energy chips, reveal carousel, theme toggle, etc.)
-// Same Phosphor duotone treatment as SymptomIcon, separate registry so the two
-// concerns don't accidentally collide on shared names (e.g. Smiley).
+// Same Phosphor duotone treatment as SymptomIcon. We bundle every imported
+// Phosphor name here so any UIIcon name="…" call resolves — the redesign
+// refactor introduced new call sites (ArrowRight chevrons, pattern cards
+// referencing Bed/Wind, onboarding chip icons) that previously rendered as
+// empty squares because the registry was symptom-only.
 const UI_ICONS = {
+  // Original UI set
   Flower, Palette, Bell, ListChecks, SunHorizon, Moon, Calendar, CheckCircle, Star,
   Lock, FileText, DeviceMobile, ChartBar, MagnifyingGlass, Flask, Lightbulb,
   FirstAidKit, ChatCircle, ChatCircleText, Sun, Gear, Sparkle, Eye, Target, Brain,
   BatteryEmpty, BatteryLow, BatteryMedium, BatteryHigh, BatteryFull,
+  // Chevrons / arrows used by row CTAs and the doctor-report card
+  ArrowRight, ArrowUp,
+  // Symptom-domain icons surfaced in pattern cards, shelf items, onboarding
+  // chip selectors, and Today triggers
+  Flame, MoonStars, Bed, HeartHalf, CloudLightning, Lightning, CloudMoon,
+  Heartbeat, ChatTeardrop, Waveform, HourglassLow, Aperture, Bone, PersonSimple,
+  Spiral, Snowflake, ArrowsClockwise, SpeakerHigh, Hand, Footprints, Drop, SunDim,
+  Heart, Scales, DropHalfBottom, HeartBreak, Circle, Smiley, Repeat, Wind, Tooth,
+  Bug, Question,
 };
 
 function UIIcon({ name, size = 22, weight = "duotone", style }) {
@@ -2305,13 +2318,16 @@ const css = `
   .shelf-card .desc { font-size: 12px; color: var(--ink-mid); line-height: 1.4; }
   .shelf-card .mins { font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; margin-top: auto; }
 
-  /* Ask Vela floating button */
-  .ask-vela-fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 86px); background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 10px 24px rgba(140, 78, 50, 0.18), 0 2px 6px rgba(140, 78, 50, 0.10); border-radius: 22px; padding: 9px 14px 9px 9px; display: flex; align-items: center; gap: 9px; z-index: 25; cursor: pointer; font-family: var(--font-sans); transition: transform 100ms ease; }
+  /* Ask Vela floating button — discrete pill in the corner. Avatar carries
+     the brand (gold = premium upgrade, clay = active premium); the label
+     stays tight ("Ask Vela") so the FAB never dominates the viewport like
+     the original Premium · 7 Questions variant. */
+  .ask-vela-fab { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 10px 24px rgba(140, 78, 50, 0.18), 0 2px 6px rgba(140, 78, 50, 0.10); border-radius: 999px; padding: 6px 12px 6px 6px; display: inline-flex; align-items: center; gap: 7px; z-index: 25; cursor: pointer; font-family: var(--font-sans); transition: transform 100ms ease; }
   .ask-vela-fab:active { transform: scale(0.97); }
-  .ask-vela-fab .av { width: 30px; height: 30px; border-radius: 999px; background: var(--clay); color: #fff; font-family: var(--font-serif); font-size: 16px; display: inline-flex; align-items: center; justify-content: center; }
+  .ask-vela-fab .av { width: 26px; height: 26px; border-radius: 999px; background: var(--clay); color: #fff; font-family: var(--font-serif); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .ask-vela-fab.locked .av { background: var(--gold); }
-  .ask-vela-fab .lbl { font-size: 13px; font-weight: 600; color: var(--ink); text-align: left; }
-  .ask-vela-fab .lbl .sub { display: block; font-weight: 400; font-size: 10px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; }
+  .ask-vela-fab .lbl { font-size: 12.5px; font-weight: 600; color: var(--ink); text-align: left; line-height: 1; }
+  .ask-vela-fab .lbl .sub { display: none; }
 
   /* Ask Vela glass sheet */
   .av-scrim { position: fixed; inset: 0; background: var(--glass-modal-scrim); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
@@ -2358,7 +2374,7 @@ const css = `
   .set-section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-light); margin: 22px 4px 10px; display: flex; align-items: center; justify-content: space-between; }
 
   .set-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-  .set-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border); width: 100%; text-align: left; background: transparent; color: inherit; cursor: pointer; font-family: var(--font-sans); transition: background 150ms ease; }
+  .set-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 0; border-bottom: 1px solid var(--border); width: 100%; text-align: left; background: transparent; color: inherit; cursor: pointer; font-family: var(--font-sans); transition: background 150ms ease; }
   .set-row:last-child { border-bottom: none; }
   .set-row:active { background: rgba(140,78,50,0.06); }
   .set-row .glyph { width: 32px; height: 32px; border-radius: 10px; background: var(--clay-light); color: var(--clay-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -2504,13 +2520,13 @@ const css = `
   .onb-next:disabled { opacity: 0.35; cursor: not-allowed; }
   .onb-next:not(:disabled):active { transform: scale(0.98); }
 
-  .onb-welcome { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 32px) 26px 28px; min-height: 100vh; }
-  .onb-welcome .top { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 24px; }
-  .onb-welcome .mark { font-family: var(--font-serif); font-size: 64px; line-height: 1; color: var(--ink); letter-spacing: -0.02em; position: relative; margin-bottom: 6px; }
+  .onb-welcome { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 24px) 26px 24px; min-height: 100vh; min-height: 100dvh; }
+  .onb-welcome .top { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 18px; }
+  .onb-welcome .mark { font-family: var(--font-serif); font-size: 56px; line-height: 1; color: var(--ink); letter-spacing: -0.02em; position: relative; margin-bottom: 4px; }
   .onb-welcome .mark em { font-style: italic; color: var(--clay); }
   .onb-welcome .mark::after { content: ""; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 36px; height: 1px; background: var(--clay); opacity: 0.4; }
   .onb-welcome .tag { font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-light); }
-  .onb-welcome h1 { font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; max-width: 14ch; }
+  .onb-welcome h1 { font-family: var(--font-serif); font-weight: 400; font-size: 30px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; max-width: 14ch; }
   .onb-welcome h1 em { font-style: italic; color: var(--clay); }
   .onb-welcome .blurb { font-size: 14.5px; line-height: 1.6; color: var(--ink-mid); margin: 0; max-width: 30ch; }
   .onb-welcome .pillars { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
@@ -4445,6 +4461,16 @@ function OnboardingScreen({ onComplete }) {
   if (step === 5) {
     const stageOpt = QUESTIONS[0].opts[answers[0]];
     const stageLabel = stageOpt?.label || "your stage";
+    // Stage labels read like "Periods are irregular (perimenopause)" — for
+    // sentence usage ("Track signals that matter for X", "X, focused on Y")
+    // we prefer the parenthetical short form when present, falling back to
+    // the full label so the copy stays readable.
+    const stageShort = (() => {
+      const m = stageLabel.match(/\(([^)]+)\)/);
+      if (m) return m[1].toLowerCase();
+      // Strip any trailing parenthetical or comma clause for cleanliness
+      return stageLabel.toLowerCase().replace(/\s*\([^)]*\)\s*/g, "").trim();
+    })();
     const concernIdxs = Array.isArray(answers[1]) ? answers[1] : [];
     const concernLabels = concernIdxs.map((i) => QUESTIONS[1].opts[i]?.label).filter(Boolean);
     const goalIdxs = Array.isArray(answers[2]) ? answers[2] : (answers[2] != null ? [answers[2]] : []);
@@ -4453,7 +4479,7 @@ function OnboardingScreen({ onComplete }) {
 
     const items = [];
     items.push({
-      title: `Track signals that matter for ${stageLabel.toLowerCase()}`,
+      title: `Track signals that matter for ${stageShort}`,
       detail: concernLabels.length
         ? `Starting with ${concernLabels.slice(0, 2).join(" and ").toLowerCase()}${concernLabels.length > 2 ? ` +${concernLabels.length - 2} more` : ""}.`
         : "We'll surface the most relevant symptoms as you log.",
@@ -4493,7 +4519,7 @@ function OnboardingScreen({ onComplete }) {
               <span className="eye"><UIIcon name="Sparkle" size={11} /> Your starting point</span>
               <h2>
                 {stageOpt
-                  ? <>{stageLabel.toLowerCase()}, focused on <em>{concernLabels[0]?.toLowerCase() || "feeling like yourself"}</em></>
+                  ? <>{stageShort}, focused on <em>{concernLabels[0]?.toLowerCase() || "feeling like yourself"}</em></>
                   : <>Getting started</>}
               </h2>
               <p>
@@ -5139,7 +5165,9 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
   const [showAllEntries, setShowAllEntries] = useState(false);
 
   const TODAY = new Date();
-  const MOOD_EMOJI_HX = ["😔", "😕", "😐", "🙂", "😊"];
+  // MoodFace replaces system emoji here (same reason as Today/Insights —
+  // emoji yellow smileys read childish for the 45-55 audience).
+  const MOOD_KIND_HX = ["rough", "low", "okay", "good", "great"];
   const MOOD_LABEL_HX = ["Rough", "Low", "Okay", "Good", "Great"];
 
   // ─── Build a normalized entries array from real logs ────────────────────
@@ -5414,7 +5442,9 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
                   onClick={() => setOpenDay(entry.d)}
                 >
                   <div className="top-row">
-                    <span className="e-mood">{entry.mood !== null ? MOOD_EMOJI_HX[entry.mood] : "·"}</span>
+                    <span className="e-mood" style={{ color: "var(--clay)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                      {entry.mood !== null ? <MoodFace kind={MOOD_KIND_HX[entry.mood]} size={26} /> : "·"}
+                    </span>
                     <div className="e-meta">
                       <strong>{entry.mood !== null ? MOOD_LABEL_HX[entry.mood] : "Logged"}</strong>
                       {entry.symptoms.length > 0 && <> · {entry.symptoms.length} symptom{entry.symptoms.length !== 1 ? "s" : ""}</>}
@@ -5514,7 +5544,9 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
               <div className="dd-section">
                 <div className="dd-label">Mood</div>
                 <div className="dd-mood-row">
-                  <span className="em">{MOOD_EMOJI_HX[openEntry.mood]}</span>
+                  <span className="em" style={{ color: "var(--clay)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    <MoodFace kind={MOOD_KIND_HX[openEntry.mood]} size={36} />
+                  </span>
                   <div className="lbl">
                     {MOOD_LABEL_HX[openEntry.mood]}
                     {openEntry.time && <small>logged at {openEntry.time.toLocaleTimeString("en-US", { hour: "numeric" }).replace(" ", "").toLowerCase()}</small>}
@@ -5667,7 +5699,10 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const avgMoodIdx = moodSamples.length > 0
     ? Math.round(moodSamples.reduce((s, w) => s + w.mood, 0) / moodSamples.length)
     : null;
-  const MOOD_EMOJI = ["😔", "😕", "😐", "🙂", "😊"];
+  // MoodFace replaces system emoji here — 45-55 audience finds emoji-yellow
+  // smileys childish for a menopause app. MoodFace follows currentColor and
+  // matches the rest of the duotone-Phosphor / earth-palette system.
+  const MOOD_KIND = ["rough", "low", "okay", "good", "great"];
   const MOOD_LABEL = ["Rough", "Low", "Okay", "Good", "Great"];
 
   // Pull real correlations
@@ -5770,7 +5805,9 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 <div className="l">Symptoms</div>
               </div>
               <div className="stat">
-                <div className="v">{avgMoodIdx !== null ? MOOD_EMOJI[avgMoodIdx] : "—"}</div>
+                <div className="v" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--clay)", minHeight: 30 }}>
+                  {avgMoodIdx !== null ? <MoodFace kind={MOOD_KIND[avgMoodIdx]} size={30} /> : "—"}
+                </div>
                 <div className="l">Avg mood</div>
               </div>
             </div>
@@ -5823,12 +5860,18 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           <section className="mood-row-card">
             <div className="bars-head" style={{ marginBottom: 4 }}>
               <span className="bars-title">Mood · last 7 days</span>
-              <span className="bars-sub">{avgMoodIdx !== null ? `Avg ${MOOD_EMOJI[avgMoodIdx]} ${MOOD_LABEL[avgMoodIdx]}` : "Log to see"}</span>
+              <span className="bars-sub" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {avgMoodIdx !== null
+                  ? <>Avg <span style={{ color: "var(--clay)", display: "inline-flex" }}><MoodFace kind={MOOD_KIND[avgMoodIdx]} size={16} /></span> {MOOD_LABEL[avgMoodIdx]}</>
+                  : "Log to see"}
+              </span>
             </div>
             <div className="mood-week">
               {week.map((w, i) => (
                 <div key={i} className="mood-day">
-                  <span className="em">{w.mood !== null ? MOOD_EMOJI[w.mood] : "·"}</span>
+                  <span className="em" style={{ color: "var(--clay)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    {w.mood !== null ? <MoodFace kind={MOOD_KIND[w.mood]} size={22} /> : "·"}
+                  </span>
                   <span className="dot" style={{ background: w.mood !== null ? "var(--clay)" : undefined }} />
                   <span className="lab">{w.day}</span>
                 </div>
@@ -7306,10 +7349,11 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Slim top header — wordmark only. Hidden on Today, which has its
-          own sticky glass header (.vela-header) per the redesign. Other
-          screens still use this until they're redesigned. */}
-      {screen !== "tracker" && (
+      {/* Slim top header — wordmark only. Hidden on Today (which has its
+          own sticky glass header per the redesign) and Onboarding (which
+          renders its own giant Vela mark in the welcome screen and needs
+          full-bleed height for the welcome → questions → summary flow). */}
+      {onboarded && screen !== "tracker" && (
         <div className="nav">
           <div className="nav-logo">
             Ve<em>la</em>
