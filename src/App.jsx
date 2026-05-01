@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 // import * as communityMod from "./community"; // Re-enable when LIVE_COMMUNITY=true
 import { initAnalytics, track } from "./analytics";
-import { initPurchases, checkSubscription, purchasePlan, restorePurchases } from "./subscription";
+import { initPurchases, checkSubscription, purchasePlan, restorePurchases, getAppUserId } from "./subscription";
 import { readJSON as safeReadJSON } from "./safeStorage";
 import { getThemePref, setTheme } from "./theme";
 import {
@@ -624,6 +624,50 @@ function buildWeeklySummary(logs) {
     periodDays,
     summary: parts.join(" "),
   };
+}
+
+// ─── Ask Vela monthly soft-cap (client-side hint) ───────────────────────
+// The real per-24h limit is enforced server-side. This is just a local
+// counter that prevents pointless round-trips and shows the user a
+// "X of Y left" indicator in the sheet so the limit doesn't feel
+// arbitrary when they hit it.
+const ASK_VELA_MONTHLY_CAP = 60;
+const ASK_VELA_COUNT_KEY = "vela_ask_monthly_count";
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthlyCount() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ASK_VELA_COUNT_KEY) || "null");
+    if (!raw || raw.month !== currentMonthKey()) return 0;
+    return raw.count || 0;
+  } catch { return 0; }
+}
+
+function checkAndUpdateMonthlyCap() {
+  const month = currentMonthKey();
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(ASK_VELA_COUNT_KEY) || "null"); } catch { raw = null; }
+  if (!raw || raw.month !== month) raw = { month, count: 0 };
+  if (raw.count >= ASK_VELA_MONTHLY_CAP) {
+    const next = new Date();
+    next.setMonth(next.getMonth() + 1, 1);
+    return {
+      ok: false,
+      resetsOn: next.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
+    };
+  }
+  raw.count += 1;
+  try { localStorage.setItem(ASK_VELA_COUNT_KEY, JSON.stringify(raw)); } catch { /* private mode */ }
+  return { ok: true, count: raw.count };
+}
+
+function bumpMonthlyCapTo(target) {
+  const month = currentMonthKey();
+  try { localStorage.setItem(ASK_VELA_COUNT_KEY, JSON.stringify({ month, count: target })); } catch {}
 }
 
 // ─── Anonymized summary for Ask Vela API ────────────────────────────────
@@ -6162,6 +6206,10 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const [isTyping, setIsTyping] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [revealDismissed, setRevealDismissed] = useState(() => !!localStorage.getItem("vela_insights_revealed"));
+  // Monthly soft-cap UI state (the real cap is enforced server-side per
+  // 24h; this is the friendly counter we show in the sheet).
+  const [monthlyAsked, setMonthlyAsked] = useState(() => getMonthlyCount());
+  const [remainingToday, setRemainingToday] = useState(null);
 
   useEffect(() => {
     if (chatMessages.length > 0) localStorage.setItem("vela_chat_messages", JSON.stringify(chatMessages.slice(-20)));
@@ -6188,6 +6236,20 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       return;
     }
 
+    // Pre-flight: client-side soft cap (20 questions/month). Server-side
+    // rate limit is the real defense; this is just a friendly heads-up
+    // that prevents us from making round-trips we know will fail.
+    const monthCap = checkAndUpdateMonthlyCap();
+    if (!monthCap.ok) {
+      setChatMessages((prev) => [...prev, {
+        role: "assistant",
+        text: `You've asked your monthly limit of ${ASK_VELA_MONTHLY_CAP} questions. The cap resets ${monthCap.resetsOn}. Until then, the existing answers in this thread stay available.`,
+        time: new Date().toISOString(),
+      }]);
+      setIsTyping(false);
+      return;
+    }
+
     try {
       const summary = buildAskVelaSummary(logs);
       // profile is the raw onboarding answers object: { 0: stageIdx, 1: [concernIdxs], 2: goalIdx-or-array, 3: guidanceIdx }
@@ -6198,29 +6260,48 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         stage: stageIdx != null ? QUESTIONS[0].opts[stageIdx]?.label : null,
         goal: goalIdx != null ? QUESTIONS[2].opts[goalIdx]?.label : null,
       };
+      const appUserId = await getAppUserId();
       // Try the real API first; fall back to the canned response engine
       // if the function returns 5xx (key missing, model unreachable, etc.)
       const r = await fetch("/api/ask-vela", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text.trim(), summary, profile: profilePayload }),
+        body: JSON.stringify({ question: text.trim(), summary, profile: profilePayload, appUserId }),
       });
       let answer;
+      let serverRemaining = null;
       if (r.ok) {
         const data = await r.json();
         answer = data.answer;
+        if (typeof data.remainingToday === "number") serverRemaining = data.remainingToday;
+      } else if (r.status === 429) {
+        // Rate-limited by server (per-user or per-IP cap hit). Skip the
+        // canned fallback — the user needs to know they hit the limit.
+        const data = await r.json().catch(() => ({}));
+        answer = data.detail || "You've hit today's question limit. Try again later.";
+        // Sync our local counter to the server's view so the UI reflects truth
+        bumpMonthlyCapTo(ASK_VELA_MONTHLY_CAP);
+      } else if (r.status === 503) {
+        const data = await r.json().catch(() => ({}));
+        answer = data.detail || "Ask Vela is taking a break. Try again later.";
+      } else if (r.status === 401 || r.status === 403) {
+        const data = await r.json().catch(() => ({}));
+        answer = data.detail || "Couldn't verify your subscription. Try restoring your purchase from Settings.";
       } else {
-        // Graceful degradation — show a real answer either way
+        // Other failure — graceful degradation to canned response so the
+        // user always gets *something*
         answer = generateResponse(matchQuestion(text), logs, profile);
       }
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
+      if (serverRemaining != null) setRemainingToday(serverRemaining);
     } catch (err) {
-      // Network error — fall back to canned response
       const answer = generateResponse(matchQuestion(text), logs, profile);
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
     } finally {
       setIsTyping(false);
       haptic("Light");
+      // Always refresh the local monthly count after a real attempt
+      setMonthlyAsked(getMonthlyCount());
     }
   };
 
@@ -6812,9 +6893,17 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         <div className="av-handle" />
         <div className="av-head">
           <div className="av-avatar">V</div>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="av-name">Ask Vela</div>
-            <div className="av-sub"><UIIcon name="Lock" size={10} /> On-device · your data never leaves your phone</div>
+            <div className="av-sub">
+              <UIIcon name="Lock" size={10} /> Anonymized · grounded in your data
+              {monthlyAsked > 0 && (
+                <> · <strong>{Math.max(0, ASK_VELA_MONTHLY_CAP - monthlyAsked)}</strong> of {ASK_VELA_MONTHLY_CAP} left this month</>
+              )}
+              {remainingToday != null && remainingToday <= 5 && (
+                <> · {remainingToday} left today</>
+              )}
+            </div>
           </div>
         </div>
         {chatMessages.length === 0 ? (

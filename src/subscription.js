@@ -123,6 +123,28 @@ export async function checkSubscription() {
   }
 }
 
+/**
+ * Returns the RevenueCat App User ID. The server uses this to verify
+ * the caller's premium status against the RevenueCat REST API before
+ * spending tokens on Ask Vela.
+ *
+ * On native iOS with RC configured, returns the device-bound anonymous
+ * ID (or the user's app-side ID if we ever set one). On web/dev, returns
+ * null — the server treats null as "unverified" and rejects the call,
+ * unless explicitly running in dev mode.
+ */
+export async function getAppUserId() {
+  const mode = getMode();
+  if (mode !== 'native') return null;
+  try {
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    return customerInfo?.originalAppUserId || null;
+  } catch (err) {
+    console.warn('[Subscription] getAppUserId failed:', err);
+    return null;
+  }
+}
+
 export async function restorePurchases() {
   const mode = getMode();
   if (mode === 'misconfigured') {

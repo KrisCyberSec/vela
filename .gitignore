@@ -33,3 +33,6 @@ Vela-Pitch-Deck.pdf
 # Staging area for design handoffs / external code under review
 # Anything dropped here is inspected, not auto-committed
 handoff/
+
+# Stray nested checkout from a past handoff zip extraction
+vela/
