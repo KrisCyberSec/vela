@@ -2379,6 +2379,67 @@ const css = `
   .set-footer a { color: var(--clay-dark); text-decoration: underline; text-decoration-color: rgba(140,78,50,0.3); }
   .set-footer .v { font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
 
+  /* ════════════════════════════════════════════════════════════════════════
+     Paywall screen redesign (Claude Design handoff, Apr 30 2026)
+     ════════════════════════════════════════════════════════════════════════ */
+  .pw-app { position: fixed; inset: 0; max-width: 420px; margin: 0 auto; background: radial-gradient(120% 70% at 100% 0%, rgba(212,168,83,0.18), transparent 55%), radial-gradient(100% 60% at 0% 100%, rgba(122,158,135,0.16), transparent 55%), var(--cream); color: var(--ink); font-family: var(--font-sans); display: flex; flex-direction: column; overflow: hidden; z-index: 1000; }
+  .pw-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: calc(env(safe-area-inset-top, 0px) + 60px) 20px 200px; }
+  .pw-scroll::-webkit-scrollbar { width: 0; }
+  .pw-close { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 18px); right: 18px; z-index: 5; width: 32px; height: 32px; border-radius: 999px; background: var(--glass-cream); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--border); color: var(--ink-mid); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; line-height: 1; }
+  .pw-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay-dark); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+  .pw-eyebrow .crest { width: 18px; height: 18px; border-radius: 999px; background: linear-gradient(135deg, var(--gold), #BD8F38); display: inline-flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 2px 6px rgba(212,168,83,0.4); }
+  .pw-headline { font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1.06; letter-spacing: -0.015em; color: var(--ink); margin: 0 0 12px; }
+  .pw-headline em { font-style: italic; color: var(--clay); }
+  .pw-sub { font-size: 14px; line-height: 1.55; color: var(--ink-mid); margin: 0 0 22px; max-width: 320px; }
+  .pw-hero { position: relative; border-radius: 22px; background: var(--card-bg); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 14px 40px rgba(140, 78, 50, 0.12), 0 2px 6px rgba(140, 78, 50, 0.06); padding: 18px 18px 16px; margin-bottom: 26px; overflow: hidden; }
+  .pw-hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 60% at 100% 0%, rgba(212,168,83,0.12), transparent 60%); pointer-events: none; }
+  .pw-hero-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; position: relative; }
+  .pw-hero-row .badge { width: 36px; height: 36px; border-radius: 12px; background: var(--clay-light); color: var(--clay-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pw-hero-row .title { font-family: var(--font-serif); font-size: 18px; color: var(--ink); line-height: 1.15; }
+  .pw-hero-row .title em { font-style: italic; color: var(--clay); }
+  .pw-hero-row .title small { display: block; font-family: var(--font-sans); font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 3px; font-weight: 500; }
+  .pw-pdf { position: relative; border-radius: 12px; background: linear-gradient(180deg, #fdfaf6, #f7f0e8); border: 1px solid var(--border); padding: 14px 14px 12px; box-shadow: inset 0 1px 0 #fff; }
+  .pw-pdf .pdf-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .pw-pdf .pdf-head .name { font-family: var(--font-serif); font-size: 13px; color: var(--ink); }
+  .pw-pdf .pdf-head .meta { font-size: 9px; color: var(--ink-light); letter-spacing: 0.06em; text-transform: uppercase; }
+  .pw-pdf .pdf-line { height: 4px; background: rgba(140,78,50,0.10); border-radius: 2px; margin-bottom: 5px; }
+  .pw-pdf .pdf-line.short { width: 60%; }
+  .pw-pdf .pdf-line.shorter { width: 35%; }
+  .pw-pdf .pdf-mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 30px; margin: 10px 0 8px; }
+  .pw-pdf .pdf-mini-chart span { flex: 1; background: var(--sage); opacity: 0.55; border-radius: 2px 2px 0 0; }
+  .pw-pdf .pdf-foot { font-size: 9px; color: var(--ink-light); letter-spacing: 0.04em; margin-top: 4px; }
+  .pw-pillars { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 26px; }
+  .pw-pillar { display: flex; gap: 13px; padding: 14px; border-radius: 16px; background: var(--card-bg); border: 1px solid var(--border); align-items: flex-start; }
+  .pw-pillar .ico { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pw-pillar.sage .ico { background: var(--sage-light); color: var(--sage-dark); }
+  .pw-pillar.clay .ico { background: var(--clay-light); color: var(--clay-dark); }
+  .pw-pillar.gold .ico { background: rgba(212,168,83,0.18); color: var(--gold); }
+  .pw-pillar h3 { font-family: var(--font-serif); font-size: 16px; font-weight: 400; margin: 1px 0 3px; color: var(--ink); }
+  .pw-pillar p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-mid); }
+  .pw-quote { border-radius: 18px; background: var(--glass-sage-card); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 26px; position: relative; }
+  .pw-quote .body { font-family: var(--font-serif); font-style: italic; font-size: 15px; line-height: 1.45; color: var(--sage-dark); margin: 0 0 10px; }
+  .pw-quote .who { font-size: 11px; color: var(--ink-mid); letter-spacing: 0.04em; }
+  .pw-quote .who strong { color: var(--ink); font-weight: 600; }
+  .pw-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .pw-plan { position: relative; background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 14px 12px 12px; font-family: inherit; text-align: left; cursor: pointer; transition: all 200ms ease; }
+  .pw-plan.on { border-color: var(--clay); background: var(--clay-light); box-shadow: 0 4px 14px rgba(201,123,92,0.12); }
+  .pw-plan .term { font-size: 11px; color: var(--ink-light); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; }
+  .pw-plan.on .term { color: var(--clay-dark); }
+  .pw-plan .price { font-family: var(--font-serif); font-size: 24px; color: var(--ink); margin: 6px 0 2px; letter-spacing: -0.01em; }
+  .pw-plan.on .price { color: var(--clay-dark); }
+  .pw-plan .price small { font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: var(--ink-mid); }
+  .pw-plan.on .price small { color: var(--clay-dark); opacity: 0.8; }
+  .pw-plan .note { font-size: 11px; color: var(--ink-mid); margin-top: 4px; }
+  .pw-plan.on .note { color: var(--clay-dark); }
+  .pw-plan .save-badge { position: absolute; top: -8px; right: 10px; background: var(--sage); color: #fff; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .pw-cta-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px calc(env(safe-area-inset-bottom, 0px) + 24px); background: linear-gradient(180deg, transparent, var(--cream) 30%); z-index: 5; }
+  .pw-cta { display: block; width: 100%; padding: 16px; border-radius: 16px; background: var(--clay); color: #fff; font-size: 15px; font-weight: 600; letter-spacing: 0.01em; border: none; font-family: inherit; cursor: pointer; box-shadow: 0 8px 24px rgba(201,123,92,0.32), inset 0 1px 0 rgba(255,255,255,0.18); transition: transform 100ms ease; }
+  .pw-cta:active { transform: scale(0.98); }
+  .pw-cta-fine { text-align: center; font-size: 11px; color: var(--ink-light); margin-top: 10px; letter-spacing: 0.01em; }
+  .pw-cta-fine a { color: var(--ink-mid); text-decoration: underline; text-decoration-color: rgba(107,83,71,0.3); }
+  .pw-restore { text-align: center; margin-top: 8px; font-size: 12px; color: var(--ink-mid); }
+  .pw-restore button { color: var(--clay-dark); font-weight: 600; text-decoration: underline; text-decoration-color: rgba(140,78,50,0.3); background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; }
+
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
   .screen { display: none; flex-direction: column; padding-bottom: 96px; animation: fadeIn 0.3s ease; }
@@ -5235,87 +5296,135 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
 
 function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const [plan, setPlan] = useState("annual");
-  const features = [
-    { icon: "🔮", title: "Pattern detection", desc: "Discover what triggers your symptoms — sleep, stress, caffeine, cycle phase" },
-    { icon: "📊", title: "Trends & comparisons", desc: "See how this month compares to last with visual charts" },
-    { icon: "🤖", title: "Vela AI Companion", desc: "Ask questions about your patterns and get personalized guidance" },
-    { icon: "📰", title: "Smart Weekly Digest", desc: "A weekly summary of what happened, what helped, and what to watch" },
+
+  const pillars = [
+    {
+      icon: "FileText",
+      tone: "clay",
+      title: "Doctor-ready report",
+      body: "A printable PDF of your patterns, written for your provider. Charts, dates, and what's been working.",
+    },
+    {
+      icon: "ChartBar",
+      tone: "sage",
+      title: "Pattern history",
+      body: "Look back across months — see how this autumn compares to last spring. Connect the threads only time can show.",
+    },
+    {
+      icon: "Flask",
+      tone: "gold",
+      title: "Gentle experiments",
+      body: "Try one change for two weeks. Vela tracks the difference — caffeine, evening walks, magnesium, whatever you choose.",
+    },
+    {
+      icon: "ChatCircle",
+      tone: "clay",
+      title: "Ask Vela companion",
+      body: "Ask anything about your patterns. Answers stay on-device — your data never leaves your phone.",
+    },
   ];
 
+  const ctaPrice = plan === "annual" ? "$49.99/yr" : "$5.99/mo";
+
   return (
-    <div className="screen active">
-      <div style={{ padding: "8px 16px 0", textAlign: "right" }}>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none", border: "none", fontSize: 22,
-            color: "var(--ink-light)", cursor: "pointer", padding: 8,
-          }}
-        >
-          ✕
-        </button>
-      </div>
+    <div className="pw-app">
+      <button className="pw-close" onClick={onClose} aria-label="Close">×</button>
 
-      <div className="paywall">
-        <div className="paywall-hero">
-          <h2>Track for free. Understand with Premium.</h2>
-          <p>
-            See why your symptoms happen, spot patterns you'd miss,
-            and walk into your next doctor's appointment prepared.
-          </p>
-        </div>
+      <div className="pw-scroll">
+        <span className="pw-eyebrow">
+          <span className="crest"><UIIcon name="Star" size={11} weight="fill" /></span>
+          Vela Premium
+        </span>
 
-        <div className="paywall-lead">
-          <div className="pw-lead-icon">📋</div>
-          <div className="pw-lead-text">
-            <strong>Walk in prepared</strong>
-            <span>Generate a doctor-ready PDF with your symptom history, patterns, and talking points — so you're taken seriously.</span>
+        <h1 className="pw-headline">
+          Bring this to your <em>next appointment.</em>
+        </h1>
+        <p className="pw-sub">
+          Months of your data, distilled into a one-page report your doctor will actually read.
+        </p>
+
+        {/* Hero — doctor report preview */}
+        <div className="pw-hero">
+          <div className="pw-hero-row">
+            <span className="badge"><UIIcon name="FileText" size={18} /></span>
+            <div className="title">
+              Your <em>doctor report</em>
+              <small>Last 12 weeks · printable PDF</small>
+            </div>
+          </div>
+          <div className="pw-pdf">
+            <div className="pdf-head">
+              <span className="name">Vela Symptom Report</span>
+              <span className="meta">PDF · 1 page</span>
+            </div>
+            <div className="pdf-line" />
+            <div className="pdf-line short" />
+            <div className="pdf-line shorter" />
+            <div className="pdf-mini-chart">
+              {[0.4, 0.6, 0.5, 0.8, 0.7, 0.9, 0.65, 0.55, 0.75, 0.85, 0.6, 0.7].map((h, i) => (
+                <span key={i} style={{ height: `${h * 100}%` }} />
+              ))}
+            </div>
+            <div className="pdf-foot">Hot flashes per week · trending down</div>
           </div>
         </div>
 
-        <div className="paywall-features">
-          {features.map((f, i) => (
-            <div key={i} className="pw-feature">
-              <div className="pw-icon">{f.icon}</div>
-              <div className="pw-text">
-                <strong>{f.title}</strong>
-                <span>{f.desc}</span>
+        {/* Pillars */}
+        <div className="pw-pillars">
+          {pillars.map((p) => (
+            <div key={p.title} className={`pw-pillar ${p.tone}`}>
+              <span className="ico"><UIIcon name={p.icon} size={18} /></span>
+              <div>
+                <h3>{p.title}</h3>
+                <p>{p.body}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="paywall-plans">
-          <button
-            className={`paywall-plan${plan === "annual" ? " selected" : ""}`}
-            onClick={() => setPlan("annual")}
-          >
-            <div className="plan-save">Save 31%</div>
-            <div className="plan-period">Annual</div>
-            <div className="plan-price">$49.99<span>/year</span></div>
-            <div className="plan-monthly">$4.17/mo</div>
-          </button>
-          <button
-            className={`paywall-plan${plan === "monthly" ? " selected" : ""}`}
-            onClick={() => setPlan("monthly")}
-          >
-            <div className="plan-period">Monthly</div>
-            <div className="plan-price">$5.99<span>/mo</span></div>
-            <div className="plan-monthly">&nbsp;</div>
-          </button>
+        {/* Quote — kept generic, not a fabricated testimonial */}
+        <div className="pw-quote">
+          <p className="body">
+            "Walk into your appointment armed with data, not vibes."
+          </p>
+          <div className="who"><strong>Why Vela exists</strong> · Built for the years between</div>
         </div>
 
-        <button className="paywall-cta" onClick={() => onSubscribe(plan)}>
-          {plan === "annual" ? "Try free for 7 days — $49.99/year" : "Try free for 7 days — $5.99/month"}
+        {/* Plans */}
+        <div className="pw-plans">
+          <button
+            type="button"
+            className={`pw-plan ${plan === "annual" ? "on" : ""}`}
+            onClick={() => setPlan("annual")}
+          >
+            <span className="save-badge">Save 31%</span>
+            <div className="term">Annual</div>
+            <div className="price">$49.99<small>/yr</small></div>
+            <div className="note">$4.17/mo · billed yearly</div>
+          </button>
+          <button
+            type="button"
+            className={`pw-plan ${plan === "monthly" ? "on" : ""}`}
+            onClick={() => setPlan("monthly")}
+          >
+            <div className="term">Monthly</div>
+            <div className="price">$5.99<small>/mo</small></div>
+            <div className="note">Cancel anytime</div>
+          </button>
+        </div>
+      </div>
+
+      <div className="pw-cta-bar">
+        <button type="button" className="pw-cta" onClick={() => onSubscribe(plan)}>
+          Try free for 7 days · then {ctaPrice}
         </button>
-        <div className="paywall-price">Cancel anytime during your trial. Your data stays on your device — always.</div>
-        <button className="paywall-restore" onClick={onRestore}>
-          Restore previous purchase
-        </button>
-        <div style={{ marginTop: 16, fontSize: 11, color: "var(--ink-light)", textAlign: "center" }}>
-          <a href="/terms.html" target="_blank" style={{ color: "var(--ink-light)" }}>Terms</a>
-          {" · "}
-          <a href="/privacy.html" target="_blank" style={{ color: "var(--ink-light)" }}>Privacy</a>
+        <div className="pw-cta-fine">
+          Cancel anytime ·{" "}
+          <a href="/terms.html" target="_blank" rel="noreferrer">Terms</a> ·{" "}
+          <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a>
+        </div>
+        <div className="pw-restore">
+          Already a member? <button type="button" onClick={onRestore}>Restore purchase</button>
         </div>
       </div>
     </div>
