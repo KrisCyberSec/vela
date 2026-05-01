@@ -29,3 +29,7 @@ landing/.netlify/
 # Generated pitch deck binaries (regenerate via `node pitch-deck.js`)
 Vela-Pitch-Deck.pptx
 Vela-Pitch-Deck.pdf
+
+# Staging area for design handoffs / external code under review
+# Anything dropped here is inspected, not auto-committed
+handoff/
