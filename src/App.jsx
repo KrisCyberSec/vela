@@ -200,47 +200,63 @@ const SYMPTOMS = [
   { icon: "Bug", name: "Crawling skin", cat: "other" },
 ];
 
+// Each option has: label (canonical, persisted by index), icon (Phosphor),
+// hint (shown beneath label in onboarding). Indices are stable for backwards
+// compat with stored vela_profile arrays.
 const QUESTIONS = [
   {
     text: "Where are you in your hormonal journey?",
+    eyebrow: "About you",
+    headline: <>Where are you in the <em>transition?</em></>,
+    sub: "There's no right answer — and you can change this any time. We use it to surface what's most relevant for your stage.",
     opts: [
-      "Still having regular periods",
-      "Periods are irregular (perimenopause)",
-      "No period for 12+ months",
-      "Post-surgical menopause",
+      { label: "Still having regular periods", hint: "Cycles haven't shifted yet", icon: "Flower" },
+      { label: "Periods are irregular (perimenopause)", hint: "Cycles still happen, but they're shifting", icon: "Sparkle" },
+      { label: "No period for 12+ months", hint: "Well past the transition", icon: "SunHorizon" },
+      { label: "Post-surgical menopause", hint: "Hysterectomy, cancer treatment, or other", icon: "FirstAidKit" },
     ],
   },
   {
     text: "Which symptoms bother you most?",
     multi: true,
+    eyebrow: "What's on your mind",
+    headline: <>What would you most like to <em>understand?</em></>,
+    sub: "Pick up to five. We'll prioritize these on your daily check-in — everything else is one tap away.",
+    max: 5,
     opts: [
-      "Hot flashes & night sweats",
-      "Sleep problems",
-      "Mood changes & anxiety",
-      "Brain fog & fatigue",
-      "Joint pain & body aches",
-      "Weight changes & bloating",
-      "Low libido & dryness",
-      "Heart palpitations",
+      { label: "Hot flashes & night sweats", icon: "Flame" },
+      { label: "Sleep problems", icon: "Bed" },
+      { label: "Mood changes & anxiety", icon: "HeartHalf" },
+      { label: "Brain fog & fatigue", icon: "Brain" },
+      { label: "Joint pain & body aches", icon: "Bone" },
+      { label: "Weight changes & bloating", icon: "Scales" },
+      { label: "Low libido & dryness", icon: "Drop" },
+      { label: "Heart palpitations", icon: "Heartbeat" },
     ],
   },
   {
     text: "What's your main goal with Vela?",
     multi: true,
+    eyebrow: "Why you're here",
+    headline: <>What would feel like a <em>good outcome?</em></>,
+    sub: "Choose what matters most right now. We'll tune insights, prompts, and exports around it.",
     opts: [
-      "Understand what's happening to my body",
-      "Track symptoms to show my doctor",
-      "Find relief strategies",
-      "Connect with others going through this",
+      { label: "Understand what's happening to my body", hint: "Make sense of the patterns", icon: "MagnifyingGlass" },
+      { label: "Track symptoms to show my doctor", hint: "Bring real data to appointments", icon: "FirstAidKit" },
+      { label: "Find relief strategies", hint: "Test small changes, see what helps", icon: "Flask" },
+      { label: "Connect with others going through this", hint: "Hear from others on the same path", icon: "ChatCircleText" },
     ],
   },
   {
     text: "How do you prefer to receive guidance?",
+    eyebrow: "How we'll show up",
+    headline: <>How much should Vela <em>nudge you?</em></>,
+    sub: "You can always change this. The most consistent users tend to choose 'gentle daily' — but if you'd rather come to us, that works too.",
     opts: [
-      "Daily check-ins & reminders",
-      "Weekly summaries",
-      "Only when I ask",
-      "Let the app decide",
+      { label: "Daily check-ins & reminders", hint: "A morning and evening nudge", icon: "Sun" },
+      { label: "Weekly summaries", hint: "Sundays only — no pressure", icon: "Calendar" },
+      { label: "Only when I ask", hint: "I'll come to the app", icon: "Hand" },
+      { label: "Let the app decide", hint: "Adapt to how I'm using it", icon: "Sparkle" },
     ],
   },
 ];
@@ -2440,6 +2456,91 @@ const css = `
   .pw-restore { text-align: center; margin-top: 8px; font-size: 12px; color: var(--ink-mid); }
   .pw-restore button { color: var(--clay-dark); font-weight: 600; text-decoration: underline; text-decoration-color: rgba(140,78,50,0.3); background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; }
 
+  /* ════════════════════════════════════════════════════════════════════════
+     Onboarding screen redesign (Claude Design handoff, Apr 30 2026)
+     ════════════════════════════════════════════════════════════════════════ */
+  .onb-app { position: relative; width: 100%; min-height: 100vh; background: var(--cream); color: var(--ink); font-family: var(--font-sans); display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+  .onb-app::before { content: ""; position: absolute; inset: 0; background: radial-gradient(140% 80% at 100% 0%, rgba(122,158,135,0.18), transparent 55%), radial-gradient(140% 80% at 0% 100%, rgba(201,123,92,0.14), transparent 55%); pointer-events: none; }
+  .onb-scroll { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 22px 140px; z-index: 1; }
+  .onb-scroll::-webkit-scrollbar { width: 0; }
+
+  .onb-progress { display: flex; align-items: center; gap: 10px; padding: 6px 0 22px; }
+  .onb-progress .back { width: 32px; height: 32px; border-radius: 999px; background: var(--card-bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--ink-mid); flex-shrink: 0; cursor: pointer; transition: transform 100ms ease; }
+  .onb-progress .back:active { transform: scale(0.94); }
+  .onb-progress .back.invisible { visibility: hidden; }
+  .onb-progress .track { flex: 1; height: 4px; border-radius: 999px; background: rgba(140,78,50,0.10); overflow: hidden; }
+  .onb-progress .fill { height: 100%; background: linear-gradient(90deg, var(--clay), var(--clay-dark)); border-radius: 999px; transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .onb-progress .step { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); min-width: 36px; text-align: right; }
+
+  .onb-question .eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--clay-dark); display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 14px; }
+  .onb-question h1 { font-family: var(--font-serif); font-weight: 400; font-size: 32px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 10px; }
+  .onb-question h1 em { font-style: italic; color: var(--clay); }
+  .onb-question .subhead { font-size: 14px; line-height: 1.55; color: var(--ink-mid); margin: 0 0 24px; }
+
+  .onb-options { display: flex; flex-direction: column; gap: 8px; }
+  .onb-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; text-align: left; width: 100%; font-family: inherit; cursor: pointer; transition: transform 100ms ease, background 200ms ease, border-color 200ms ease; }
+  .onb-option:active { transform: scale(0.98); }
+  .onb-option .glyph { width: 36px; height: 36px; border-radius: 12px; background: var(--clay-light); color: var(--clay-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .onb-option .body { flex: 1; min-width: 0; }
+  .onb-option .label { display: block; font-size: 15px; font-weight: 500; color: var(--ink); line-height: 1.3; }
+  .onb-option .hint { display: block; font-size: 12px; color: var(--ink-light); margin-top: 2px; line-height: 1.4; }
+  .onb-option .check { width: 22px; height: 22px; border-radius: 999px; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: transparent; transition: all 200ms ease; font-size: 12px; }
+  .onb-option.selected { background: var(--clay-light); border-color: var(--clay); }
+  .onb-option.selected .check { background: var(--clay); border-color: var(--clay); color: #fff; }
+
+  .onb-chip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .onb-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 14px 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; text-align: left; font-family: inherit; position: relative; min-height: 88px; cursor: pointer; transition: transform 100ms ease, background 200ms ease, border-color 200ms ease; }
+  .onb-chip:active { transform: scale(0.97); }
+  .onb-chip .glyph { width: 30px; height: 30px; border-radius: 10px; background: var(--clay-light); color: var(--clay-dark); display: flex; align-items: center; justify-content: center; }
+  .onb-chip .label { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.25; }
+  .onb-chip.selected { background: var(--clay-light); border-color: var(--clay); }
+  .onb-chip.selected .label { color: var(--clay-dark); font-weight: 600; }
+  .onb-chip .pin { position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 999px; background: var(--clay); color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0.6); transition: all 200ms ease; }
+  .onb-chip.selected .pin { opacity: 1; transform: scale(1); }
+
+  .onb-footer { position: fixed; left: 0; right: 0; bottom: 0; max-width: 420px; margin: 0 auto; padding: 14px 22px calc(env(safe-area-inset-bottom, 0px) + 28px); background: linear-gradient(to top, var(--cream) 70%, transparent); z-index: 5; }
+  .onb-footer .helper { font-size: 11.5px; color: var(--ink-light); text-align: center; margin: 0 0 10px; }
+  .onb-next { width: 100%; padding: 16px; border-radius: 16px; background: var(--clay); color: #fff; font-size: 15px; font-weight: 600; letter-spacing: 0.01em; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; cursor: pointer; font-family: inherit; transition: opacity 150ms ease, transform 100ms ease; }
+  .onb-next:disabled { opacity: 0.35; cursor: not-allowed; }
+  .onb-next:not(:disabled):active { transform: scale(0.98); }
+
+  .onb-welcome { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 32px) 26px 28px; min-height: 100vh; }
+  .onb-welcome .top { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 24px; }
+  .onb-welcome .mark { font-family: var(--font-serif); font-size: 64px; line-height: 1; color: var(--ink); letter-spacing: -0.02em; position: relative; margin-bottom: 6px; }
+  .onb-welcome .mark em { font-style: italic; color: var(--clay); }
+  .onb-welcome .mark::after { content: ""; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 36px; height: 1px; background: var(--clay); opacity: 0.4; }
+  .onb-welcome .tag { font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-light); }
+  .onb-welcome h1 { font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; max-width: 14ch; }
+  .onb-welcome h1 em { font-style: italic; color: var(--clay); }
+  .onb-welcome .blurb { font-size: 14.5px; line-height: 1.6; color: var(--ink-mid); margin: 0; max-width: 30ch; }
+  .onb-welcome .pillars { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+  .onb-welcome .pillar { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--ink-mid); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+  .onb-welcome .pillar .ico { width: 38px; height: 38px; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--clay-dark); }
+  .onb-welcome .bottom { display: flex; flex-direction: column; gap: 10px; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .onb-welcome .privacy { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; letter-spacing: 0.04em; color: var(--ink-light); text-transform: uppercase; }
+  .onb-welcome .secondary { background: transparent; color: var(--ink-mid); font-size: 13px; padding: 8px; font-weight: 500; border: none; cursor: pointer; font-family: inherit; }
+  .onb-welcome .secondary u { text-decoration-color: var(--ink-light); }
+
+  .onb-summary { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 28px) 22px 28px; min-height: 100vh; }
+  .onb-summary .body { flex: 1; padding-bottom: 100px; }
+  .onb-summary h1 { font-family: var(--font-serif); font-weight: 400; font-size: 32px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 10px; }
+  .onb-summary h1 em { font-style: italic; color: var(--clay); }
+  .onb-summary .lede { font-size: 14px; line-height: 1.55; color: var(--ink-mid); margin: 0 0 22px; }
+  .onb-summary-card { background: var(--glass-sage-card); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 22px; padding: 18px 18px 16px; margin-bottom: 14px; box-shadow: inset 0 1px 0 var(--glass-edge), 0 8px 24px rgba(61, 107, 79, 0.08); }
+  .onb-summary-card .eye { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 6px; display: inline-flex; align-items: center; gap: 6px; }
+  .onb-summary-card h2 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.2; margin: 0 0 8px; color: var(--ink); }
+  .onb-summary-card h2 em { font-style: italic; color: var(--sage-dark); }
+  .onb-summary-card p { font-size: 13.5px; line-height: 1.55; color: var(--ink-mid); margin: 0; }
+  .onb-summary-list { background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 4px 0; }
+  .onb-summary-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .onb-summary-row:last-child { border-bottom: none; }
+  .onb-summary-row .num { width: 22px; height: 22px; border-radius: 999px; background: var(--clay-light); color: var(--clay-dark); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .onb-summary-row .text { flex: 1; min-width: 0; }
+  .onb-summary-row .text strong { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .onb-summary-row .text small { display: block; font-size: 12px; color: var(--ink-mid); line-height: 1.45; margin-top: 2px; }
+  .onb-summary-edits { margin-top: 14px; padding: 12px 16px; border-radius: 14px; background: rgba(140,78,50,0.04); font-size: 12px; color: var(--ink-mid); display: flex; align-items: center; gap: 8px; }
+  .onb-summary-edits a { color: var(--clay-dark); font-weight: 600; text-decoration: underline; cursor: pointer; }
+
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
   .screen { display: none; flex-direction: column; padding-bottom: 96px; animation: fadeIn 0.3s ease; }
@@ -4070,80 +4171,31 @@ function OnboardingScreen({ onComplete }) {
     try { return JSON.parse(localStorage.getItem("vela_onboarding_progress") || "null"); }
     catch { return null; }
   })();
-  const initialQIndex = Math.min(saved?.qIndex ?? 0, QUESTIONS.length - 1);
+  // step = 0 (welcome) | 1..4 (questions) | 5 (summary)
+  const initialStep = Math.min(saved?.qIndex ?? 0, 5);
   const initialAnswers = saved?.answers && typeof saved.answers === "object" ? saved.answers : {};
-  const initialQ = QUESTIONS[initialQIndex];
 
-  const [qIndex, setQIndex] = useState(initialQIndex);
+  const [step, setStep] = useState(initialStep);
   const [answers, setAnswers] = useState(initialAnswers);
-  const [selected, setSelected] = useState(initialQ?.multi ? null : (initialAnswers[initialQIndex] ?? null));
-  const [multiSelected, setMultiSelected] = useState(initialQ?.multi ? (initialAnswers[initialQIndex] ?? []) : []);
   const [transitioning, setTransitioning] = useState(false);
-  const [showComplete, setShowComplete] = useState(false);
-
-  const q = QUESTIONS[qIndex];
-  const progress = showComplete ? 100 : ((qIndex + 1) / QUESTIONS.length) * 100;
-  const isLast = qIndex === QUESTIONS.length - 1;
-  const isMulti = !!q.multi;
 
   // Persist progress on every change so close-and-reopen resumes mid-flow
   useEffect(() => {
     try {
-      localStorage.setItem("vela_onboarding_progress", JSON.stringify({ qIndex, answers }));
-    } catch { /* private mode or quota — fine, just don't persist */ }
-  }, [qIndex, answers]);
+      localStorage.setItem("vela_onboarding_progress", JSON.stringify({ qIndex: step, answers }));
+    } catch { /* private mode — fine */ }
+  }, [step, answers]);
 
-  function handleSelect(i) {
-    if (isMulti) {
-      setMultiSelected((prev) => {
-        const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
-        setAnswers((a) => ({ ...a, [qIndex]: next }));
-        return next;
-      });
-    } else {
-      setSelected(i);
-      setAnswers((prev) => ({ ...prev, [qIndex]: i }));
-    }
-  }
+  const total = QUESTIONS.length;
 
-  function handleNext() {
-    if (isLast) {
-      setShowComplete(true);
-      haptic("Medium");
-    } else {
-      setTransitioning(true);
-      setTimeout(() => {
-        setQIndex((i) => i + 1);
-        const nextQ = QUESTIONS[qIndex + 1];
-        if (nextQ.multi) {
-          setMultiSelected(answers[qIndex + 1] ?? []);
-          setSelected(null);
-        } else {
-          setSelected(answers[qIndex + 1] ?? null);
-          setMultiSelected([]);
-        }
-        setTransitioning(false);
-      }, 200);
-    }
-  }
-
-  function handleBack() {
-    if (qIndex === 0 || transitioning) return;
-    haptic("Light");
-    setTransitioning(true);
-    setTimeout(() => {
-      const prevIdx = qIndex - 1;
-      const prevQ = QUESTIONS[prevIdx];
-      setQIndex(prevIdx);
-      if (prevQ.multi) {
-        setMultiSelected(Array.isArray(answers[prevIdx]) ? answers[prevIdx] : []);
-        setSelected(null);
-      } else {
-        setSelected(answers[prevIdx] ?? null);
-        setMultiSelected([]);
-      }
-      setTransitioning(false);
-    }, 200);
+  function setAnswer(qIdx, value) { setAnswers((a) => ({ ...a, [qIdx]: value })); }
+  function toggleConcernIdx(qIdx, optIdx, max) {
+    setAnswers((a) => {
+      const cur = Array.isArray(a[qIdx]) ? a[qIdx] : [];
+      if (cur.includes(optIdx)) return { ...a, [qIdx]: cur.filter((x) => x !== optIdx) };
+      if (max && cur.length >= max) return a;
+      return { ...a, [qIdx]: [...cur, optIdx] };
+    });
   }
 
   function handleStart() {
@@ -4151,119 +4203,233 @@ function OnboardingScreen({ onComplete }) {
     onComplete(answers);
   }
 
-  const canContinue = isMulti ? multiSelected.length > 0 : selected !== null;
+  function go(nextStep) {
+    if (transitioning) return;
+    haptic("Light");
+    setTransitioning(true);
+    setTimeout(() => { setStep(nextStep); setTransitioning(false); }, 180);
+  }
 
-  // Personalized completion screen
-  if (showComplete) {
-    const journeyLabels = ["regular cycles", "perimenopause", "postmenopause", "surgical menopause"];
-    const stage = journeyLabels[answers[0]] || "your journey";
-    const concernNames = ["hot flashes", "sleep", "mood", "brain fog", "joint pain", "weight", "intimate health", "heart health"];
-    const topConcerns = (answers[1] || []).slice(0, 2).map((i) => concernNames[i]).filter(Boolean);
-
+  // ─── Step 0: Welcome ─────────────────────────────────────────────────────
+  if (step === 0) {
     return (
-      <div className="screen active">
-        <div className="onboard-complete">
-          <div className="onboard-complete-icon">✨</div>
-          <h2 className="onboard-complete-title">You're all set</h2>
-          <p className="onboard-complete-text">
-            Vela is personalized for {stage}
-            {topConcerns.length > 0 ? `, with a focus on ${topConcerns.join(" and ")}` : ""}.
-          </p>
-
-          <div className="onboard-plan">
-            <div className="onboard-plan-title">Your first week</div>
-            <div className="onboard-plan-step">
-              <span className="onboard-plan-day">Days 1-3</span>
-              <span className="onboard-plan-desc">Build your baseline — log how you feel daily</span>
+      <div className="screen active onb-app">
+        <div className="onb-welcome">
+          <div className="top">
+            <div>
+              <div className="mark">Ve<em>la</em></div>
+              <div className="tag" style={{ marginTop: 18 }}>For the change, by the changing</div>
             </div>
-            <div className="onboard-plan-step">
-              <span className="onboard-plan-day">Days 4-6</span>
-              <span className="onboard-plan-desc">Patterns start forming — early stats appear</span>
-            </div>
-            <div className="onboard-plan-step">
-              <span className="onboard-plan-day">Day 7</span>
-              <span className="onboard-plan-desc">Your personal insights are revealed</span>
+            <h1>A quiet place for the <em>noisy years.</em></h1>
+            <p className="blurb">
+              Vela learns the rhythm of your body — hot flashes, sleep, mood, the
+              rest — and shows you what's actually going on. No coaching, no fixes.
+              Just your data, kept private and made plain.
+            </p>
+            <div className="pillars">
+              <div className="pillar">
+                <div className="ico"><UIIcon name="Lock" size={18} /></div>
+                <span>On-device</span>
+              </div>
+              <div className="pillar">
+                <div className="ico"><UIIcon name="ChartBar" size={18} /></div>
+                <span>Patterns</span>
+              </div>
+              <div className="pillar">
+                <div className="ico"><UIIcon name="FileText" size={18} /></div>
+                <span>For your MD</span>
+              </div>
             </div>
           </div>
-
-          <p className="onboard-complete-sub">Each entry takes under 30 seconds.</p>
-
-          <button className="onboard-btn" onClick={handleStart}>
-            Log my first entry →
-          </button>
+          <div className="bottom">
+            <button className="onb-next" onClick={() => go(1)}>
+              Begin <UIIcon name="ArrowRight" size={16} />
+            </button>
+            <span className="privacy">
+              <UIIcon name="Lock" size={11} /> Takes about 90 seconds
+            </span>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="screen active">
-      <div className="onboard-hero">
-        <h1>
-          Your body,<br /><em>finally understood.</em>
-        </h1>
-        <p>A few quick questions to personalize your experience.</p>
-      </div>
+  // ─── Step 5: Summary ─────────────────────────────────────────────────────
+  if (step === 5) {
+    const stageOpt = QUESTIONS[0].opts[answers[0]];
+    const stageLabel = stageOpt?.label || "your stage";
+    const concernIdxs = Array.isArray(answers[1]) ? answers[1] : [];
+    const concernLabels = concernIdxs.map((i) => QUESTIONS[1].opts[i]?.label).filter(Boolean);
+    const goalIdxs = Array.isArray(answers[2]) ? answers[2] : (answers[2] != null ? [answers[2]] : []);
+    const primaryGoal = goalIdxs[0];
+    const guidanceIdx = answers[3];
 
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
+    const items = [];
+    items.push({
+      title: `Track signals that matter for ${stageLabel.toLowerCase()}`,
+      detail: concernLabels.length
+        ? `Starting with ${concernLabels.slice(0, 2).join(" and ").toLowerCase()}${concernLabels.length > 2 ? ` +${concernLabels.length - 2} more` : ""}.`
+        : "We'll surface the most relevant symptoms as you log.",
+    });
+    items.push({
+      title: "Find your patterns after seven days",
+      detail: "Once we have a baseline, Vela connects sleep, stress, cycle, and symptoms.",
+    });
+    if (primaryGoal === 1) {
+      items.push({ title: "Build a doctor-ready report", detail: "Your data, summarized for a 15-minute appointment." });
+    } else if (primaryGoal === 2) {
+      items.push({ title: "Run small experiments", detail: "Test one change at a time. See what actually helps." });
+    } else if (primaryGoal === 3) {
+      items.push({ title: "Open the Circle", detail: "An anonymous prompt each day. Read, react, or just listen." });
+    } else {
+      items.push({ title: "Make sense of your data", detail: "Plain-language insights, never advice." });
+    }
+    if (guidanceIdx === 0) items.push({ title: "Two gentle nudges a day", detail: "Morning and evening — turn them off any time." });
+    else if (guidanceIdx === 1) items.push({ title: "Sunday summaries", detail: "One quiet email each week, nothing more." });
+    else if (guidanceIdx === 2) items.push({ title: "No notifications", detail: "You'll come to Vela on your own time." });
 
-      <div className={`q-card${transitioning ? " q-fade-out" : " q-fade-in"}`}>
-        {qIndex > 0 && (
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={transitioning}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--ink-light)",
-              cursor: transitioning ? "default" : "pointer",
-              padding: "4px 0",
-              marginBottom: 8,
-              fontSize: 14,
-              fontFamily: "inherit",
-            }}
-            aria-label="Go back to previous question"
-          >
-            ← Back
-          </button>
-        )}
-        <div className="q-step">
-          Question {qIndex + 1} of {QUESTIONS.length}
-          {isMulti && <span style={{ marginLeft: 8, fontStyle: "italic", textTransform: "none", letterSpacing: 0 }}>select all that apply</span>}
-        </div>
-        <div className="q-text">{q.text}</div>
-        <div className="q-options">
-          {q.opts.map((opt, i) => {
-            const isSelected = isMulti ? multiSelected.includes(i) : selected === i;
-            return (
-              <button
-                key={i}
-                className={`q-opt${isSelected ? " selected" : ""}`}
-                onClick={() => handleSelect(i)}
-              >
-                {isMulti && <span style={{ marginRight: 8 }}>{isSelected ? "✓" : "○"}</span>}
-                {opt}
+    return (
+      <div className="screen active onb-app">
+        <div className="onb-summary">
+          <div className="body">
+            <div className="onb-progress" style={{ paddingTop: 0 }}>
+              <button className="back invisible" aria-hidden="true">
+                <UIIcon name="ArrowRight" size={14} />
               </button>
-            );
-          })}
+              <div className="track"><div className="fill" style={{ width: "100%" }} /></div>
+              <span className="step">Done</span>
+            </div>
+            <h1>Here's what <em>Vela will do</em> for you.</h1>
+            <p className="lede">Built from your answers. You can change any of this in Settings later.</p>
+
+            <div className="onb-summary-card">
+              <span className="eye"><UIIcon name="Sparkle" size={11} /> Your starting point</span>
+              <h2>
+                {stageOpt
+                  ? <>{stageLabel.toLowerCase()}, focused on <em>{concernLabels[0]?.toLowerCase() || "feeling like yourself"}</em></>
+                  : <>Getting started</>}
+              </h2>
+              <p>
+                {primaryGoal === 1
+                  ? "We'll build toward your next appointment. Two weeks of consistent logging is usually enough for a clear story."
+                  : primaryGoal === 2
+                  ? "Track for seven days, then we'll suggest one small experiment based on what we see."
+                  : primaryGoal === 3
+                  ? "Today's prompt is waiting in the Circle. No name, no thread — just shared moments."
+                  : "Log when you can. After a week, the patterns start to surface on their own."}
+              </p>
+            </div>
+
+            <div className="onb-summary-list">
+              {items.map((it, i) => (
+                <div key={i} className="onb-summary-row">
+                  <span className="num">{i + 1}</span>
+                  <div className="text">
+                    <strong>{it.title}</strong>
+                    <small>{it.detail}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="onb-summary-edits">
+              <UIIcon name="Sparkle" size={13} />
+              <span>Want to change something? <button type="button" onClick={() => go(1)} style={{ background: "none", border: "none", padding: 0, color: "var(--clay-dark)", fontWeight: 600, textDecoration: "underline", cursor: "pointer", font: "inherit" }}>Review your answers</button>.</span>
+            </div>
+          </div>
+          <div className="onb-footer">
+            <button className="onb-next" onClick={handleStart}>
+              Enter Vela <UIIcon name="ArrowRight" size={16} />
+            </button>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <button
-        className="onboard-btn"
-        onClick={handleNext}
-        disabled={!canContinue}
-      >
-        {isLast ? "Start my journey →" : "Continue"}
-      </button>
+  // ─── Steps 1-4: Questions ────────────────────────────────────────────────
+  const qIdx = step - 1;
+  const q = QUESTIONS[qIdx];
+  const isMulti = !!q.multi;
+  const value = answers[qIdx];
+  const canNext = isMulti ? Array.isArray(value) && value.length > 0 : value !== undefined && value !== null;
+  const max = q.max || 5;
+  const ctLabel = isMulti && Array.isArray(value)
+    ? (value.length === 0 ? "Pick at least one to continue." : `${value.length} of ${max} selected`)
+    : null;
+
+  return (
+    <div className="screen active onb-app">
+      <div className="onb-scroll">
+        <div className="onb-progress">
+          <button
+            className={`back${step === 1 ? " invisible" : ""}`}
+            onClick={() => go(step - 1)}
+            aria-label="Back"
+          >
+            <UIIcon name="ArrowRight" size={14} style={{ transform: "rotate(180deg)" }} />
+          </button>
+          <div className="track"><div className="fill" style={{ width: `${(step / total) * 100}%` }} /></div>
+          <span className="step">{step} / {total}</span>
+        </div>
+        <div className={`onb-question ${transitioning ? "" : ""}`}>
+          <span className="eyebrow"><UIIcon name="Sparkle" size={11} /> {q.eyebrow}</span>
+          <h1>{q.headline}</h1>
+          <p className="subhead">{q.sub}</p>
+
+          {isMulti ? (
+            <div className="onb-chip-grid">
+              {q.opts.map((opt, i) => {
+                const sel = Array.isArray(value) && value.includes(i);
+                const idx = Array.isArray(value) ? value.indexOf(i) : -1;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`onb-chip${sel ? " selected" : ""}`}
+                    onClick={() => toggleConcernIdx(qIdx, i, max)}
+                  >
+                    <span className="glyph"><UIIcon name={opt.icon} size={16} /></span>
+                    <span className="label">{opt.label}</span>
+                    {sel && <span className="pin">{idx + 1}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="onb-options">
+              {q.opts.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`onb-option${value === i ? " selected" : ""}`}
+                  onClick={() => setAnswer(qIdx, i)}
+                >
+                  <span className="glyph"><UIIcon name={opt.icon} size={18} /></span>
+                  <span className="body">
+                    <span className="label">{opt.label}</span>
+                    {opt.hint && <span className="hint">{opt.hint}</span>}
+                  </span>
+                  <span className="check"><UIIcon name="CheckCircle" size={12} /></span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="onb-footer">
+        {ctLabel && <p className="helper">{ctLabel}</p>}
+        <button
+          className="onb-next"
+          disabled={!canNext}
+          onClick={() => go(step === total ? 5 : step + 1)}
+        >
+          {step === total ? "See your plan" : "Continue"} <UIIcon name="ArrowRight" size={16} />
+        </button>
+      </div>
     </div>
   );
 }
-
-// ─── Tracker Screen ───────────────────────────────────────────────────────────
 
 function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPaywall }) {
   const [mood, setMood] = useState(null);
@@ -5769,7 +5935,7 @@ function EditQuestionScreen({ questionIndex, profile, onSave, onBack }) {
               className={`q-opt${isMulti ? (multiSelected.includes(i) ? " selected" : "") : (selected === i ? " selected" : "")}`}
               onClick={() => handleSelect(i)}
             >
-              {opt}
+              {typeof opt === "string" ? opt : opt.label}
             </button>
           ))}
         </div>
