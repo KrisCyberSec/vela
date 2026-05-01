@@ -93,8 +93,8 @@ Apps installed this way expire after 7 days and must be re-deployed. Fine for te
    - Category: Health & Fitness
    - Primary language: English (US)
 3. **In-app purchases** — create 2 subscriptions:
-   - `vela_premium_monthly` at $5.99/mo
-   - `vela_premium_annual` at $49.99/yr
+   - `vela_premium_monthly` at $8.99/mo (Apple Tier 9)
+   - `vela_premium_annual` at $69.99/yr (Apple Tier 70)
 4. **Wire RevenueCat**:
    - Create an app in RevenueCat
    - Paste the App Store Connect shared secret

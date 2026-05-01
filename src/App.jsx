@@ -1034,6 +1034,89 @@ function compareExperiment(experiment, logs) {
   };
 }
 
+// ─── Personalized experiment suggestions (Premium) ──────────────────────
+// Reads detected correlations from analyzeCorrelations() and the user's
+// top symptoms, then maps them to relevant experiments from
+// EXPERIMENT_LIBRARY. Returns up to 3 suggestions, sorted by confidence.
+//
+// Each suggestion includes the *reason* — e.g. "Hot flash appeared 3x
+// more on caffeine days" → suggest the caffeine cutoff. The reason
+// becomes the headline so the user understands why it's there.
+//
+// Skips experiments that are already running or recently completed
+// (within 30 days) to avoid suggesting the same thing twice.
+function suggestExperiments(logs, experiments = []) {
+  if (!logs || logs.length < 7) return [];
+
+  const correlations = analyzeCorrelations(logs);
+  const suggestions = [];
+
+  // Track what's already in flight or recently tried, so we don't repeat
+  const thirtyAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const blockedLibIds = new Set();
+  experiments.forEach((e) => {
+    if (e.status === "active") blockedLibIds.add(e.libraryId);
+    if (e.status === "completed" && e.endedAt && new Date(e.endedAt).getTime() > thirtyAgo) {
+      blockedLibIds.add(e.libraryId);
+    }
+  });
+
+  const tryAdd = (libraryId, reason, confidence) => {
+    if (blockedLibIds.has(libraryId)) return;
+    if (suggestions.some((s) => s.library.id === libraryId)) return;
+    const lib = EXPERIMENT_LIBRARY.find((l) => l.id === libraryId);
+    if (!lib) return;
+    suggestions.push({ library: lib, reason, confidence });
+  };
+
+  // ── Map correlation findings to experiments ──
+  correlations.forEach((c) => {
+    const text = c.text.toLowerCase();
+    const conf = Math.min(3, Math.max(1, Math.round(c.score)));
+    if (text.includes("caffeine")) {
+      tryAdd("caffeine_cutoff", c.text, conf);
+    }
+    if (text.includes("alcohol")) {
+      tryAdd("no_alcohol", c.text, conf);
+    }
+    if (text.includes("less than 6 hours") || text.includes("hours of sleep")) {
+      tryAdd("consistent_bedtime", c.text, conf);
+    }
+    if (text.includes("exercise") && text.includes("less often")) {
+      // Positive correlation: exercise days had fewer symptoms — reinforce
+      tryAdd("evening_walks", c.text, conf);
+    }
+  });
+
+  // ── Heuristic suggestions when correlations don't cover top symptoms ──
+  // Tally the user's last-30-day symptom load and suggest experiments
+  // that target what's actually showing up — even when we can't yet
+  // attribute it to a specific trigger.
+  const now = Date.now();
+  const thirtyAgoTs = now - 30 * 24 * 60 * 60 * 1000;
+  const recent = logs.filter((l) => new Date(l.date).getTime() >= thirtyAgoTs);
+  const symFreq = {};
+  recent.forEach((l) => {
+    const seen = new Set();
+    Object.keys(l.symptoms || {}).forEach((s) => seen.add(s));
+    seen.forEach((s) => { symFreq[s] = (symFreq[s] || 0) + 1; });
+  });
+  const top = Object.entries(symFreq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s]) => s);
+
+  if (top.includes("Poor sleep") || top.includes("Night sweats")) {
+    tryAdd("magnesium", `${top.includes("Poor sleep") ? "Poor sleep" : "Night sweats"} has been your top symptom recently`, 1);
+  }
+  if (top.includes("Brain fog") || top.includes("Fatigue")) {
+    tryAdd("morning_protein", `${top.includes("Brain fog") ? "Brain fog" : "Fatigue"} keeps showing up — protein at breakfast is a low-effort variable to test`, 1);
+  }
+  if (top.some((s) => ["Anxiety", "Mood shifts", "Mood swings"].includes(s))) {
+    tryAdd("evening_walks", `Mood and anxiety days are frequent — evening walks are one of the most consistently-studied levers`, 1);
+  }
+
+  // Sort by confidence (correlation-driven outranks heuristic)
+  return suggestions.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
+}
+
 const REMINDER_MESSAGES = {
   morning: { title: "Good morning", body: "How are you feeling today? Take a moment to log with Vela" },
   evening: { title: "Evening check-in", body: "How was your day? A quick log helps Vela spot patterns for you" },
@@ -2852,6 +2935,19 @@ const css = `
   .exp-card .exp-btn { padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; border: 1px solid var(--border); background: transparent; color: var(--ink-mid); }
   .exp-card .exp-btn.primary { background: var(--clay); color: #fff; border-color: var(--clay); }
   .exp-card .exp-btn.secondary:hover { background: var(--card-bg-soft, rgba(0,0,0,0.04)); }
+
+  /* Personalized experiment suggestions — premium, derived from
+     correlations + top symptoms. Reason headline reads first so the
+     user understands why this suggestion appeared. */
+  .suggest-list { display: flex; flex-direction: column; gap: 10px; }
+  .suggest-card { background: linear-gradient(135deg, rgba(143,184,155,0.12), rgba(255,255,255,0.55)); border: 1px solid rgba(143,184,155,0.26); border-radius: var(--radius); padding: 14px; }
+  .suggest-card .suggest-head { display: flex; gap: 10px; margin-bottom: 8px; }
+  .suggest-card .suggest-head .ico { width: 28px; height: 28px; border-radius: 9px; background: var(--sage-light); color: var(--sage-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .suggest-card .reason { flex: 1; margin: 0; font-size: 13px; color: var(--ink); line-height: 1.45; font-style: italic; }
+  .suggest-card .suggest-body { padding-left: 38px; margin-bottom: 10px; }
+  .suggest-card .suggest-body strong { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 16px; color: var(--ink); line-height: 1.2; }
+  .suggest-card .suggest-body small { display: block; font-size: 11.5px; color: var(--ink-light); margin-top: 2px; }
+  .suggest-card .suggest-cta { display: inline-flex; align-items: center; gap: 6px; background: var(--sage); color: #fff; border: none; border-radius: 999px; padding: 8px 14px 8px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; margin-left: 38px; }
 
   /* Experiment promo CTA — when no experiments exist */
   .exp-promo { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 14px; width: 100%; cursor: pointer; font-family: var(--font-sans); text-align: left; }
@@ -6393,6 +6489,10 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const [experimentBrowserOpen, setExperimentBrowserOpen] = useState(false);
   const [weekSheetOpen, setWeekSheetOpen] = useState(false);
 
+  // Personalized experiment suggestions — premium-gated, derived from
+  // detected correlations + top symptoms in the last 30 days.
+  const experimentSuggestions = suggestExperiments(logs, experiments);
+
   // Weekly summary — computed live from logs. Card highlights on Sundays.
   const weeklySummary = buildWeeklySummary(logs);
   const isSunday = new Date().getDay() === 0;
@@ -6813,6 +6913,41 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             </>
           )}
 
+          {/* Personalized experiment suggestions — Premium. Maps the
+              patterns above to one-tap experiments tied to what we've
+              actually seen in the user's data, with the reason
+              surfaced as the headline so it's never random. */}
+          {experimentSuggestions.length > 0 && (
+            <>
+              <div className="today-section-label">
+                <span>Vela suggests</span>
+                <span className="hint">{!isPremium ? <span style={{ color: "var(--gold)" }}>Premium</span> : "Based on your data"}</span>
+              </div>
+              <div className="suggest-list">
+                {experimentSuggestions.map((sug) => (
+                  <article key={sug.library.id} className="suggest-card">
+                    <div className="suggest-head">
+                      <span className="ico"><UIIcon name={sug.library.icon} size={16} /></span>
+                      <p className="reason">{sug.reason}</p>
+                    </div>
+                    <div className="suggest-body">
+                      <strong>{sug.library.name}</strong>
+                      <small>{sug.library.duration} days · watching {sug.library.targets.join(" · ")}</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="suggest-cta"
+                      onClick={() => isPremium ? startExperiment(sug.library) : onShowPaywall()}
+                    >
+                      {isPremium ? "Start" : <><UIIcon name="Star" size={11} weight="fill" /> Unlock</>}
+                      <UIIcon name="ArrowRight" size={12} />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+
           {uniqueDays < 21 && (
             <div className="weak-banner">
               <UIIcon name="Calendar" size={14} />
@@ -7088,36 +7223,48 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
 
   // Pillar copy must match what actually ships. Each pillar below maps to
   // a real feature with shipping code:
-  //   doctor-ready report  → generateDoctorReport (jsPDF)
-  //   pattern history      → History screen unlock past 7 days
-  //   experiments          → EXPERIMENT_LIBRARY + compareExperiment
-  //   cycle prediction     → predictNextCycle on Insights
-  //   weekly summary       → buildWeeklySummary + sheet
-  //   Ask Vela             → /api/ask-vela Netlify function (Claude-backed)
-  //   Apple Health sync    → src/healthkit.js wrapper
+  //   Ask Vela              → /api/ask-vela Netlify function (Claude-backed)
+  //   Personalized suggestions → suggestExperiments + Insights "Vela suggests"
+  //   doctor-ready report   → generateDoctorReport (jsPDF)
+  //   experiments           → EXPERIMENT_LIBRARY + compareExperiment
+  //   cycle prediction      → predictNextCycle on Insights
+  //   weekly summary        → buildWeeklySummary + sheet
+  //   Apple Health sync     → src/healthkit.js wrapper
+  //   pattern history       → History screen unlock past 7 days
   // Don't add a pillar without a wired feature behind it.
+  //
+  // Order matters: Ask Vela + personalized suggestions lead because
+  // they're the differentiation tier vs Caria/Balance/Flo. Doctor PDF
+  // (the original hero) sits at #3 — still the most concrete benefit
+  // for the doctor-prep persona, but no longer carries the whole pitch.
   const pillars = [
-    {
-      icon: "FileText",
-      tone: "clay",
-      title: "Doctor-ready report",
-      body: "A printable PDF of your patterns, written for your provider. Charts, dates, and what's been working.",
-    },
     {
       icon: "ChatCircle",
       tone: "sage",
       title: "Ask Vela",
-      body: "Ask anything about your data. Real answers grounded in your symptoms, sleep, and cycle — not generic web advice.",
+      body: "Real AI grounded in your data — not generic web advice. Ask anything about your symptoms, sleep, cycle, or what to bring to your next appointment.",
+    },
+    {
+      icon: "Sparkle",
+      tone: "gold",
+      title: "Personalized suggestions",
+      body: "Vela watches your patterns and suggests experiments tied to what's actually showing up in your data — not a generic to-do list.",
+    },
+    {
+      icon: "FileText",
+      tone: "clay",
+      title: "Doctor-ready report",
+      body: "A printable PDF your provider will actually read. Charts, dates, what's been working — built from months of your real entries.",
     },
     {
       icon: "Flask",
-      tone: "gold",
+      tone: "sage",
       title: "Run experiments",
       body: "Pick one change for 7-14 days — caffeine cutoff, evening walks, magnesium. Vela compares the symptom days against the week before.",
     },
     {
       icon: "Calendar",
-      tone: "sage",
+      tone: "gold",
       title: "Cycle prediction",
       body: "Even when cycles are irregular, Vela learns your rhythm and gives you a window for what's likely next.",
     },
@@ -7129,19 +7276,19 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
     },
     {
       icon: "Heart",
-      tone: "gold",
+      tone: "sage",
       title: "Apple Health sync",
       body: "Pull sleep and HRV from your watch automatically, so you don't retype what your wrist already knows.",
     },
     {
       icon: "ChartBar",
-      tone: "sage",
+      tone: "gold",
       title: "Full pattern history",
       body: "Look back across months — see how this autumn compares to last spring. Free shows the last 7 days.",
     },
   ];
 
-  const ctaPrice = plan === "annual" ? "$49.99/yr" : "$5.99/mo";
+  const ctaPrice = plan === "annual" ? "$69.99/yr" : "$8.99/mo";
 
   return (
     <div className="pw-app">
@@ -7154,10 +7301,10 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
         </span>
 
         <h1 className="pw-headline">
-          Bring this to your <em>next appointment.</em>
+          Make sense of it. <em>Out loud.</em>
         </h1>
         <p className="pw-sub">
-          Months of your data, distilled into a one-page report your doctor will actually read.
+          Real AI grounded in your data, personalized experiments from your patterns, and a doctor-ready report. Built for the years between.
         </p>
 
         {/* Hero — doctor report preview */}
@@ -7214,10 +7361,10 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
             className={`pw-plan ${plan === "annual" ? "on" : ""}`}
             onClick={() => setPlan("annual")}
           >
-            <span className="save-badge">Save 31%</span>
+            <span className="save-badge">Save 35%</span>
             <div className="term">Annual</div>
-            <div className="price">$49.99<small>/yr</small></div>
-            <div className="note">$4.17/mo · billed yearly</div>
+            <div className="price">$69.99<small>/yr</small></div>
+            <div className="note">$5.83/mo · billed yearly</div>
           </button>
           <button
             type="button"
@@ -7225,7 +7372,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
             onClick={() => setPlan("monthly")}
           >
             <div className="term">Monthly</div>
-            <div className="price">$5.99<small>/mo</small></div>
+            <div className="price">$8.99<small>/mo</small></div>
             <div className="note">Cancel anytime</div>
           </button>
         </div>
@@ -7742,9 +7889,9 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="crest"><UIIcon name="Star" size={20} /></span>
           <span className="body">
             <strong>Upgrade to Vela Premium</strong>
-            <small>Unlock pattern history, doctor reports, and Ask Vela</small>
+            <small>Ask Vela AI, doctor reports, cycle prediction, experiments</small>
           </span>
-          <span className="cta">$5.99/mo</span>
+          <span className="cta">From $5.83/mo</span>
         </button>
       )}
 

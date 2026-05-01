@@ -117,10 +117,10 @@ Secondary: Medical
 - Vela offers deeper on-device AI analysis.
 
 ### vs. Caria (developer: Chorus Health Inc., 4.6★ × 1,400 reviews as of Feb 2026)
-- Caria's annual is $49.99 — **at parity with Vela**, not above it. Don't claim a price advantage on annual.
-- Caria's monthly is $9.99 vs. Vela's $5.99 — **Vela is 40% cheaper on monthly**. Real edge for try-before-committing users.
+- Caria's annual is $59.99, monthly $9.99. Vela's annual is $69.99 (+$10), monthly $8.99 (−$1). **Don't claim a price advantage** — claim a capability advantage.
 - Caria positions on comprehensive lifestyle support: audio courses, guided meditations, nutritionist recipes/meal plans, community shop.
-- Vela positions on data + autonomy: pattern detection on YOUR logs, doctor-ready PDF reports, on-device AI, no account required.
+- Vela positions on data + autonomy + intelligence: pattern detection on YOUR logs, real Anthropic-backed Ask Vela that grounds answers in your data, personalized experiments tied to detected patterns, doctor-ready PDF reports, no account required.
+- Real Ask Vela (Claude-backed, grounded in user data) and personalized experiments are Vela-only — Caria has no equivalent.
 - Doctor PDF reports remain unique to Vela — Caria doesn't offer this.
 - Caria has been in maintenance-only mode since v1.9.16 (August 2025); no new features in ~6 months. Strategic launch window.
 

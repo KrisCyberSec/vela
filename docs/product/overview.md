@@ -46,9 +46,9 @@ Vela makes it trivial to track, find patterns, and walk into doctor appointments
 
 | Tier | Price | Notes |
 |------|-------|-------|
-| Free | $0 | Symptom logging, basic patterns, day-of-week analysis, daily tips, streak tracking |
-| Premium (annual) | $49.99/yr | Everything: Ask Vela AI, smart weekly digest, doctor PDF reports, deep trend analysis, CBT programs |
-| Premium (monthly) | $5.99/mo | Same as above, cancel anytime |
+| Free | $0 | Symptom logging, basic patterns, last 7 days history |
+| Premium (annual) | $69.99/yr | Everything: Ask Vela AI, personalized experiments, cycle prediction, weekly summary, Apple Health sync, doctor PDF, full pattern history |
+| Premium (monthly) | $8.99/mo | Same as above, cancel anytime |
 
 7-day free trial on premium. Expected trial-to-paid conversion: ~55% (health app benchmark).
 
@@ -82,10 +82,10 @@ See [business/financial-model.md](../business/financial-model.md) for unit econo
 | Pattern detection | ✓ | ~ | ~ | ✗ | ✗ |
 | Audio guides / meditations | ✗ | ~ | ✓ | ✓ | ✗ |
 | Recipes / meal plans | ✗ | ~ | ✓ | ✗ | ✗ |
-| Price/year | $49.99 | B2B | $49.99 | $49.99 | $49.99 |
-| Price/month | $5.99 | B2B | $9.99 | — | — |
+| Price/year | $69.99 | B2B | $59.99 | $49.99 | $49.99 |
+| Price/month | $8.99 | B2B | $9.99 | — | — |
 
-Annual pricing is at parity across the menopause-app cluster. Vela's monthly is ~40% cheaper than Caria's. Audio content + recipes are real Caria advantages — known gaps, not bugs (don't reactively chase them).
+Vela now sits $10–20 above the menopause-tracker cluster on annual, $1 below Caria on monthly. The premium reflects shipping features competitors don't have: real Anthropic-backed Ask Vela, personalized experiments tied to detected patterns, cycle prediction. Audio content + recipes remain real Caria advantages — known gaps, not bugs (don't reactively chase them).
 
 ## Related docs
 

@@ -4,7 +4,7 @@
  * Setup is documented in docs/operations/analytics-and-billing.md.
  * The short version:
  *   1. Create a RevenueCat account, add the iOS app, create a "premium" entitlement
- *      and a "default" offering with the $5.99/mo and $49.99/yr packages.
+ *      and a "default" offering with the $8.99/mo and $69.99/yr packages.
  *   2. Set REACT_APP_REVENUECAT_IOS_API_KEY in .env (App-specific Apple API key).
  *   3. Configure the matching in-app-purchase products in App Store Connect.
  *

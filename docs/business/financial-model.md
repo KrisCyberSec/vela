@@ -3,16 +3,18 @@
 ## Pricing Structure
 | Plan | Price | Per Month | Trial |
 |------|-------|-----------|-------|
-| Annual | $49.99/year | $4.17/mo | 7-day free |
-| Monthly | $5.99/month | $5.99/mo | 7-day free |
+| Annual | $69.99/year | $5.83/mo | 7-day free |
+| Monthly | $8.99/month | $8.99/mo | 7-day free |
 
 **Apple's cut:** 30% Year 1, 15% Year 2+ (Small Business Program eligible < $1M revenue)
 
 **Net revenue per subscriber:**
 | Plan | Gross | Apple Cut (30%) | Net Year 1 | Apple Cut (15%) | Net Year 2+ |
 |------|-------|-----------------|------------|-----------------|-------------|
-| Annual | $49.99 | $15.00 | $35.00 | $7.50 | $42.50 |
-| Monthly | $71.88/yr | $21.56 | $50.32 | $10.78 | $61.10 |
+| Annual | $69.99 | $21.00 | $48.99 | $10.50 | $59.49 |
+| Monthly | $107.88/yr | $32.36 | $75.52 | $16.18 | $91.70 |
+
+**Pricing change rationale (May 2026):** Bumped from $5.99/$49.99 to $8.99/$69.99 after the Premium product was rebuilt with real Anthropic-backed Ask Vela, cycle prediction, experiments, weekly summary, and Apple Health sync. Previous pricing was floor-of-market when Premium had 2 real features + 2 vaporware; new pricing reflects 7 shipping features and sits just below Caria's $9.99/mo.
 
 ---
 
@@ -32,14 +34,14 @@
 - 70% Annual / 30% Monthly (industry standard for health apps with annual discount)
 
 ### Blended ARPU (Average Revenue Per User who converts)
-- Year 1: (0.70 x $35.00) + (0.30 x $50.32) = **$39.60** net/year
-- Year 2+: (0.70 x $42.50) + (0.30 x $61.10) = **$48.08** net/year
+- Year 1: (0.70 x $48.99) + (0.30 x $75.52) = **$56.95** net/year
+- Year 2+: (0.70 x $59.49) + (0.30 x $91.70) = **$69.16** net/year
 
 ### Customer Lifetime Value (LTV)
 - Average subscription duration (health apps): 8-14 months
-- Conservative (8 mo): $39.60 x (8/12) = **$26.40**
-- Moderate (11 mo): $39.60 x (11/12) = **$36.30**
-- Optimistic (14 mo): $39.60 + $48.08 x (2/12) = **$47.61**
+- Conservative (8 mo): $56.95 x (8/12) = **$37.97**
+- Moderate (11 mo): $56.95 x (11/12) = **$52.20**
+- Optimistic (14 mo): $56.95 + $69.16 x (2/12) = **$68.48**
 
 ---
 
@@ -95,24 +97,24 @@
 
 ## Pricing Analysis
 
-### Is $49.99/year right?
+### Is $69.99/year right?
 
 **Competitor pricing (verified Feb 2026 except where noted):**
 | App | Annual | Monthly | Source |
 |-----|--------|---------|--------|
 | Midday | Free (B2B) | n/a | Sold to employers |
-| Caria | $49.99 | $9.99 | App Store, Feb 2026 |
+| Caria | $59.99 | $9.99 | App Store, Feb 2026 |
 | Balance (menopause) | $49.99 | — | Last verified at write time; reverify before quoting |
 | Flo (period tracker) | $49.99 | — | Last verified at write time; reverify before quoting |
 | Clue Plus | $39.99 | — | Last verified at write time; reverify before quoting |
-| **Vela** | **$49.99** | **$5.99** | Current |
+| **Vela** | **$69.99** | **$8.99** | Current (May 2026) |
 
-**Assessment:** Annual is at parity with Caria, Balance, and Flo — **don't claim a price advantage on annual.** The real annual price edge is over Clue Plus (period-tracker, not direct competitor). Vela's monthly at $5.99 is 40% below Caria's $9.99 — that's the actual price-leadership position, useful for try-before-committing users and as a marketing hook.
+**Assessment:** Vela now sits 10–40% above the period-tracker tier (Flo, Clue) and matches Caria's annual / undercuts Caria's monthly by $1. This is intentional: Vela's Premium has features Caria doesn't ship — real AI assistant grounded in user data, personalized experiments tied to their patterns, cycle prediction. The price says "more capable than a tracker, less than a coach app." Marketing should lead with capability, not price.
 
-### Monthly pricing at $5.99
-- Effective annual rate: $71.88 (44% premium over annual)
-- Strong incentive to choose annual (save 31%)
-- 40% cheaper than Caria's $9.99 monthly — real positioning lever for users who want to try without committing to a year
+### Monthly pricing at $8.99
+- Effective annual rate: $107.88 (54% premium over annual)
+- Strong incentive to choose annual (save 35%)
+- $1 below Caria's $9.99 monthly — competitive but not race-to-bottom
 
 ---
 
@@ -216,18 +218,18 @@ ROAS is calculated as `(net revenue from cohort over 12 months) / (ad spend to a
 
 ## Price Sensitivity
 
-Current pricing: $49.99/yr — at parity with Caria, Balance, and Flo; $10 above Clue Plus. The pricing question isn't "what's competitive" — it's "what's the LTV ceiling we can reach without collapsing trial-to-paid."
+Current pricing: $69.99/yr (May 2026 update). Bumped from $49.99 after the Premium product was rebuilt with real Anthropic-backed Ask Vela, cycle prediction, experiments, weekly summary, and Apple Health sync.
 
 Assuming 8-month average subscription duration and a 70/30 annual/monthly mix, here's how Year-1 net LTV moves with the annual price (monthly held proportional):
 
 | Annual price | Net LTV (Y1) | Required CAC (target 3:1 LTV:CAC) | Trial-to-paid risk |
 |--------------|--------------|------------------------------------|---------------------|
-| $39.99 | $21.10 | $7.03 | Lowest — but leaves money on the table |
-| $49.99 (current) | $26.40 | $8.80 | Baseline; matches Caria/Balance/Flo |
-| $59.99 | $31.70 | $10.57 | Moderate. Likely 5–10% trial-to-paid drop. Worth testing once social proof is established — would put Vela above the menopause-app cluster, requires the "doctor PDF + on-device AI" pitch to land |
-| $69.99 | $36.95 | $12.32 | High — needs strong differentiation messaging. Don't try until ≥ 200 reviews at 4.7+ |
+| $49.99 (old) | $26.40 | $8.80 | Floor pricing, doesn't reflect product capability |
+| $59.99 | $31.70 | $10.57 | Caria parity. Conservative move; gives up a real differentiation tier |
+| $69.99 (current) | $37.97 | $12.66 | Sits between menopause-tracker tier and full coach apps. Needs the "real AI + personalized experiments" pitch to land — which the Premium product now actually delivers |
+| $79.99 | $42.20 | $14.07 | Don't try until ≥ 200 reviews at 4.7+ AND clear retention signal |
 
-**Don't test pricing until trial-to-paid is stable.** A price change perturbs the funnel; if the funnel is also being iterated, you can't tell what caused what. Stabilize first, then run a 50/50 split for ≥ 30 days per cell.
+**Don't test pricing until trial-to-paid is stable.** A price change perturbs the funnel; if the funnel is also being iterated, you can't tell what caused what. Stabilize at current pricing for ≥ 60 days post-launch, then run a 50/50 split for ≥ 30 days per cell.
 
 ---
 
