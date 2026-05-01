@@ -5132,6 +5132,11 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [filter, setFilter] = useState(null);
   const [openDay, setOpenDay] = useState(null);
+  // Entries feed cap — show recent N days by default. The calendar above
+  // already gives the spatial overview, so the textual feed can be tighter.
+  // Filter implies a search across all data, so it disables the cap.
+  const FEED_CAP_DAYS = 14;
+  const [showAllEntries, setShowAllEntries] = useState(false);
 
   const TODAY = new Date();
   const MOOD_EMOJI_HX = ["😔", "😕", "😐", "🙂", "😊"];
@@ -5205,7 +5210,13 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
     : dailyEntries;
 
   // Reverse for newest-first display
-  const visibleEntries = [...filteredEntries].reverse();
+  const allVisibleEntries = [...filteredEntries].reverse();
+  // Cap to the most recent N days unless filtering or user expanded.
+  // Older entries remain accessible via the calendar above (which always
+  // shows the full month) and via the "Show older" button at the feed's end.
+  const cappedFeed = !filter && !showAllEntries && allVisibleEntries.length > FEED_CAP_DAYS;
+  const visibleEntries = cappedFeed ? allVisibleEntries.slice(0, FEED_CAP_DAYS) : allVisibleEntries;
+  const hiddenOlderCount = allVisibleEntries.length - visibleEntries.length;
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const totalEntries = dailyEntries.length;
@@ -5369,7 +5380,11 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
       {/* Entries feed */}
       <div className="today-section-label">
         <span>Entries</span>
-        <span className="hint">{visibleEntries.length} shown · newest first</span>
+        <span className="hint">
+          {cappedFeed
+            ? `Recent ${visibleEntries.length} of ${allVisibleEntries.length} · newest first`
+            : `${visibleEntries.length} shown · newest first`}
+        </span>
       </div>
 
       {grouped.map(([dayIso, items]) => {
@@ -5431,6 +5446,41 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
           </div>
         );
       })}
+
+      {/* Show-older affordance — when feed is capped */}
+      {cappedFeed && (
+        <button
+          type="button"
+          className="filter-chip"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            margin: "16px auto 4px", padding: "10px 18px", background: "var(--card-bg)",
+            border: "1px solid var(--border)", borderRadius: 14,
+            color: "var(--clay-dark)", fontWeight: 600, fontSize: 13,
+            width: "auto", maxWidth: 280,
+          }}
+          onClick={() => setShowAllEntries(true)}
+        >
+          <UIIcon name="ArrowUp" size={12} style={{ transform: "rotate(180deg)" }} />
+          Show {hiddenOlderCount} older {hiddenOlderCount === 1 ? "entry" : "entries"}
+        </button>
+      )}
+      {!cappedFeed && allVisibleEntries.length > FEED_CAP_DAYS && !filter && (
+        <button
+          type="button"
+          className="filter-chip"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            margin: "16px auto 4px", padding: "10px 18px", background: "transparent",
+            border: "1px solid var(--border)", borderRadius: 14,
+            color: "var(--ink-light)", fontWeight: 500, fontSize: 12,
+            width: "auto", maxWidth: 280,
+          }}
+          onClick={() => setShowAllEntries(false)}
+        >
+          Collapse to recent {FEED_CAP_DAYS} days
+        </button>
+      )}
 
       {/* Locked banner for non-premium users */}
       {!isPremium && lockedCount > 0 && (
