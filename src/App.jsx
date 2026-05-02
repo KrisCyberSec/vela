@@ -139,24 +139,44 @@ function EnergyGlyph({ level, size = 30 }) {
 }
 
 // Mini bar chart for the reveal card. Pure SVG, brand-tinted via currentColor.
-function RevealChart({ kind }) {
+// Bars are derived from the user's real logs — never fabricated. For
+// "building" state the past 7 days show actual symptom counts (height
+// scales to the local max), and any future days within the week render
+// as dimmed empty bars. Past days with no log render as dim too, so
+// "I haven't done anything yet" reads honestly instead of looking like
+// random data the user didn't enter.
+function RevealChart({ kind, logs = [] }) {
   if (kind === "none") return null;
-  const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const buildData = [0, 1, 0, 0.7, 0.9, null, null];
-  const richData  = [0.4, 0.6, 0.5, 0.85, 0.7, 0.95, 0.55];
-  const data = kind === "build" ? buildData : richData;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // Build the trailing 7 days, ending today
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const dayLogs = logs.filter((l) => l.date.slice(0, 10) === ymd);
+    const symptomCount = new Set(dayLogs.flatMap((l) => Object.keys(l.symptoms || {}))).size;
+    days.push({
+      letter: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()],
+      count: dayLogs.length > 0 ? Math.max(symptomCount, 1) : 0,
+      logged: dayLogs.length > 0,
+    });
+  }
+  const maxCount = Math.max(...days.map((x) => x.count), 1);
   return (
     <div className="reveal-mini-chart">
-      {data.map((v, i) => (
-        <div
-          key={i}
-          className={`bar ${v === null ? "dim" : ""}`}
-          style={{ height: `${(v ?? 0.18) * 100}%`, minHeight: 4 }}
-        >
-          <div className="cap" />
-          <div className="label">{days[i]}</div>
-        </div>
-      ))}
+      {days.map((day, i) => {
+        const heightPct = day.logged ? (day.count / maxCount) * 100 : 18;
+        return (
+          <div
+            key={i}
+            className={`bar ${day.logged ? "" : "dim"}`}
+            style={{ height: `${heightPct}%`, minHeight: 4 }}
+          >
+            <div className="cap" />
+            <div className="label">{day.letter}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -298,6 +318,28 @@ function localDateStr(date) {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+// Helper: full ISO string in local timezone (not UTC). Stored on every
+// log entry so that `entry.date.slice(0, 10)` matches the user's local
+// day, not UTC. Critical for evening users in western timezones whose
+// UTC clock has already rolled to tomorrow.
+function localISOString(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const tz = -date.getTimezoneOffset();
+  const sign = tz >= 0 ? "+" : "-";
+  const tzAbs = Math.abs(tz);
+  return (
+    date.getFullYear() +
+    "-" + pad(date.getMonth() + 1) +
+    "-" + pad(date.getDate()) +
+    "T" + pad(date.getHours()) +
+    ":" + pad(date.getMinutes()) +
+    ":" + pad(date.getSeconds()) +
+    "." + String(date.getMilliseconds()).padStart(3, "0") +
+    sign + pad(Math.floor(tzAbs / 60)) +
+    ":" + pad(tzAbs % 60)
+  );
 }
 
 function getStreak(logs) {
@@ -2055,17 +2097,22 @@ const BADGES = [
   { id: "period-tracker", icon: "🩸", name: "Cycle Aware", desc: "Log period data for the first time", check: (s) => s.periodLogs >= 1 },
 ];
 
+// Level names are quiet status markers, not aspirational badges. We
+// explicitly avoid "journey," "wellness," and "empowered" (per brand
+// voice), and we don't claim patterns "emerge" before there's enough
+// data to back it up — early-level unlocks are about commitment, later
+// ones reflect actual analytical depth.
 const LEVELS = [
-  { level: 1, name: "Beginning your journey", xpNeeded: 0, unlock: null },
-  { level: 2, name: "Building awareness", xpNeeded: 50, unlock: "Your first patterns are emerging" },
-  { level: 3, name: "Finding your rhythm", xpNeeded: 150, unlock: "Your data is telling a story" },
-  { level: 4, name: "Seeing connections", xpNeeded: 350, unlock: "Vela is learning what affects you" },
-  { level: 5, name: "Understanding your body", xpNeeded: 600, unlock: "Deep patterns are taking shape" },
-  { level: 6, name: "Taking control", xpNeeded: 1000, unlock: "You know your triggers" },
-  { level: 7, name: "Empowered", xpNeeded: 1500, unlock: "Your journey is inspiring others" },
-  { level: 8, name: "Advocate", xpNeeded: 2200, unlock: "You're helping others feel less alone" },
-  { level: 9, name: "Mentor", xpNeeded: 3000, unlock: "Your wisdom is guiding this community" },
-  { level: 10, name: "Vela companion", xpNeeded: 4000, unlock: "You've built a complete picture of your health" },
+  { level: 1, name: "Logged in", xpNeeded: 0, unlock: null },
+  { level: 2, name: "A few days in", xpNeeded: 50, unlock: "Steady start. Vela's listening." },
+  { level: 3, name: "Finding your rhythm", xpNeeded: 150, unlock: "A week of data is enough to see the first signal." },
+  { level: 4, name: "Seeing connections", xpNeeded: 350, unlock: "Cross-symptom triggers are starting to surface." },
+  { level: 5, name: "Knowing your body", xpNeeded: 600, unlock: "Multi-week patterns are taking shape." },
+  { level: 6, name: "Steady tracker", xpNeeded: 1000, unlock: "You can name your triggers." },
+  { level: 7, name: "Long-haul", xpNeeded: 1500, unlock: "A year of data tells a real story." },
+  { level: 8, name: "Documented", xpNeeded: 2200, unlock: "You've built a record any provider would respect." },
+  { level: 9, name: "Anchored", xpNeeded: 3000, unlock: "You've been here through the hard stretches." },
+  { level: 10, name: "Vela companion", xpNeeded: 4000, unlock: "You've built a complete picture of your health." },
 ];
 
 function computeGamificationStats(logs) {
@@ -3398,13 +3445,17 @@ const css = `
   .cir-privacy .body { font-size: 12px; line-height: 1.5; color: var(--sage-dark); }
   .cir-privacy .body strong { display: block; font-size: 12.5px; font-weight: 600; color: var(--sage-dark); margin-bottom: 2px; }
 
-  .cir-first-welcome { margin: 4px 0 18px; padding: 18px 18px 16px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,242,234,0.78)); border: 1px solid rgba(94,80,62,0.10); }
+  /* First-time welcome card — uses translucent surface tokens that adapt
+     to light/dark theme instead of a hardcoded cream gradient (the
+     hardcoded gradient + var(--ink) text rendered as white-on-cream in
+     dark mode and was unreadable). */
+  .cir-first-welcome { margin: 4px 0 18px; padding: 18px 18px 16px; border-radius: 18px; background: var(--card-bg); border: 1px solid var(--border); }
   .cir-first-eye { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 10px; }
   .cir-first-welcome h3 { margin: 0 0 8px; font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.18; color: var(--ink); }
   .cir-first-welcome h3 em { font-style: italic; color: var(--clay); }
   .cir-first-welcome p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.55; color: var(--ink-mid); }
   .cir-first-rules { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 11.5px; color: var(--ink-light); }
-  .cir-first-rules span { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: rgba(94,80,62,0.05); border: 1px solid rgba(94,80,62,0.08); }
+  .cir-first-rules span { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: var(--card-bg-soft, rgba(140,78,50,0.06)); border: 1px solid var(--border); }
 
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
@@ -5577,7 +5628,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         </div>
         <h2 className="reveal-headline-v2">{reveal.headline}</h2>
         <p className="reveal-body-v2">{reveal.body}</p>
-        <RevealChart kind={reveal.chartType} />
+        <RevealChart kind={reveal.chartType} logs={logs} />
         <div className="reveal-foot">
           <span>{reveal.foot}</span>
           {reveal.link && (
@@ -6014,16 +6065,16 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
       {/* Stats strip */}
       <div className="streak-strip">
         <div className="stat-cell">
-          <div className="v">{currentStreak}<small>days</small></div>
+          <div className="v">{currentStreak}<small>{currentStreak === 1 ? "day" : "days"}</small></div>
           <div className="l">Current streak</div>
         </div>
         <div className="stat-cell">
-          <div className="v">{longestStreak}<small>days</small></div>
+          <div className="v">{longestStreak}<small>{longestStreak === 1 ? "day" : "days"}</small></div>
           <div className="l">Longest run</div>
         </div>
         <div className="stat-cell">
           <div className="v">{totalEntries}</div>
-          <div className="l">Total entries</div>
+          <div className="l">{totalEntries === 1 ? "Total entry" : "Total entries"}</div>
         </div>
       </div>
 
@@ -6507,7 +6558,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       icon: library.icon,
       duration: library.duration,
       targets: library.targets,
-      startDate: new Date().toISOString().slice(0, 10),
+      startDate: localDateStr(new Date()),
       status: "active",
     };
     setExperiments((prev) => [...prev, newExp]);
@@ -7828,16 +7879,16 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
 
         <div className="journey-grid">
           <div className="journey-cell">
-            <div className="v">{days}<small>days</small></div>
+            <div className="v">{days}<small>{days === 1 ? "day" : "days"}</small></div>
             <div className="l">Tracked</div>
           </div>
           <div className="journey-cell">
-            <div className="v">{streak}<small>days</small></div>
+            <div className="v">{streak}<small>{streak === 1 ? "day" : "days"}</small></div>
             <div className="l">Current streak</div>
           </div>
           <div className="journey-cell">
             <div className="v">{entries}</div>
-            <div className="l">Entries</div>
+            <div className="l">{entries === 1 ? "Entry" : "Entries"}</div>
           </div>
         </div>
 
@@ -8118,7 +8169,10 @@ function CommunityScreen() {
   // Hardcoded sample data — real prompt + replies come from the Firebase
   // backend (community.js) once LIVE_COMMUNITY is enabled.
   const promptToday = {
-    date: "Apr 30",
+    // Date renders live so we never ship "TODAY'S PROMPT · APR 30"
+    // sitting under the May 1 calendar header. Once LIVE_COMMUNITY is on,
+    // this comes from the backend along with the prompt itself.
+    date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     text: <>What's one thing you've stopped <em>apologizing for</em> since perimenopause began?</>,
     plain: "What's one thing you've stopped apologizing for since perimenopause began?",
     answered: 247,
@@ -8383,7 +8437,12 @@ export default function App() {
   }
 
   function handleLog(entry) {
-    const logEntry = { ...entry, date: new Date().toISOString() };
+    // Stamp the log with a LOCAL-time ISO string. new Date().toISOString()
+    // returns UTC, so a user logging at 8pm ET (= 12am UTC the next day)
+    // would see the entry land on tomorrow's date in History — broke the
+    // calendar highlight and "newest first" ordering. Computing the local
+    // ISO keeps `date.slice(0, 10)` aligned with the user's local day.
+    const logEntry = { ...entry, date: localISOString(new Date()) };
     const newLogs = [logEntry, ...logs];
     setLogs(newLogs);
     // Smart contextual toast messages — personalized by profile
@@ -8398,18 +8457,21 @@ export default function App() {
     const p = getPersonalization(profile);
     const concern = p?.topConcernNames?.[0];
     const symptoms = Object.keys(entry.symptoms || {});
-    let msg = "Entry logged! Keep it up. 🌿";
-    if (uniqueDays === 1) msg = concern ? `First entry logged! Vela is now learning your ${concern} patterns. 🌱` : "First entry logged! You're on your way. 🌱";
-    else if (uniqueDays === 3) msg = concern ? `3 days in! I'm starting to see your ${concern} rhythm. 📊` : "3 days logged! Patterns are starting to form. 📊";
-    else if (uniqueDays === 7) msg = concern ? `7 days! Your ${concern} insights are ready — tap Insights. ✨` : "7 days! Tap Insights to see your first patterns. ✨";
-    else if (uniqueDays === 14) msg = "2 weeks of data! Your insights are getting powerful. 🔬";
-    else if (streak >= 7 && streak % 7 === 0) msg = `${streak}-day streak! You're building a powerful health picture. 🔥`;
+    // Plain-language toasts. No emoji (project rule), no overselling
+    // ("first patterns emerging" after one log is fiction). Day-7
+    // explicitly references the unlock so the user knows what to look at.
+    let msg = "Entry logged.";
+    if (uniqueDays === 1) msg = concern ? `First entry in. Vela starts watching your ${concern} from here.` : "First entry in. Keep going.";
+    else if (uniqueDays === 3) msg = "3 days logged. Halfway to the day-7 pattern unlock.";
+    else if (uniqueDays === 7) msg = "7 days. Your first pattern is ready — tap Insights.";
+    else if (uniqueDays === 14) msg = "Two weeks in. Patterns get sharper from here.";
+    else if (streak >= 7 && streak % 7 === 0) msg = `${streak}-day streak. That's a real record.`;
     else if (symptoms.length >= 3) {
       const matched = concern && symptoms.some((s) => s.toLowerCase().includes(concern.toLowerCase()));
-      msg = matched ? `Tracking your ${concern} + ${symptoms.length - 1} more — great detail! 💡` : "Detailed entry logged! More data = better insights. 💡";
+      msg = matched ? `${symptoms.length} symptoms logged, including your ${concern} focus.` : `${symptoms.length} symptoms logged.`;
     }
-    else if (entry.notes && entry.notes.length > 20) msg = "Great notes! These details help spot patterns. 📝";
-    else if (entry.energy !== null && entry.energy !== undefined && entry.mood !== null && entry.mood !== undefined) msg = "Mood + energy logged — building your full picture. 🌟";
+    else if (entry.notes && entry.notes.length > 20) msg = "Notes saved. The detail helps later.";
+    else if (entry.energy !== null && entry.energy !== undefined && entry.mood !== null && entry.mood !== undefined) msg = "Mood and energy in.";
     setToastMsg(msg);
     setToast(true);
     setTimeout(() => setToast(false), 3500);
@@ -8864,7 +8926,7 @@ export default function App() {
 
       {/* Toast */}
       <div className={`toast${toast ? " show" : ""}`}>
-        {toastMsg || "Entry logged! Keep it up. 🌿"}
+        {toastMsg || "Entry logged."}
       </div>
 
       {/* Badge Toast */}
@@ -8882,7 +8944,9 @@ export default function App() {
       {levelUp && (
         <div className="levelup-overlay" onClick={() => setLevelUp(null)}>
           <div className="levelup-card">
-            <div className="levelup-sparkle">🌿</div>
+            <div className="levelup-sparkle" style={{ color: "var(--sage-dark)", display: "inline-flex", justifyContent: "center" }}>
+              <UIIcon name="Sparkle" size={36} weight="fill" />
+            </div>
             <div className="levelup-title">Milestone reached</div>
             <div className="levelup-level" style={{ fontSize: 28 }}>{levelUp.name}</div>
             {levelUp.unlock && (
