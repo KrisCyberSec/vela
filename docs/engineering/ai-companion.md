@@ -1,215 +1,206 @@
-# Ask Vela — AI Companion
+# Vela AI — Ask Vela + Daily Brief
 
-Technical reference for Vela's conversational health companion. Located in `src/App.jsx`, lines 779–1475.
+Technical reference for the two AI surfaces in the app: **Ask Vela**
+(reactive Q&A) and **Daily Brief** (proactive morning observations).
+Both are powered by Anthropic Claude Haiku 4.5 via Netlify Functions.
 
-## What it is
+> **Architecture note:** an earlier rev of this doc claimed Vela was
+> rule-based and on-device. That's no longer true. The user's data still
+> stays on device, but anonymized aggregates leave the device when AI
+> features are invoked, gated behind a 5-layer defense.
 
-A **rule-based conversational system** — not a large language model. Ask Vela layers three data sources to generate personalized, research-backed responses:
+## What ships
 
-1. **Personal data** — user's log history (mood, energy, symptoms, triggers, notes)
-2. **Clinical knowledge base** — 15 symptoms and 5 triggers with prevalence, science, strategies, and doctor-visit triggers
-3. **Stage context** — perimenopause / postmenopause / surgical menopause guidance
-
-The result reads like a well-informed health companion who actually knows your data.
-
-## Why rule-based (not LLM)
-
-- **Privacy:** no data leaves the device
-- **Reliability:** every response is auditable and clinically reviewed
-- **Cost:** zero per-query inference cost
-- **Latency:** instant
-- **Safety:** no hallucinated medical claims
+| Surface | Trigger | Cost ceiling | Cache |
+|---|---|---|---|
+| Ask Vela | User taps the FAB and asks a question | 30/24h per user, $50/day global | Per question + summary signature, 24h |
+| Daily Brief | Premium user opens Today, fetched once per morning | 2/24h per user (1 expected), $50/day global (shared) | Per appUserId + date, 24h |
 
 ## Architecture
 
 ```
-user input
-    ↓
-matchQuestion(input)                     ← regex router (line 1008)
-    ↓  returns { handler, param, timeRange }
-generateResponse(handler, logs, profile) ← dispatcher (line 1106)
-    ↓
-handler function
-    ├─ analyze logs (filtered by timeRange)
-    ├─ lookup SYMPTOM_KNOWLEDGE / TRIGGER_KNOWLEDGE
-    ├─ inject getStageContext(stage, symptom)
-    ├─ append doctor nudge if severity threshold met
-    └─ append suggestFollowUp()
-    ↓
-response string → UI
-    ↓
-cache _lastHandler, _lastParam for follow-ups
+Client (src/App.jsx)
+  ├─ buildAskVelaSummary(logs)    anonymized payload for Ask Vela
+  ├─ buildDailyBriefSummary(logs)  same shape, tuned for proactive
+  ├─ getAppUserId()                RC subscriber ID (premium proof)
+  └─ POST /api/ask-vela | /api/daily-brief
+        │
+        ▼
+Netlify Function (netlify/functions/{ask-vela,daily-brief}.js)
+  ├─ LAYER 1: verifyPremium        RevenueCat REST, 5-min cache
+  ├─ LAYER 2: per-user 24h limit   Netlify Blobs counter
+  ├─ LAYER 3: per-IP 24h limit     same
+  ├─ LAYER 4: daily $ ceiling      shared budget across both functions
+  ├─ LAYER 5: response cache       24h, hashed key
+  └─ POST → Anthropic API (Claude Haiku 4.5)
 ```
 
-### Conversational memory
+## What "anonymized" means in practice
 
-Module-level variables (around line 826):
+The summary payload that leaves the device is aggregated. Specifically
+it **never** contains:
 
-```js
-let _lastHandler = null;
-let _lastParam = null;
-```
+- Free-text notes (the user-typed `notes` field)
+- Custom user-defined symptoms (filtered by length check)
+- Exact log timestamps (only dates make it; mostly aggregated)
+- Profile names or any personally-identifying info
+- The RevenueCat appUserId (used for premium verify only, never
+  forwarded to Anthropic)
 
-When the user says "tell me more" or "why?", `matchQuestion` detects the follow-up and re-runs the previous handler.
+It **does** contain (verified in `buildAskVelaSummary`):
 
-## `matchQuestion` — the router
+- 30-day symptom counts (top 12)
+- Mood/sleep/stress 30-day averages
+- Detected correlation strings (plain-language, derived from data)
+- Cycle prediction window (start/end dates)
+- Cycle phase (current dayInCycle + named phase)
+- Last 7 days breakdown: day-of-week + mood label + sleep + stress +
+  symptom names per day
+- Active experiments (library name + day count)
+- Profile stage label + goal label
 
-Located at line 1008. A waterfall of pattern matches, first match wins.
+A transparent disclosure of this lives on Settings → Privacy & Data:
+"What Ask Vela sends. Aggregated counts and averages only. Never your
+notes, custom symptoms, or exact dates."
 
-### Order of detection
+## Defense in depth
 
-1. **Follow-up phrases** — "tell me more", "explain", "go on", "elaborate", "more"
-2. **Time range** — "this month" | "last month" | "last week" → sets `timeRange` flag
-3. **Compound: symptom-triggers** — "What triggers my [symptom]?"
-4. **Compound: trigger-symptom** — "How does [trigger] affect my [symptom]?"
-5. **Single symptom** — any symptom name alone → `symptomTrend`
-6. **Single trigger** — any trigger name alone → `triggerImpact`
-7. **Intent patterns** (regex) — see table below
-8. **Fallback** → `recent` (weekly summary)
+### Layer 1. Premium verification (RevenueCat REST)
 
-### Intent patterns
+Every call verifies premium status via RC's `/v1/subscribers/{id}`
+endpoint. Result cached for 5 minutes per user to avoid hammering RC.
+Free users get a 403 before any Anthropic spend.
 
-| Pattern | Handler |
-|---------|---------|
-| `/trigger\|worst\|cause\|why\|making.*worse/` | `triggers` |
-| `/better\|worse\|improv\|progress\|trend\|trajectory/` | `trend` |
-| `/doctor\|appointment\|visit\|tell.*doc\|prepare/` | `doctor` |
-| `/best.*day\|worst.*day\|day.*week\|[monday-sunday]/` | `bestWorstDays` |
-| `/mood\|how.*feel\|emotion\|happy\|sad/` | `mood` |
-| `/energy\|tired\|exhaust\|depleted/` | `energy` |
-| `/week\|how.*doing\|overview\|summary\|recap/` | `recent` |
-| `/pattern\|notice\|insight\|connection\|correlat/` | `patterns` |
-| `/help\|what can\|how do you work\|capable/` | `help` |
-| `/thank\|great\|awesome\|helpful/` | `thanks` |
+Required env: `REVENUECAT_REST_KEY` (secret, starts with `sk_`).
 
-## Knowledge base
+### Layer 2. Per-user rate limit
 
-### `SYMPTOM_KNOWLEDGE` (line 834)
+- Ask Vela: 30 questions per 24h per appUserId
+- Daily Brief: 2 fetches per 24h (one expected; second is a retry buffer)
 
-15 symptoms, each with this shape:
+Stored in Netlify Blobs as a sliding-window counter keyed by hashed
+appUserId. 24h wipes the window.
 
-```js
-"hot flash": {
-  prevalence: "Up to 80% of women experience hot flashes...",
-  science: "Hot flashes are caused by changes in the hypothalamus...",
-  strategies: [
-    "Layered clothing and keeping a room cool...",
-    "Deep slow breathing (6-8 breaths/min)...",
-    "CBT for hot flashes has good evidence...",
-    "Regular aerobic exercise..."
-  ],
-  stages: {
-    perimenopause: "Hot flashes often peak in late perimenopause...",
-    postmenopause: "For most women, hot flashes gradually decrease...",
-    surgical:      "Surgical menopause often causes more sudden onset..."
-  },
-  whenToSeeDoc: "If hot flashes are disrupting sleep..."
-}
-```
+### Layer 3. Per-IP rate limit
 
-**Covered symptoms:** hot flash, night sweat, brain fog, fatigue, anxiety, joint pain, poor sleep, irritability, depression, palpitation, headache, weight change, low libido, vaginal dryness, bloating.
+20 questions / 30 briefs per 24h per client IP. Catches scripts and
+unauthenticated calls (which would also fail at Layer 1).
 
-### `TRIGGER_KNOWLEDGE` (line 971)
+### Layer 4. Daily $ ceiling
 
-5 triggers, each with:
+Default $50/day, override with `ASK_VELA_DAILY_USD` env. **Shared** between
+Ask Vela and Daily Brief: single global budget. At 75% of cap, both
+functions log a warning to Netlify function logs. At 100%, return 503
+with "Ask Vela is taking a break" / "Brief returns tomorrow."
 
-```js
-caffeine: {
-  science: "Caffeine stimulates the sympathetic nervous system...",
-  tip: "Try cutting off caffeine by noon...",
-  nuance: "Individual tolerance varies widely..."
-}
-```
+### Layer 5. Response cache
 
-**Covered triggers:** caffeine, alcohol, exercise, stress, sleep.
+- Ask Vela: hashed (question + bucketed summary signature). Same
+  question + similar profile = cache hit, no API call.
+- Daily Brief: hashed (appUserId + today's date). Same user same day =
+  same brief, no API call. Effectively caps cost at exactly 1 call per
+  user per day.
 
-### `getSymptomKnowledge(symptomName)` (line 943)
+Both stored in Netlify Blobs with 24h TTL.
 
-Fuzzy lookup with 3-step fallback:
+## Crisis safety net
 
-1. Direct lookup (case-insensitive)
-2. Partial substring match either direction
-3. Alias map: `"insomnia" → "poor sleep"`, `"migraine" → "headache"`, `"muscle ache" → "joint pain"`, `"memory lapse" → "brain fog"`, etc.
+Three layers, biggest first:
 
-Returns `null` for unmapped symptoms.
+1. **Client keyword pre-filter** (`looksLikeCrisis` in App.jsx).
+   Crisis-language regex (e.g. "kill myself," "want to die," "self-harm")
+   intercepts BEFORE any AI/canned response. User gets a dedicated
+   `CrisisSupportCard` with international resources. Never burns tokens.
 
-### `getStageContext(stage, symptom)` (line 1000)
+2. **Sustained-low-mood detection on Today.** If logged mood averages
+   ≤ 1 over the last 5 days (≥ 3 entries), the cheerful daily brief is
+   suppressed and the same support card surfaces in its place.
 
-Given the user's journey stage (from profile) and a symptom, returns a formatted stage-specific string like:
+3. **Server-side regex** in `/api/ask-vela`. Defense in depth. If the
+   client is bypassed (modified app, replay), the server returns the
+   support copy and never hits the model.
 
-```
-📋 Hot flashes often peak in late perimenopause when estrogen fluctuates...
-```
+International resources (verified May 2026, re-verify annually):
 
-Appended to every symptom handler response.
+- 988 (US Suicide & Crisis Lifeline)
+- 116 123 Samaritans (UK & Ireland)
+- 1-833-456-4566 Talk Suicide Canada
+- 13 11 14 Lifeline (Australia)
+- ifindahelpline.com (international directory)
 
-## Handlers
+## System prompts
 
-Located in `generateResponse`, line 1106. All handlers follow this response pattern:
+Both prompts live in the Netlify functions. Voice rules:
 
-```
-📊 data (statistics from filtered logs)
-📚 science (from knowledge base)
-💡 strategy (actionable tip)
-📋 stage context (via getStageContext)
-⚕️ doctor nudge (if severity threshold met)
-💬 follow-up suggestion (via suggestFollowUp)
-```
+- 2-4 sentences max, plain language, never therapeutic-jargon
+- Italics for emphasis on a word or two, no headers, no bullets unless asked
+- Never use em dashes (they read as AI-written). Use periods, commas, "to"
+- Never use "journey," "wellness," "self-care," "empowered," or "your body is amazing"
+- Never start with "Great question," "I'd be happy to," "Good morning," or "Today"
+- Crisis topics: respond ONLY with the international support resources, not advice
+- HRT awareness: never recommend supplements without "check with your prescriber"
+- Pregnancy: if data suggests pregnancy, defer to provider
 
-### Handler catalog
+## Cost math (verified)
 
-| Handler | Trigger | What it returns |
-|---------|---------|------------------|
-| `symptomTrend` | Any symptom name | 2-week frequency trend, severity delta, research, stage guidance, doctor nudge if ≥7 days or severity ≥7/10 |
-| `triggerImpact` | Any trigger name | Impact classification (worsens/helps/neutral), symptom counts with/without, mood correlation, energy delta, science + tip |
-| `symptomTriggers` | "What triggers my X?" | Per-trigger % occurrence with/without, ranked by effect, stage context |
-| `triggerSymptom` | "How does X affect my Y?" | Direct cross-reference: % points difference, connection assessment |
-| `mood` | Mood intent | 2-week avg mood (0–4), distribution, trend vs prior, energy correlation, research, tailored advice |
-| `energy` | Energy intent | 2-week avg energy, trend vs prior, sleep-energy correlation, research, advice (thyroid suggestion if avg ≤1.5) |
-| `trend` | Improvement intent | Direction (improving/worse/steady), symptom count delta, mood delta, research context |
-| `doctor` | Doctor prep intent | Bullet summary, top 2 correlations, trend, top symptom + whenToSeeDoc, PDF tip |
-| `bestWorstDays` | Day-of-week intent | Best/worst day of week by mood, symptoms, energy; chronobiology tip |
-| `patterns` | Pattern intent | Up to 3 insights from `analyzePatterns` + `analyzeCorrelations` |
-| `triggers` | General triggers intent | Worst triggers ranked, helpers ranked, research on top trigger |
-| `help` | Help intent | Capability list with example questions |
-| `thanks` | Thanks intent | One of 4 random positive responses |
-| `recent` | Fallback/summary | Weekly recap |
+Per call (Claude Haiku 4.5):
+- ~950 input tokens × $1/Mtok = $0.00095
+- ~150 output tokens × $5/Mtok = $0.00075
+- **Total: ~$0.0017/call**
 
-### `suggestFollowUp()` helper (around line 1116)
+At 1000 paying users:
+- Daily brief: 1 cached call/user/day × 1000 × 30 = $51/mo = $620/yr
+- Ask Vela: realistic ~10 calls/user/mo × 1000 = $17/mo = $204/yr
+- **Total annual: ~$840 against $69k net = 1.2% of net revenue**
 
-After every response, picks a contextually relevant next question:
+The $50/day ceiling caps the worst case at $18,250/yr. Wouldn't be hit
+until roughly 25,000 active users.
 
-```
-💬 Try asking: "What should I tell my doctor?"
-```
+## Required env
 
-Keeps the conversation going without requiring the user to know what to ask next.
+| Variable | Where | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Netlify | Powers both functions |
+| `REVENUECAT_REST_KEY` | Netlify | Premium verification (starts `sk_`) |
+| `NETLIFY_BLOBS_TOKEN` | Netlify | Already used by waitlist function |
+| `ASK_VELA_DAILY_USD` | Netlify (optional) | Override default $50 cap |
+| `ASK_VELA_DEV_TOKEN` | Netlify (optional) | Dev backdoor for testing without RC |
 
-## How to extend
+All listed in `docs/operations/manual-tasks.md`.
 
-### Add a new symptom
+## Files
 
-1. **Add to `SYMPTOMS`** (line 22) — emoji, name, category
-2. **Add to `AI_SYMPTOM_NAMES`** (line 812) — canonical name + aliases for matcher
-3. **Add entry to `SYMPTOM_KNOWLEDGE`** (line 834) — prevalence, science, 3–4 strategies, stages (all 3), whenToSeeDoc
-4. **Add aliases if needed** in `getSymptomKnowledge` alias map (line 952)
-5. **Test:** send "What triggers my [new symptom]?" and "Tell me about [new symptom]"
+- `netlify/functions/ask-vela.js` — reactive Q&A function
+- `netlify/functions/daily-brief.js` — proactive morning brief
+- `src/App.jsx`:
+  - `buildAskVelaSummary()` anonymized payload builder for Ask Vela
+  - `buildDailyBriefSummary()` same for Daily Brief
+  - `looksLikeCrisis()` + `CRISIS_PATTERNS` + `CrisisSupportCard` safety
+  - `handleQuestion()` (in InsightsScreen) client-side flow + fallback
+- `src/subscription.js`:
+  - `getAppUserId()` RC subscriber ID for premium verify
 
-### Add a new trigger
+## Fallback behavior
 
-1. **Add to `AI_TRIGGER_NAMES`** (line 824)
-2. **Add entry to `TRIGGER_KNOWLEDGE`** (line 971) — science, tip, nuance
-3. **Update `symptomTriggers` handler** (line 1149) — add trigger to the iteration array
-4. **Update log filtering** (lines 1155–1162) — add conditional for how trigger is stored in `l.context`
-5. **Test:** "How does [new trigger] affect me?" and "What triggers my [symptom]?" should surface it
+When the API can't be reached (network failure, key missing, transient
+Anthropic outage), Ask Vela falls back to the legacy rule-based
+`generateResponse()` engine in App.jsx. The user always gets an answer.
+It just won't be as smart as Claude. The daily brief has no fallback;
+when it fails, the static reveal card on Today shows instead.
 
-## Quality principles
+## Other intelligence layers (statistical, not AI)
 
-- **Every clinical claim must be supported by the evidence base.** Daily lessons, knowledge base entries, and CBT content have all been audited for consistency with NAMS, Mayo Clinic, and NHS guidelines. Cross-check new content before shipping.
-- **Never promise outcomes.** Strategies are "evidence-based" or "shown to help many women," not "will fix your X."
-- **Always layer personal data with general knowledge.** Pure statistics without context feels sterile; pure knowledge without their data feels generic. The combination is the product.
+These run on-device and complement the AI surfaces:
 
-## Related docs
+- **`analyzeCorrelations(logs)`** — adaptive same-day + lag (1- and 2-day)
+  correlation engine with confidence labels (early/steady/strong)
+- **`detectAnomalies(logs)`** — z-score against personal 30-day baseline
+- **`predictNextCycle(logs)`** — mean + stddev cycle prediction
+- **`forecastTomorrow(logs)`** — Bayesian-flavored next-day symptom probabilities
+- **`suggestExperiments(logs, experiments)`** — maps detected patterns to library
+- **`buildWeeklySummary(logs)`** — week vs prior-week comparison
+- **`compareExperiment(exp, logs)`** — symptom counts during vs prior window
+- **`getInsightFeedback()` + `applyFeedbackRanking()`** — thumbs up/down loop
 
-- [architecture.md](architecture.md) — overall codebase structure
-- [community-firebase.md](community-firebase.md) — the separate community moderation system
+All of these stay on-device. The AI surfaces consume their output as
+input data (via the summary builders).

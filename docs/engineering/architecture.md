@@ -45,8 +45,11 @@ Navigate the file by line range:
 | 266–360 | Pattern analysis: `analyzePatterns` (sequences, weekday peaks, mood correlations, co-occurrence) |
 | 362–488 | Prediction & insights: `predictSymptoms`, `analyzeCorrelations`, `getBestInsight`, `monthlyComparison` |
 | 509–763 | Doctor report: `analyzeSymptomTrend`, `analyzeTriggerImpact`, `generateDoctorSummary` |
-| 779–1007 | **Ask Vela knowledge base**: `SYMPTOM_KNOWLEDGE` (15), `TRIGGER_KNOWLEDGE` (5), `getSymptomKnowledge`, `getStageContext` |
-| 1008–1475 | **Ask Vela AI**: `matchQuestion` (router), `generateResponse` (handlers), `generateWeeklyDigest` |
+| 779–1007 | Ask Vela legacy knowledge base (kept as fallback): `SYMPTOM_KNOWLEDGE`, `TRIGGER_KNOWLEDGE`, `getSymptomKnowledge`, `getStageContext` |
+| 1008–1475 | Ask Vela legacy router (fallback path): `matchQuestion`, `generateResponse`, `generateWeeklyDigest` |
+| see ai-companion.md | **Real Ask Vela + Daily Brief** are now Anthropic Claude-backed via Netlify Functions (`netlify/functions/ask-vela.js`, `daily-brief.js`). Client helpers `buildAskVelaSummary`, `buildDailyBriefSummary`, `looksLikeCrisis`, `CrisisSupportCard` live in App.jsx. Full spec in `docs/engineering/ai-companion.md`. |
+| see App.jsx | **Other intelligence engines (statistical, on-device):** `analyzeCorrelations` (adaptive same-day + lag), `detectAnomalies` (z-score), `predictNextCycle`, `forecastTomorrow` (Bayesian), `suggestExperiments`, `buildWeeklySummary`, `compareExperiment`, `getInsightFeedback` + `applyFeedbackRanking`. |
+| Note | Line numbers are approximate and drift as the file evolves. Use grep with the symbol name. |
 | 1549–1669 | Gamification: `BADGES` (23), `LEVELS` (10), `computeGamificationStats`, `computeXP`, `getLevel` |
 | 1677–1870 | Content libraries: `EXPERIMENTS` (16), `DAILY_LESSONS` (60), `CBT_PROGRAMS` (3) |
 | 1874–3588 | Global styles (CSS-in-JS) |
