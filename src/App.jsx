@@ -407,23 +407,6 @@ function getPersonalization(profile) {
   const concernToCat = { 0: "common", 1: "common", 2: "mood", 3: "mood", 4: "physical", 5: "digestive", 6: "intimate", 7: "physical" };
   const defaultSymptomCat = concerns.length > 0 ? (concernToCat[concerns[0]] || "common") : "common";
 
-  // Map concerns to recommended CBT program
-  const concernToCBT = { 0: "cbt-hot-flashes", 1: "cbt-sleep", 2: "cbt-anxiety", 3: "cbt-anxiety", 7: "cbt-anxiety" };
-  const recommendedCBT = concerns.map((c) => concernToCBT[c]).filter(Boolean);
-
-  // Map concerns to recommended experiment order
-  const concernToExp = {
-    0: ["no-caffeine-7", "no-alcohol-14", "stress-mgmt-7"],
-    1: ["sleep-hygiene-7", "no-caffeine-7", "stress-mgmt-7"],
-    2: ["stress-mgmt-7", "exercise-7", "mood-journal-7"],
-    3: ["sleep-hygiene-7", "exercise-7", "hydration-7"],
-    4: ["exercise-7", "hydration-7", "stress-mgmt-7"],
-    5: ["exercise-7", "no-alcohol-14", "hydration-7"],
-    6: ["stress-mgmt-7", "exercise-7", "sleep-hygiene-7"],
-    7: ["stress-mgmt-7", "no-caffeine-7", "exercise-7"],
-  };
-  const expPriority = [...new Set(concerns.flatMap((c) => concernToExp[c] || []))].slice(0, 3);
-
   // Stage-aware greeting subtitles
   const stageMessages = [
     "Your cycle patterns matter. Tracking now builds a baseline for what's ahead.",
@@ -455,8 +438,6 @@ function getPersonalization(profile) {
   return {
     stage, concerns, goals, guidance,
     defaultSymptomCat,
-    recommendedCBT: [...new Set(recommendedCBT)],
-    expPriority: [...new Set(expPriority)],
     stageMessage,
     wantsDoctor, wantsRelief, wantsCommunity, wantsUnderstanding,
     topConcernNames,
@@ -2975,22 +2956,6 @@ function computeXP(logs) {
     const completedLessons = JSON.parse(localStorage.getItem("vela_completed_lessons") || "[]");
     xp += completedLessons.length * 10;
   } catch {}
-  // Completed experiment XP
-  try {
-    const completedExps = JSON.parse(localStorage.getItem("vela_completed_experiments") || "[]");
-    completedExps.forEach((id) => {
-      const exp = EXPERIMENTS.find((e) => e.id === id);
-      if (exp) xp += exp.xpReward;
-    });
-  } catch {}
-  // Completed CBT program XP
-  try {
-    const completedCBT = JSON.parse(localStorage.getItem("vela_completed_cbt") || "[]");
-    completedCBT.forEach((id) => {
-      const prog = CBT_PROGRAMS.find((p) => p.id === id);
-      if (prog) xp += prog.xpReward;
-    });
-  } catch {}
   return xp;
 }
 
@@ -3007,140 +2972,6 @@ function getLevel(xp) {
   const pct = nextLevel ? Math.round((xpInLevel / xpLevelRange) * 100) : 100;
   return { ...current, xp, xpToNext, pct, isMax: !nextLevel };
 }
-
-// ─── Self-Experiments / Challenges ───────────────────────────────────────────
-
-const EXPERIMENTS = [
-  { id: "no-caffeine-7", title: "Caffeine-free week", desc: "Skip caffeine for 7 days and see how your symptoms respond", duration: 7, track: "caffeine", trackValue: false, icon: "☕", category: "triggers", xpReward: 50 },
-  { id: "exercise-7", title: "Move every day", desc: "Log any exercise for 7 consecutive days", duration: 7, track: "exercise", trackValue: true, icon: "🏃", category: "activity", xpReward: 50 },
-  { id: "sleep-hygiene-7", title: "Sleep before 10pm", desc: "Aim for 7+ hours of sleep for 7 nights", duration: 7, track: "sleepHours", trackValue: 7, icon: "🛏️", category: "sleep", xpReward: 50 },
-  { id: "mood-journal-7", title: "Daily mood check", desc: "Log your mood every day for a full week", duration: 7, track: "mood", trackValue: true, icon: "📓", category: "tracking", xpReward: 40 },
-  { id: "no-alcohol-14", title: "14-day alcohol reset", desc: "Skip alcohol for 2 weeks and compare your symptom patterns", duration: 14, track: "alcohol", trackValue: false, icon: "🍷", category: "triggers", xpReward: 75 },
-  { id: "stress-mgmt-7", title: "Low-stress week", desc: "Practice stress management. Aim for stress level ≤3 for 7 days", duration: 7, track: "stress", trackValue: 3, icon: "🧘", category: "wellness", xpReward: 60 },
-  { id: "hydration-7", title: "Hydration challenge", desc: "Note your water intake daily for 7 days. Stay hydrated!", duration: 7, track: "notes", trackValue: "water", icon: "💧", category: "wellness", xpReward: 40 },
-  { id: "full-log-7", title: "Complete tracker", desc: "Log mood, symptoms, AND context every day for a week", duration: 7, track: "complete", trackValue: true, icon: "✅", category: "tracking", xpReward: 75 },
-  { id: "morning-light-7", title: "Morning light exposure", desc: "Get outside within 30 minutes of waking for 7 days", duration: 7, track: "notes", trackValue: "morning light", icon: "🌅", category: "wellness", xpReward: 50 },
-  { id: "no-screens-7", title: "Screen-free evenings", desc: "No screens 1 hour before bed for 7 nights", duration: 7, track: "notes", trackValue: "no screens", icon: "📵", category: "sleep", xpReward: 50 },
-  { id: "protein-7", title: "Protein at every meal", desc: "Include protein at breakfast, lunch, and dinner for 7 days", duration: 7, track: "notes", trackValue: "protein", icon: "🥩", category: "nutrition", xpReward: 50 },
-  { id: "breathing-7", title: "Paced breathing practice", desc: "Practice 5 minutes of slow breathing daily for 7 days", duration: 7, track: "notes", trackValue: "breathing", icon: "🫁", category: "wellness", xpReward: 50 },
-  { id: "sugar-free-14", title: "14-day sugar reset", desc: "Reduce added sugars for 2 weeks and track symptom changes", duration: 14, track: "notes", trackValue: "low sugar", icon: "🍬", category: "triggers", xpReward: 75 },
-  { id: "strength-7", title: "Strength training week", desc: "Do 3+ resistance training sessions this week", duration: 7, track: "exercise", trackValue: true, icon: "💪", category: "activity", xpReward: 60 },
-  { id: "gratitude-7", title: "Gratitude journal", desc: "Write one thing you're grateful for in your notes each day", duration: 7, track: "notes", trackValue: "grateful", icon: "🙏", category: "wellness", xpReward: 40 },
-  { id: "cool-bedroom-7", title: "Cool bedroom challenge", desc: "Keep your bedroom at 65-68°F for 7 nights and track sleep quality", duration: 7, track: "notes", trackValue: "cool room", icon: "❄️", category: "sleep", xpReward: 50 },
-];
-
-const CBT_PROGRAMS = [
-  {
-    id: "cbt-hot-flashes",
-    title: "Managing Hot Flashes",
-    subtitle: "4-week CBT-based program",
-    icon: "🌡",
-    weeks: 4,
-    desc: "Cognitive-behavioral therapy has Level I evidence for reducing the impact of hot flashes. This program teaches you practical techniques week by week.",
-    modules: [
-      { week: 1, title: "Understanding your triggers", lessons: [
-        { day: 1, title: "What actually happens during a hot flash", content: "Hot flashes occur when your hypothalamus. The brain's thermostat. Becomes more sensitive to small changes in body temperature. Understanding the mechanism helps you respond calmly rather than reactively." },
-        { day: 2, title: "Identifying your personal triggers", content: "Common triggers include warm environments, spicy food, alcohol, caffeine, and stress. But triggers are individual. Review your Vela logs today. Which days had hot flashes, and what context did you log?" },
-        { day: 3, title: "The stress-hot flash connection", content: "Stress activates your sympathetic nervous system, which can trigger or intensify hot flashes. This week, notice: do hot flashes happen more during stressful moments?" },
-        { day: 5, title: "Your trigger map", content: "By now you may see patterns. Write down your top 3 suspected triggers. Over the next weeks, we'll test these hypotheses with your tracking data." },
-        { day: 7, title: "Week 1 reflection", content: "Review your logs from this week. How many hot flashes did you have? Any patterns with time of day, stress, or context? This is your baseline." },
-      ]},
-      { week: 2, title: "Paced breathing & relaxation", lessons: [
-        { day: 1, title: "Introduction to paced breathing", content: "Slow, diaphragmatic breathing at 5-7 breaths per minute has been shown to reduce hot flash frequency in some studies. Try it: breathe in for 5 counts, out for 5 counts, for 5 minutes." },
-        { day: 2, title: "Using paced breathing in the moment", content: "When you feel a hot flash beginning, start paced breathing immediately. The goal isn't to stop it. It's to reduce the distress and duration. Practice during a calm moment first." },
-        { day: 3, title: "Progressive muscle relaxation", content: "Tense each muscle group for 5 seconds, then release. Start from your toes and work up. This activates the parasympathetic nervous system, counteracting the stress response." },
-        { day: 5, title: "Building a relaxation routine", content: "Choose one technique. Paced breathing or progressive relaxation. And practice it twice daily this week. Consistency matters more than duration. Even 3 minutes counts." },
-        { day: 7, title: "Week 2 check-in", content: "Compare this week's hot flash count to last week. Even if the number hasn't changed, has your experience of them shifted? Reduced distress is a real and measurable outcome." },
-      ]},
-      { week: 3, title: "Cognitive restructuring", lessons: [
-        { day: 1, title: "Thoughts about hot flashes matter", content: "Research shows that catastrophic thoughts ('Everyone can see me sweating,' 'I can't handle this') intensify the hot flash experience. Today, notice your automatic thoughts when a hot flash occurs." },
-        { day: 2, title: "Challenging unhelpful thoughts", content: "When you notice a negative thought, ask: Is this definitely true? What would I say to a friend? A hot flash is uncomfortable but temporary. It typically peaks in 3-5 minutes." },
-        { day: 3, title: "Replacing with balanced thoughts", content: "Instead of 'This is unbearable,' try 'This is uncomfortable, and it will pass in a few minutes.' Instead of 'Everyone notices,' try 'Most people are focused on themselves.'" },
-        { day: 5, title: "The acceptance approach", content: "Paradoxically, accepting hot flashes rather than fighting them often reduces their impact. 'I'm having a hot flash. It's temporary. My body is adjusting.' This isn't giving up. It's a proven strategy." },
-        { day: 7, title: "Week 3 reflection", content: "Which cognitive technique felt most natural? Write it down. Having a go-to thought pattern ready is the key to making CBT automatic rather than effortful." },
-      ]},
-      { week: 4, title: "Lifestyle integration", lessons: [
-        { day: 1, title: "Your complete toolkit", content: "You now have: trigger awareness, paced breathing, relaxation techniques, and cognitive restructuring. This week, we combine them into a personalized action plan." },
-        { day: 2, title: "Environmental strategies", content: "Layer clothing, keep cold water nearby, use a fan. These aren't treatments. They're practical comfort strategies that pair with your CBT techniques." },
-        { day: 3, title: "Sleep and hot flashes", content: "Night sweats disrupt sleep, and poor sleep worsens daytime symptoms. Use your relaxation technique before bed. Keep your bedroom cool. Have a change of clothes ready." },
-        { day: 5, title: "Your personal action plan", content: "Write your plan: 'When I feel a hot flash coming, I will [your chosen technique]. My thought will be [your balanced thought]. My environmental strategy is [your approach].'" },
-        { day: 7, title: "Program complete", content: "Compare your week 4 logs to week 1. Most women see improvement in hot flash distress, even if frequency hasn't changed. Reduced distress IS success. Continue using your techniques. They get easier with practice." },
-      ]},
-    ],
-    xpReward: 200,
-  },
-  {
-    id: "cbt-sleep",
-    title: "Better Sleep",
-    subtitle: "3-week CBT-I program",
-    icon: "🌙",
-    weeks: 3,
-    desc: "CBT for insomnia (CBT-I) is the gold-standard first-line treatment recommended by NAMS. This program teaches core CBT-I techniques adapted for menopausal sleep issues.",
-    modules: [
-      { week: 1, title: "Sleep foundations", lessons: [
-        { day: 1, title: "How menopause affects sleep", content: "Declining estrogen and progesterone directly affect sleep architecture. Night sweats, anxiety, and bladder urgency add further disruption. Understanding the causes helps you target solutions." },
-        { day: 2, title: "Sleep hygiene basics", content: "Consistent wake time (even weekends), cool bedroom (65-68°F), dark room, no screens 30 min before bed. These aren't enough alone but form the foundation." },
-        { day: 3, title: "The sleep window", content: "If you're in bed 9 hours but sleeping 6, your brain associates bed with being awake. Counterintuitively, spending less time in bed can improve sleep quality. Track your actual sleep hours this week." },
-        { day: 5, title: "Stimulus control", content: "Rule: bed is only for sleep (and intimacy). If you're awake for 20+ minutes, get up and do something boring in dim light. Return when drowsy. This re-trains your brain's bed-sleep association." },
-        { day: 7, title: "Week 1 review", content: "Check your Vela logs: what's your average sleep this week? What time did you go to bed vs fall asleep? This data helps you set a realistic sleep window for next week." },
-      ]},
-      { week: 2, title: "Cognitive techniques for sleep", lessons: [
-        { day: 1, title: "Racing thoughts at bedtime", content: "Write worries in a 'worry journal' before bed. Not in bed. Literally tell your brain: 'I've noted this. I'll address it tomorrow.' The act of writing externalizes the thought." },
-        { day: 2, title: "Clock-watching worsens insomnia", content: "Turn your clock away. Checking the time triggers anxiety ('It's 2am and I'm still awake!'), which triggers adrenaline, which prevents sleep. The time doesn't matter. Only sleepiness does." },
-        { day: 3, title: "Managing night sweats", content: "If night sweats wake you: have a cool damp cloth ready, change clothes if needed, use your paced breathing. Don't check the time. Focus on returning to sleep, not the disruption." },
-        { day: 5, title: "Daytime habits that affect sleep", content: "No caffeine after noon. Regular exercise (but not within 3 hours of bedtime). Brief morning sunlight exposure helps set your circadian rhythm. Small changes compound." },
-        { day: 7, title: "Week 2 check-in", content: "Compare your sleep hours this week to last week. Are you falling asleep faster? Waking less? Even small improvements indicate your brain is re-learning healthy sleep patterns." },
-      ]},
-      { week: 3, title: "Sustaining good sleep", lessons: [
-        { day: 1, title: "Relaxation for sleep", content: "Try progressive muscle relaxation or a body scan meditation before bed. These activate the parasympathetic nervous system. The key is consistency. Same technique, same time, every night." },
-        { day: 2, title: "When to talk to your doctor", content: "If sleep issues persist despite CBT-I techniques, discuss with your healthcare provider. They may evaluate for sleep apnea (more common post-menopause) or discuss short-term medication options." },
-        { day: 3, title: "Building your sleep routine", content: "Your ideal routine: dim lights 1 hour before bed → worry journal → relaxation technique → bed (only when drowsy). This routine becomes a sleep signal for your brain." },
-        { day: 5, title: "Handling setbacks", content: "Bad nights will happen. That's normal. Don't compensate by sleeping in or napping long. Stick to your wake time. One bad night doesn't erase your progress." },
-        { day: 7, title: "Program complete", content: "Review your 3 weeks of sleep data. CBT-I shows cumulative benefit. Your best improvements may come in the weeks after completing this program. Keep using your techniques." },
-      ]},
-    ],
-    xpReward: 150,
-  },
-  {
-    id: "cbt-anxiety",
-    title: "Anxiety & Mood",
-    subtitle: "4-week CBT program",
-    icon: "🧠",
-    weeks: 4,
-    desc: "Anxiety and mood changes are among the most common perimenopause symptoms. This evidence-based program builds skills for managing both hormonal and situational mood shifts.",
-    modules: [
-      { week: 1, title: "Understanding mood changes", lessons: [
-        { day: 1, title: "Why menopause affects mood", content: "Estrogen modulates serotonin, dopamine, and norepinephrine. When estrogen fluctuates unpredictably during perimenopause, so do these mood-regulating neurotransmitters. This is biology, not weakness." },
-        { day: 2, title: "Anxiety vs worry", content: "Worry is about specific things. Anxiety is a general state of unease, often with physical symptoms (racing heart, tension, dread). During perimenopause, anxiety often appears without a clear cause." },
-        { day: 3, title: "Tracking mood patterns", content: "Use your Vela mood and energy logs to spot patterns. Is anxiety worse at certain times? On certain days? After poor sleep? Data removes guesswork." },
-        { day: 5, title: "The thought-feeling-behavior cycle", content: "Thoughts ('Something bad will happen') create feelings (anxiety) which drive behaviors (avoidance). CBT breaks this cycle by targeting thoughts. You'll learn how this week." },
-        { day: 7, title: "Week 1 baseline", content: "Review your mood logs from this week. What was your average mood score? How many days did you log anxiety? This is your starting point." },
-      ]},
-      { week: 2, title: "Challenging anxious thoughts", lessons: [
-        { day: 1, title: "Catching automatic thoughts", content: "When you feel anxious, pause and ask: 'What am I thinking right now?' Write the thought down. Often, awareness alone reduces its power. Common ones: catastrophizing, mind-reading, fortune-telling." },
-        { day: 2, title: "Evidence for and against", content: "For each anxious thought, list evidence supporting it AND evidence against it. Usually the 'against' column is longer. This isn't positive thinking. It's balanced thinking." },
-        { day: 3, title: "Decatastrophizing", content: "Ask: 'What's the worst that could happen? How would I cope? What's most likely to happen?' Most catastrophic predictions never materialize, and you're more resilient than anxiety tells you." },
-        { day: 5, title: "Behavioral experiments", content: "Test your anxious predictions. If you think 'I'll fall apart if I go to that event,' go and observe what actually happens. Real-world evidence is the strongest antidote to anxiety." },
-        { day: 7, title: "Week 2 reflection", content: "Which challenging technique worked best for you? There's no wrong answer. The technique that feels most natural is the one you'll actually use." },
-      ]},
-      { week: 3, title: "Building resilience", lessons: [
-        { day: 1, title: "The role of exercise", content: "Exercise has strong Level I evidence for improving mood during menopause. Even 30 minutes of brisk walking produces mood benefits. It's not about fitness. It's about neurochemistry." },
-        { day: 2, title: "Social connection matters", content: "Isolation worsens anxiety. Schedule one social interaction this week, even brief. The Vela community counts. Connecting with others who understand your experience has measurable benefits." },
-        { day: 3, title: "Grounding techniques", content: "When anxiety spikes, try 5-4-3-2-1: Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste. This redirects your brain from threat mode to sensory mode." },
-        { day: 5, title: "Self-compassion", content: "Talk to yourself like you'd talk to a friend going through this. 'This is hard, and it's okay to struggle. Many women experience this, and it does get better.' Self-compassion reduces cortisol." },
-        { day: 7, title: "Week 3 check-in", content: "Compare your mood scores to week 1. Are you seeing improvement? Remember: CBT is a skill. Like any skill, it improves with practice." },
-      ]},
-      { week: 4, title: "Your maintenance plan", lessons: [
-        { day: 1, title: "Recognizing warning signs", content: "What are YOUR early signs of mood dipping? Changes in sleep, appetite, motivation, or social withdrawal? Catching it early means intervening early." },
-        { day: 2, title: "Your wellness toolkit", content: "List your top 3 strategies from this program. Maybe it's challenging thoughts, exercise, and grounding. Write them where you'll see them. Simplicity is key." },
-        { day: 3, title: "When to seek more help", content: "CBT self-help is effective for mild-moderate anxiety. If symptoms are severe, persistent, or interfering with daily life, talk to your healthcare provider. Therapy and/or medication may be appropriate." },
-        { day: 5, title: "Hormones aren't everything", content: "Menopause coincides with major life changes: aging parents, empty nest, career shifts, relationship changes. Address ALL contributors to mood, not just hormonal ones." },
-        { day: 7, title: "Program complete", content: "You've built real skills. Mood changes during menopause typically improve over time, especially with the tools you now have. Continue tracking. Your data shows your progress." },
-      ]},
-    ],
-    xpReward: 200,
-  },
-];
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -8737,6 +8568,12 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       body: "Real AI grounded in your data. Not generic web advice. Ask anything about your symptoms, sleep, cycle, or what to bring to your next appointment.",
     },
     {
+      icon: "SunHorizon",
+      tone: "clay",
+      title: "Daily brief",
+      body: "A 2-3 sentence read on your week, fresh each morning. Vela writes it from your anonymized data. Not a feed of generic tips.",
+    },
+    {
       icon: "Sparkle",
       tone: "gold",
       title: "Personalized suggestions",
@@ -8759,6 +8596,18 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       tone: "gold",
       title: "Cycle prediction",
       body: "Even when cycles are irregular, Vela learns your rhythm and gives you a window for what's likely next.",
+    },
+    {
+      icon: "Eye",
+      tone: "sage",
+      title: "Tomorrow forecast",
+      body: "A quiet heads-up on what tomorrow may bring. Built from your cycle phase, recent triggers, and how your body has felt the past two days.",
+    },
+    {
+      icon: "MagnifyingGlass",
+      tone: "gold",
+      title: "Anomaly insights",
+      body: "When this week diverges from your personal baseline, Vela tells you out loud. Mood lower, sleep shorter, a symptom showing up more often than usual.",
     },
     {
       icon: "Sparkle",
