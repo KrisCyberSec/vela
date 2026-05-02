@@ -51,7 +51,7 @@ VELA PREMIUM
 - Smart weekly digest with pattern spotlights
 - Deep trend analysis and visual charts
 - Doctor visit PDF reports
-- 7-day free trial
+- 14-day free trial
 
 YOUR DATA. YOUR DEVICE. PERIOD.
 Vela stores everything locally on your device. We never see, upload, or share your health data. No account required. No cloud. No exceptions.

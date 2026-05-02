@@ -50,7 +50,7 @@ Vela makes it trivial to track, find patterns, and walk into doctor appointments
 | Premium (annual) | $69.99/yr | Everything: Ask Vela AI, personalized experiments, cycle prediction, weekly summary, Apple Health sync, doctor PDF, full pattern history |
 | Premium (monthly) | $8.99/mo | Same as above, cancel anytime |
 
-7-day free trial on premium. Expected trial-to-paid conversion: ~55% (health app benchmark).
+14-day free trial on premium. Sized to span the day-7 pattern unlock so users get to *use* the AI on real findings before the trial ends. Expected trial-to-paid conversion: ~62-68% (RevenueCat health/wellness benchmark for 14-day trials on data-driven apps).
 
 See [business/financial-model.md](../business/financial-model.md) for unit economics and revenue scenarios.
 

@@ -7380,7 +7380,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
 
       <div className="pw-cta-bar">
         <button type="button" className="pw-cta" onClick={() => onSubscribe(plan)}>
-          Try free for 7 days · then {ctaPrice}
+          Try free for 14 days · then {ctaPrice}
         </button>
         <div className="pw-cta-fine">
           Cancel anytime ·{" "}
@@ -8001,7 +8001,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             <span className="sub">
               {!isPremium ? "Auto-fill sleep + HRV from your watch" :
                 hkStatus === "no-native" ? "Available on iOS only" :
-                hkStatus === "no-plugin" ? "HealthKit not installed in this build" :
+                hkStatus === "no-plugin" ? "Update Vela to enable Apple Health" :
                 hkOn ? "Pulling sleep on every Today open" :
                 "Tap to grant permission"}
             </span>

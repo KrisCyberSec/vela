@@ -93,17 +93,28 @@ Apps installed this way expire after 7 days and must be re-deployed. Fine for te
    - Category: Health & Fitness
    - Primary language: English (US)
 3. **In-app purchases** — create 2 subscriptions:
-   - `vela_premium_monthly` at $8.99/mo (Apple Tier 9)
-   - `vela_premium_annual` at $69.99/yr (Apple Tier 70)
-4. **Wire RevenueCat**:
+   - `vela_premium_monthly` at $8.99/mo (Apple Tier 9), 14-day intro free trial
+   - `vela_premium_annual` at $69.99/yr (Apple Tier 70), 14-day intro free trial
+
+   Both go in the same Subscription Group (`vela_premium`). Allow upgrade/downgrade between them.
+
+4. **Enable HealthKit capability** (Apple requires this in the provisioning profile, not just the entitlements file):
+   - Xcode → App target → Signing & Capabilities → **+ Capability** → HealthKit
+   - The entitlements file (`ios/App/App/App.entitlements`) is already wired in pbxproj
+   - The two Info.plist usage strings (`NSHealthShareUsageDescription`, `NSHealthUpdateUsageDescription`) are already set
+   - First time you push a build with HealthKit: App Store Connect will require justification text — paste from the Info.plist usage description
+
+   The native plugin is at `ios/App/App/Plugins/VelaHealthPlugin.{swift,m}` and registers as `"VelaHealth"`. JS calls it via `src/healthkit.js`.
+
+5. **Wire RevenueCat**:
    - Create an app in RevenueCat
    - Paste the App Store Connect shared secret
    - Copy the RevenueCat public API key
    - Replace the no-op `handleSubscribe` / `handleRestore` in `src/App.jsx` (~line 7554) with the RevenueCat SDK calls
-5. **Archive in Xcode**:
+6. **Archive in Xcode**:
    - Product → Archive
    - Window → Organizer → Distribute App → App Store Connect → Upload
-6. **Submit for review** in App Store Connect
+7. **Submit for review** in App Store Connect
    - Write the listing using [docs/product/app-store-listing.md](../product/app-store-listing.md)
    - Upload screenshots (see the listing doc for dimensions)
    - Attach the privacy policy URL: `https://velahealth.health/privacy.html`

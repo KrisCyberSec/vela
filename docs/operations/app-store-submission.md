@@ -47,8 +47,8 @@ In App Store Connect → My Apps → Vela → Monetization → In-App Purchases 
 
 | Product ID | Type | Price | Trial |
 |------------|------|-------|-------|
-| `com.velahealth.app.premium.annual` | Auto-Renewable Subscription | $69.99 / year (Tier 70) | 7-day free trial |
-| `com.velahealth.app.premium.monthly` | Auto-Renewable Subscription | $8.99 / month (Tier 9) | 7-day free trial |
+| `com.velahealth.app.premium.annual` | Auto-Renewable Subscription | $69.99 / year (Tier 70) | 14-day free trial |
+| `com.velahealth.app.premium.monthly` | Auto-Renewable Subscription | $8.99 / month (Tier 9) | 14-day free trial |
 
 Both go in the same Subscription Group (e.g. `vela_premium`). Upgrade/downgrade between them must be allowed.
 

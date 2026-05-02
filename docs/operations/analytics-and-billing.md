@@ -42,8 +42,8 @@ If `paywall_shown / log_completed (D7)` is healthy but `paywall_converted / payw
 3. **Apple credentials:** in App Store Connect generate an in-app-purchase shared secret + an App Store Server API key, paste both into RevenueCat's iOS app settings. (Required for receipt validation and webhooks.)
 4. **Create the entitlement:** name it exactly `premium` (the constant in `src/subscription.js`).
 5. **Create the offering:** name it `default` (RevenueCat's default identifier). Add two packages:
-   - `$rc_annual` → `com.velahealth.app.premium.annual` — $49.99/year, 7-day free trial
-   - `$rc_monthly` → `com.velahealth.app.premium.monthly` — $5.99/month, 7-day free trial
+   - `$rc_annual` → `com.velahealth.app.premium.annual` — $69.99/year, 14-day free trial
+   - `$rc_monthly` → `com.velahealth.app.premium.monthly` — $8.99/month, 14-day free trial
 6. **Configure products in App Store Connect** with the same product IDs above. RevenueCat's offering won't return until the App Store products exist (even in sandbox).
 7. **Get the API key:** in RevenueCat → Project Settings → API Keys, copy the **Apple** public key (starts with `appl_`) into `.env.local`:
    ```

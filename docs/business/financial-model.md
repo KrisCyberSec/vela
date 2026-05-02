@@ -3,8 +3,8 @@
 ## Pricing Structure
 | Plan | Price | Per Month | Trial |
 |------|-------|-----------|-------|
-| Annual | $69.99/year | $5.83/mo | 7-day free |
-| Monthly | $8.99/month | $8.99/mo | 7-day free |
+| Annual | $69.99/year | $5.83/mo | 14-day free |
+| Monthly | $8.99/month | $8.99/mo | 14-day free |
 
 **Apple's cut:** 30% Year 1, 15% Year 2+ (Small Business Program eligible < $1M revenue)
 

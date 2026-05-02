@@ -5,28 +5,25 @@
 //
 // IMPLEMENTATION STATUS
 // ─────────────────────
-// The web/Capacitor code below is wired and ready. The actual native
-// HealthKit reads require a Capacitor plugin registered as "VelaHealth"
-// (or any plugin name that exposes the methods used here).
+// Native plugin: ios/App/App/Plugins/VelaHealthPlugin.swift (+ .m bridge).
+// Registered as "VelaHealth" via the CAP_PLUGIN macro; Capacitor auto-
+// discovers it on app start. Exposes requestAuthorization() and
+// queryHKitSampleType() — same shape this module calls.
 //
-// Two paths to enable on iOS:
+// On native iOS: pluginAvailable() returns true and the rest of the
+// module makes real HealthKit reads.
+// On web/dev: getHealthKitStatus() returns "no-native" and every
+// fetch returns null gracefully — no errors, no vaporware claim.
 //
-//   A) Bring up a community plugin
-//      A community Capacitor 8-compatible HealthKit plugin (e.g. the
-//      next major of @perfood/capacitor-healthkit, or a fork) registers
-//      itself. Wire `PLUGIN_NAME` below to match its registered name and
-//      the methods to its API surface.
-//
-//   B) Write a thin custom plugin
-//      ios/App/App/Plugins/VelaHealth.swift implementing
-//      requestAuthorization / queryHKitSampleType. Auto-discovered by
-//      Capacitor at runtime via registerPlugin().
-//      Required Info.plist: NSHealthShareUsageDescription
-//      Required entitlement: HealthKit (Signing & Capabilities → +)
-//
-// Until either path lands, getHealthKitStatus() returns "no-plugin" and
-// the Settings row shows "HealthKit not installed in this build" — no
-// silent failures, no vaporware claim.
+// First-time setup (already in repo, but documented here for future
+// dev who needs to recreate the iOS project):
+//   - Info.plist: NSHealthShareUsageDescription (required)
+//   - Info.plist: NSHealthUpdateUsageDescription (Apple requires the
+//     string for any HealthKit-using app, even read-only)
+//   - App.entitlements: com.apple.developer.healthkit = true
+//   - Xcode → Signing & Capabilities → + Capability → HealthKit (this
+//     adds the entitlement to the provisioning profile; entitlements
+//     file is already wired in pbxproj)
 
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
