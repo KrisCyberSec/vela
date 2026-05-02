@@ -669,11 +669,13 @@ function buildWeeklySummary(logs) {
 }
 
 // ─── Ask Vela monthly soft-cap (client-side hint) ───────────────────────
-// The real per-24h limit is enforced server-side. This is just a local
-// counter that prevents pointless round-trips and shows the user a
-// "X of Y left" indicator in the sheet so the limit doesn't feel
-// arbitrary when they hit it.
-const ASK_VELA_MONTHLY_CAP = 60;
+// Generous so power users never feel rationed mid-month. Math sanity at
+// max abuse: 250 calls/mo × $0.0017/call = $0.43/user/mo, which is 7%
+// of the $5.83/mo subscription net. Realistic average is 5 to 10
+// questions per month per user. The real defenses are server-side
+// (30/24h per user, $50/day shared global ceiling); this client cap
+// is the friendly UI hint, not the security boundary.
+const ASK_VELA_MONTHLY_CAP = 250;
 const ASK_VELA_COUNT_KEY = "vela_ask_monthly_count";
 
 function currentMonthKey() {
@@ -842,6 +844,61 @@ function buildAskVelaSummary(logs) {
     return { name: e.name, day, duration: e.duration };
   });
 
+  // ─── Last-7-day breakdown ─────────────────────────────────────────────
+  // 30-day aggregates miss recency. Adding a per-day-of-week 7-day window
+  // so Claude can answer "how was last week?" or "what about Tuesday?"
+  // without us shipping the full log. Each entry: day-of-week + symptom
+  // names + mood label + sleep hours. No notes, no exact dates.
+  const sevenAgo = new Date(now); sevenAgo.setDate(sevenAgo.getDate() - 7);
+  const dayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const last7days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const ymd = localDateStr(d);
+    const dayLogs = logs.filter((l) => l.date.slice(0, 10) === ymd);
+    if (dayLogs.length === 0) {
+      last7days.push({ day: dayLabels[d.getDay()], daysAgo: i, logged: false });
+      continue;
+    }
+    const symSet = new Set();
+    let moodSum = 0, moodCount = 0, sleep = null, stress = null;
+    let period = false;
+    dayLogs.forEach((l) => {
+      Object.keys(l.symptoms || {}).forEach((s) => { if (typeof s === "string" && s.length < 40) symSet.add(s); });
+      if (l.mood !== null && l.mood !== undefined) { moodSum += l.mood; moodCount++; }
+      if (l.context?.sleepHours != null) sleep = l.context.sleepHours;
+      if (l.context?.stress != null) stress = l.context.stress;
+      if (l.context?.period && l.context.period !== "none") period = true;
+    });
+    const avgMoodIdx = moodCount > 0 ? Math.round(moodSum / moodCount) : null;
+    last7days.push({
+      day: dayLabels[d.getDay()],
+      daysAgo: i,
+      logged: true,
+      symptoms: [...symSet],
+      mood: avgMoodIdx !== null ? moodLabels[avgMoodIdx] : null,
+      sleep,
+      stress,
+      period,
+    });
+  }
+
+  // ─── Cycle phase context ──────────────────────────────────────────────
+  // Knowing where the user is in their cycle helps Claude contextualize
+  // ("hot flashes peaking in week 3 of the cycle" is meaningful).
+  let cyclePhase = null;
+  if (cp && cp.lastStart) {
+    const lastStartDate = new Date(cp.lastStart + "T00:00:00");
+    const dayInCycle = Math.floor((now - lastStartDate) / (1000 * 60 * 60 * 24)) + 1;
+    cyclePhase = {
+      dayInCycle,
+      phase: dayInCycle <= 5 ? "menstrual" :
+             dayInCycle <= 13 ? "follicular" :
+             dayInCycle <= 16 ? "ovulatory" :
+             dayInCycle <= 28 ? "luteal" : "post-luteal (overdue)",
+    };
+  }
+
   return {
     daysLogged: logs.length,
     uniqueDays,
@@ -853,7 +910,9 @@ function buildAskVelaSummary(logs) {
     avgStress,
     correlations: corr,
     cyclePrediction,
+    cyclePhase,
     activeExperiments,
+    last7days,
   };
 }
 
@@ -8883,6 +8942,20 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             </span>
             <span className="value sage">Active</span>
           </div>
+          {(() => {
+            // Ask Vela usage this month, so power users see they have plenty.
+            const used = getMonthlyCount();
+            const remaining = Math.max(0, ASK_VELA_MONTHLY_CAP - used);
+            return (
+              <div className="set-row" style={{ cursor: "default" }}>
+                <span className="glyph"><UIIcon name="ChatCircle" size={16} /></span>
+                <span className="body">
+                  <span className="label">Ask Vela this month</span>
+                  <span className="sub">{used} asked, {remaining} left of {ASK_VELA_MONTHLY_CAP}. Plus 30 a day, whichever comes first.</span>
+                </span>
+              </div>
+            );
+          })()}
         </div>
       ) : (
         <button className="set-premium-row" onClick={onShowPaywall}>

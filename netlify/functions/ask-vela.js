@@ -404,9 +404,33 @@ function buildUserMessage(question, summary, profile) {
     const cp = summary.cyclePrediction;
     lines.push(`\nCycle: ${cp.cyclesLogged} logged, average length ${cp.cycleLengthMean} days (± ${cp.cycleLengthStddev}). Next likely period: ${cp.windowStart} to ${cp.windowEnd}.`);
   }
+  if (summary.cyclePhase) {
+    lines.push(`Currently day ${summary.cyclePhase.dayInCycle} of cycle (${summary.cyclePhase.phase} phase).`);
+  }
   if (summary.activeExperiments && summary.activeExperiments.length) {
     lines.push("\nActive experiments:");
     summary.activeExperiments.forEach((e) => lines.push(`  - ${e.name} (day ${e.day} of ${e.duration})`));
+  }
+  // Per-day breakdown for the last 7 days. Lets you answer questions like
+  // "what about Tuesday?" or "how was last week?" without us shipping the
+  // full log. Each entry is intentionally compact: day-of-week, symptoms
+  // logged, mood label, sleep hours. No notes, no exact dates.
+  if (summary.last7days && summary.last7days.length) {
+    lines.push("\nDay-by-day for the past 7 days (most recent last):");
+    summary.last7days.forEach((d) => {
+      const label = d.daysAgo === 0 ? `${d.day} (today)` : d.daysAgo === 1 ? `${d.day} (yesterday)` : `${d.day} (${d.daysAgo} days ago)`;
+      if (!d.logged) {
+        lines.push(`  - ${label}: not logged`);
+        return;
+      }
+      const parts = [];
+      if (d.mood) parts.push(`mood ${d.mood}`);
+      if (d.sleep != null) parts.push(`${d.sleep}h sleep`);
+      if (d.stress != null) parts.push(`stress ${d.stress}/5`);
+      if (d.period) parts.push("period day");
+      if (d.symptoms && d.symptoms.length) parts.push(`symptoms: ${d.symptoms.join(", ")}`);
+      lines.push(`  - ${label}: ${parts.length ? parts.join("; ") : "logged with no detail"}`);
+    });
   }
   lines.push("\n---");
   lines.push(`User question: ${question}`);
