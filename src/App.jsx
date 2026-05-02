@@ -281,7 +281,7 @@ const QUESTIONS = [
     multi: true,
     eyebrow: "Why you're here",
     headline: <>What would feel like a <em>good outcome?</em></>,
-    sub: "Choose what matters most right now. We'll tune insights, prompts, and exports around it.",
+    sub: "Pick anything that matters — we'll tune insights, prompts, and exports around what you select.",
     opts: [
       { label: "Understand what's happening to my body", hint: "Make sense of the patterns", icon: "MagnifyingGlass" },
       { label: "Track symptoms to show my doctor", hint: "Bring real data to appointments", icon: "FirstAidKit" },
@@ -293,7 +293,7 @@ const QUESTIONS = [
     text: "How do you prefer to receive guidance?",
     eyebrow: "How we'll show up",
     headline: <>How much should Vela <em>nudge you?</em></>,
-    sub: "You can always change this. The most consistent users tend to choose 'gentle daily' — but if you'd rather come to us, that works too.",
+    sub: "Daily check-ins keep the most users consistent — but if you'd rather come to us, that works too. Change it any time.",
     opts: [
       { label: "Daily check-ins & reminders", hint: "A morning and evening nudge", icon: "Sun" },
       { label: "Weekly summaries", hint: "Sundays only — no pressure", icon: "Calendar" },
@@ -656,8 +656,8 @@ function buildWeeklySummary(logs) {
   }
 
   return {
-    windowStart: sevenAgo.toISOString().slice(0, 10),
-    windowEnd: now.toISOString().slice(0, 10),
+    windowStart: localDateStr(sevenAgo),
+    windowEnd: localDateStr(now),
     daysLogged: uniqueDays,
     topSymptoms,
     mood: wMood ? { avg: wMood.avg, label: moodLabels[Math.round(wMood.avg)], delta: moodDelta, samples: wMood.samples } : null,
@@ -950,9 +950,9 @@ function predictNextCycle(logs) {
     cycleLengthMean: Math.round(mean),
     cycleLengthStddev: Math.round(stddev * 10) / 10,
     lastStart: starts[starts.length - 1],
-    predictedDate: predictedDate.toISOString().slice(0, 10),
-    windowStart: windowStart.toISOString().slice(0, 10),
-    windowEnd: windowEnd.toISOString().slice(0, 10),
+    predictedDate: localDateStr(predictedDate),
+    windowStart: localDateStr(windowStart),
+    windowEnd: localDateStr(windowEnd),
     windowSpread,
     daysUntil,
     confidence,
@@ -2551,9 +2551,11 @@ const css = `
      bottom nav dock. Total clearance needed: ~180px. */
   .screen.vela-app { padding-bottom: 180px; padding-top: 0; }
 
-  /* Sticky glass header on Today */
+  /* Sticky glass header on Today — bleeds back to viewport edges using
+     negative margin to counter the .screen 16px gutter. */
   .vela-header {
     position: sticky; top: 0; z-index: 10;
+    margin: 0 -16px;
     padding: calc(env(safe-area-inset-top, 0px) + 14px) 18px 10px;
     background: var(--glass-cream);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -2994,7 +2996,11 @@ const css = `
   .suggest-card .suggest-body { padding-left: 38px; margin-bottom: 10px; }
   .suggest-card .suggest-body strong { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 16px; color: var(--ink); line-height: 1.2; }
   .suggest-card .suggest-body small { display: block; font-size: 11.5px; color: var(--ink-light); margin-top: 2px; }
+  /* Sage = action available (premium user, "Start"); gold gradient =
+     locked behind paywall ("Unlock with Premium"). Same convention as
+     the Cycle prediction card so the gating accent reads consistently. */
   .suggest-card .suggest-cta { display: inline-flex; align-items: center; gap: 6px; background: var(--sage); color: #fff; border: none; border-radius: 999px; padding: 8px 14px 8px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; margin-left: 38px; }
+  .suggest-card .suggest-cta.locked { background: linear-gradient(135deg, var(--gold), #BD8F38); }
 
   /* Experiment promo CTA — when no experiments exist */
   .exp-promo { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 14px; width: 100%; cursor: pointer; font-family: var(--font-sans); text-align: left; }
@@ -3031,8 +3037,9 @@ const css = `
      the brand (gold = premium upgrade, clay = active premium); the label
      stays tight ("Ask Vela") so the FAB never dominates the viewport like
      the original Premium · 7 Questions variant. */
-  .ask-vela-fab { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 10px 24px rgba(140, 78, 50, 0.18), 0 2px 6px rgba(140, 78, 50, 0.10); border-radius: 999px; padding: 6px 12px 6px 6px; display: inline-flex; align-items: center; gap: 7px; z-index: 25; cursor: pointer; font-family: var(--font-sans); transition: transform 100ms ease; }
+  .ask-vela-fab { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 10px 24px rgba(140, 78, 50, 0.18), 0 2px 6px rgba(140, 78, 50, 0.10); border-radius: 999px; padding: 6px 12px 6px 6px; display: inline-flex; align-items: center; gap: 7px; z-index: 25; cursor: pointer; font-family: var(--font-sans); transition: transform 240ms cubic-bezier(0.2,0.8,0.3,1), opacity 200ms ease; }
   .ask-vela-fab:active { transform: scale(0.97); }
+  .ask-vela-fab.hidden { transform: translateY(120%); opacity: 0; pointer-events: none; }
   .ask-vela-fab .av { width: 26px; height: 26px; border-radius: 999px; background: var(--clay); color: #fff; font-family: var(--font-serif); font-size: 14px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .ask-vela-fab.locked .av { background: var(--gold); }
   .ask-vela-fab .lbl { font-size: 12.5px; font-weight: 600; color: var(--ink); text-align: left; line-height: 1; }
@@ -3459,7 +3466,11 @@ const css = `
 
   /* ── SCREENS ── */
   /* padding-bottom leaves room for the fixed bottom bar (52px + safe-area + breathing room) */
-  .screen { display: none; flex-direction: column; padding-bottom: 96px; animation: fadeIn 0.3s ease; }
+  /* All screens get a 16px horizontal gutter so cards don't bleed to
+     the absolute viewport edge. Sticky/fixed children (vela-header,
+     nav-bottom, ask-vela-fab, modal sheets) compensate via negative
+     margin or position:fixed. */
+  .screen { display: none; flex-direction: column; padding: 0 16px 96px; animation: fadeIn 0.3s ease; }
   .screen.active { display: flex; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -5513,6 +5524,25 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
   // ─── Reveal card content derived from real user data state ─────────────────
   const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
   const dataState = uniqueDays === 0 ? "empty" : uniqueDays < 7 ? "building" : "rich";
+
+  // Already-logged-today derivation. After save the form clears, so the
+  // "Tap a mood or symptom" copy reappears and the user has no idea their
+  // entry stuck. We compute the latest log for today and surface a
+  // confirmation chip right above the save bar so they know.
+  const todayKey = localDateStr(new Date());
+  const todaysLogs = logs.filter((l) => l.date.slice(0, 10) === todayKey);
+  const latestToday = todaysLogs.length > 0
+    ? todaysLogs.reduce((a, b) => (a.date > b.date ? a : b))
+    : null;
+  const loggedToday = !!latestToday;
+  const todaySymptomCount = (() => {
+    const set = new Set();
+    todaysLogs.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => set.add(s)));
+    return set.size;
+  })();
+  const todayLastTime = latestToday
+    ? new Date(latestToday.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase().replace(" ", "")
+    : null;
   const correlations = dataState === "rich" ? analyzeCorrelations(logs) : [];
   const topCorr = correlations[0];
   const reveal = (() => {
@@ -5839,14 +5869,22 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         <span>Your data stays on this device.</span>
       </div>
 
-      {/* Sticky glass save bar */}
+      {/* Sticky glass save bar — copy adapts:
+          - In progress (something in form) → live preview
+          - Empty + already logged today → confirmation chip
+          - Empty + nothing logged today → invitation */}
       <div className="save-bar">
         <div className="inner">
           <div className="save-summary">
-            {summary.length === 0 ? (
-              <em>Tap a mood or symptom to begin.</em>
-            ) : (
+            {summary.length > 0 ? (
               <><strong>Today:</strong> {summary.join(" · ")}</>
+            ) : loggedToday ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <UIIcon name="CheckCircle" size={13} weight="fill" style={{ color: "var(--sage-dark)" }} />
+                <span><strong>Logged today</strong> · {todayLastTime}{todaySymptomCount > 0 ? ` · ${todaySymptomCount} symptom${todaySymptomCount === 1 ? "" : "s"}` : ""} · tap to add more</span>
+              </span>
+            ) : (
+              <em>Tap a mood or symptom to begin.</em>
             )}
           </div>
           <button
@@ -5855,7 +5893,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
             disabled={!canLog}
             onClick={handleLog}
           >
-            Save entry
+            {loggedToday && summary.length > 0 ? "Add to today" : "Save entry"}
           </button>
         </div>
       </div>
@@ -6472,7 +6510,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const week = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d); // local-date so it matches log.date stamps
     const dayLogs = logs.filter((l) => l.date.slice(0, 10) === dayStr);
     const symptomNames = new Set();
     let moodSum = 0, moodCount = 0;
@@ -6495,7 +6533,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const symFreq = {};
   week.forEach((w, i) => {
     const d = new Date(now); d.setDate(d.getDate() - (6 - i));
-    const dayStr = d.toISOString().slice(0, 10);
+    const dayStr = localDateStr(d);
     const dayLogs = logs.filter((l) => l.date.slice(0, 10) === dayStr);
     const seen = new Set();
     dayLogs.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => seen.add(s)));
@@ -6547,6 +6585,31 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   // Weekly summary — computed live from logs. Card highlights on Sundays.
   const weeklySummary = buildWeeklySummary(logs);
   const isSunday = new Date().getDay() === 0;
+
+  // Shy-mode for the Ask Vela FAB — hides when the user is scrolling
+  // down (reading), reveals when scrolling up. Same pattern as iOS
+  // Mail / Twitter compose buttons. Threshold + direction lock keeps
+  // it from flickering on small jitter.
+  const [fabHidden, setFabHidden] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const dy = y - lastY;
+        if (Math.abs(dy) > 8) {
+          if (dy > 0 && y > 240) setFabHidden(true);
+          else if (dy < 0) setFabHidden(false);
+          lastY = y;
+        }
+        raf = 0;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
 
   function startExperiment(library) {
     if (!isPremium) { onShowPaywall(); return; }
@@ -6987,7 +7050,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                     </div>
                     <button
                       type="button"
-                      className="suggest-cta"
+                      className={`suggest-cta${isPremium ? "" : " locked"}`}
                       onClick={() => isPremium ? startExperiment(sug.library) : onShowPaywall()}
                     >
                       {isPremium ? "Start" : <><UIIcon name="Star" size={11} weight="fill" /> Unlock</>}
@@ -7054,11 +7117,13 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         <span>Patterns are computed on this device.</span>
       </div>
 
-      {/* Ask Vela floating button — hidden on locked state */}
+      {/* Ask Vela floating button — hidden on locked state, also
+          temporarily hidden when the user is actively scrolling down
+          (shy-mode) so it stops covering content the user is reading. */}
       {!isLocked && (
         <button
           type="button"
-          className={`ask-vela-fab${!isPremium ? " locked" : ""}`}
+          className={`ask-vela-fab${!isPremium ? " locked" : ""}${fabHidden ? " hidden" : ""}`}
           onClick={() => {
             if (!isPremium) { onShowPaywall(); return; }
             setAskOpen(true);
@@ -8584,7 +8649,7 @@ export default function App() {
       if (day % 7 === 0) { symptoms["Joint stiffness"] = true; severities["Joint stiffness"] = 1; }
       const notes = day === 5 ? "Bad night — woke up drenched around 3am after the late espresso." : (day === 12 ? "Felt great today. Slept 8 hours and walked 5k." : "");
       demoLogs.unshift({
-        date: d.toISOString(),
+        date: localISOString(d),
         mood: caffeine ? 1 : 3,
         energy: caffeine ? 1 : 3,
         symptoms,
