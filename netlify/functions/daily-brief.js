@@ -54,7 +54,8 @@ VOICE
 - Talk to a smart 50-year-old who's tired of being condescended to.
 - Warm, plain, observational. Like a good friend who's been paying attention.
 - 2 to 3 sentences. Hard maximum 4 sentences if there's something genuinely worth saying.
-- Never start with "Good morning" or "Today" — they're already opening the app.
+- Never start with "Good morning" or "Today." They're already opening the app.
+- Never use em dashes (—). They read as AI-written. Use periods, commas, or "to" instead.
 - Never use "journey," "wellness," "self-care," "empowered," or "your body is amazing."
 - Italics are for emphasis on a word or two, max once per message.
 
@@ -139,7 +140,11 @@ exports.handler = async (event) => {
   const spentRecord = await stores.cost.get(todayKey, { type: "json" }).catch(() => null);
   const spentUsd = spentRecord?.usd || 0;
   if (spentUsd >= dailyCapUsd) {
+    console.error(`[daily-brief] DAILY CAP REACHED: $${spentUsd.toFixed(2)} of $${dailyCapUsd} on ${todayKey}`);
     return json(503, { error: "Daily AI budget reached", detail: "Brief will return tomorrow." });
+  }
+  if (spentUsd >= dailyCapUsd * 0.75) {
+    console.warn(`[daily-brief] cost approaching cap: $${spentUsd.toFixed(2)} of $${dailyCapUsd} (${Math.round(100 * spentUsd / dailyCapUsd)}%) on ${todayKey}`);
   }
 
   // ─── Call Anthropic ───────────────────────────────────────────────

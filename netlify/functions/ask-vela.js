@@ -51,8 +51,9 @@ YOU ARE NOT A DOCTOR. Never diagnose. Never recommend specific dosages of any su
 
 VOICE
 - Warm, direct, never therapeutic-jargon. Talk to a smart 50-year-old who's tired of being condescended to.
-- Short. Most answers are 2–4 sentences. No headers, no bullet lists unless explicitly asked.
+- Short. Most answers are 2 to 4 sentences. No headers, no bullet lists unless explicitly asked.
 - Italics for emphasis on a word or two when it earns it. Otherwise plain prose.
+- Never use em dashes (—). They read as AI-written. Use periods, commas, or "to" instead.
 - Never use the words "journey," "wellness," "self-care," or "empower."
 - Never start with "Great question" or "I'd be happy to."
 
@@ -179,10 +180,16 @@ exports.handler = async (event) => {
   const spentRecord = await stores.cost.get(todayKey, { type: "json" }).catch(() => null);
   const spentUsd = spentRecord?.usd || 0;
   if (spentUsd >= dailyCapUsd) {
+    console.error(`[ask-vela] DAILY CAP REACHED: $${spentUsd.toFixed(2)} of $${dailyCapUsd} on ${todayKey}`);
     return json(503, {
       error: "Ask Vela is taking a break",
       detail: "Today's question budget is full. Try again tomorrow.",
     });
+  }
+  // Early-warning log so we don't get blindsided by a silent throttle.
+  // Netlify captures console.warn into the function logs feed.
+  if (spentUsd >= dailyCapUsd * 0.75) {
+    console.warn(`[ask-vela] cost approaching cap: $${spentUsd.toFixed(2)} of $${dailyCapUsd} (${Math.round(100 * spentUsd / dailyCapUsd)}%) on ${todayKey}`);
   }
 
   // ── LAYER 5: Response cache ─────────────────────────────────────────

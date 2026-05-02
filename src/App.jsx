@@ -250,7 +250,7 @@ const QUESTIONS = [
     text: "Where are you in the transition?",
     eyebrow: "About you",
     headline: <>Where are you in the <em>transition?</em></>,
-    sub: "There's no right answer — and you can change this any time. We use it to surface what's most relevant for your stage.",
+    sub: "There's no right answer. And you can change this any time. We use it to surface what's most relevant for your stage.",
     opts: [
       { label: "Still having regular periods", hint: "Cycles haven't shifted yet", icon: "Flower" },
       { label: "Periods are irregular (perimenopause)", hint: "Cycles still happen, but they're shifting", icon: "Sparkle" },
@@ -263,7 +263,7 @@ const QUESTIONS = [
     multi: true,
     eyebrow: "What's on your mind",
     headline: <>What would you most like to <em>understand?</em></>,
-    sub: "Pick up to five. We'll prioritize these on your daily check-in — everything else is one tap away.",
+    sub: "Pick up to five. We'll prioritize these on your daily check-in. Everything else is one tap away.",
     max: 5,
     opts: [
       { label: "Hot flashes & night sweats", icon: "Flame" },
@@ -281,7 +281,7 @@ const QUESTIONS = [
     multi: true,
     eyebrow: "Why you're here",
     headline: <>What would feel like a <em>good outcome?</em></>,
-    sub: "Pick anything that matters — we'll tune insights, prompts, and exports around what you select.",
+    sub: "Pick anything that matters. We'll tune insights, prompts, and exports around what you select.",
     opts: [
       { label: "Understand what's happening to my body", hint: "Make sense of the patterns", icon: "MagnifyingGlass" },
       { label: "Track symptoms to show my doctor", hint: "Bring real data to appointments", icon: "FirstAidKit" },
@@ -293,10 +293,10 @@ const QUESTIONS = [
     text: "How do you prefer to receive guidance?",
     eyebrow: "How we'll show up",
     headline: <>How much should Vela <em>nudge you?</em></>,
-    sub: "Daily check-ins keep the most users consistent — but if you'd rather come to us, that works too. Change it any time.",
+    sub: "Daily check-ins keep the most users consistent. But if you'd rather come to us, that works too. Change it any time.",
     opts: [
       { label: "Daily check-ins & reminders", hint: "A morning and evening nudge", icon: "Sun" },
-      { label: "Weekly summaries", hint: "Sundays only — no pressure", icon: "Calendar" },
+      { label: "Weekly summaries", hint: "Sundays only. No pressure", icon: "Calendar" },
       { label: "Only when I ask", hint: "I'll come to the app", icon: "Hand" },
       { label: "Let the app decide", hint: "Adapt to how I'm using it", icon: "Sparkle" },
     ],
@@ -406,10 +406,10 @@ function getPersonalization(profile) {
 
   // Stage-aware greeting subtitles
   const stageMessages = [
-    "Your cycle patterns matter — tracking now builds a baseline for what's ahead.",
-    "Your body is shifting — each log helps Vela learn what's normal for you, so the changes ahead don't feel like guesswork.",
-    "You've crossed the threshold — tracking helps you understand what's settling and what's still adjusting.",
-    "Surgical menopause moves on a different timeline. Vela adapts to what you're actually experiencing — not a textbook average.",
+    "Your cycle patterns matter. Tracking now builds a baseline for what's ahead.",
+    "Your body is shifting. Each log helps Vela learn what's normal for you, so the changes ahead don't feel like guesswork.",
+    "You've crossed the threshold. Tracking helps you understand what's settling and what's still adjusting.",
+    "Surgical menopause moves on a different timeline. Vela adapts to what you're actually experiencing. Not a textbook average.",
   ];
   const stageMessage = stageMessages[stage] || stageMessages[1];
 
@@ -635,21 +635,21 @@ function buildWeeklySummary(logs) {
   parts.push(`You logged ${uniqueDays} of 7 days.`);
   if (topSymptoms[0]) {
     const t = topSymptoms[0];
-    if (t.delta < 0) parts.push(`${t.sym} was your top symptom (${t.count} days) — down from ${t.prior} the week before.`);
+    if (t.delta < 0) parts.push(`${t.sym} was your top symptom (${t.count} days). Down from ${t.prior} the week before.`);
     else if (t.delta > 0) parts.push(`${t.sym} showed up most (${t.count} days, up from ${t.prior}).`);
     else parts.push(`${t.sym} showed up most (${t.count} days, same as the week before).`);
   }
   if (wMood && wMood.samples >= 3) {
     const lbl = moodLabels[Math.round(wMood.avg)];
     if (moodDelta !== null && Math.abs(moodDelta) >= 0.4) {
-      parts.push(`Mood averaged ${lbl} — ${moodDelta > 0 ? "lifted" : "dipped"} from the week before.`);
+      parts.push(`Mood averaged ${lbl}. ${moodDelta > 0 ? "lifted" : "dipped"} from the week before.`);
     } else {
       parts.push(`Mood averaged ${lbl}.`);
     }
   }
   if (wSleep && wSleep.samples >= 3) {
     if (sleepDelta !== null && Math.abs(sleepDelta) >= 0.4) {
-      parts.push(`Sleep averaged ${wSleep.avg.toFixed(1)}h — ${sleepDelta > 0 ? "more" : "less"} than the week before.`);
+      parts.push(`Sleep averaged ${wSleep.avg.toFixed(1)}h. ${sleepDelta > 0 ? "more" : "less"} than the week before.`);
     } else {
       parts.push(`Sleep held around ${wSleep.avg.toFixed(1)}h.`);
     }
@@ -939,7 +939,7 @@ function analyzeCorrelations(logs) {
       if (rateWO === 0 && rateW >= 0.5 && symW >= 4) {
         push({
           lift: 99, label: "strong",
-          text: `${symptom} has appeared on every ${trigger} day (${symW}/${withT.length}) — and never on a non-${trigger} day`,
+          text: `${symptom} has appeared on every ${trigger} day (${symW}/${withT.length}). And never on a non-${trigger} day`,
           icon: trigger === "caffeine" ? "Sparkle" : trigger === "alcohol" ? "Drop" : "Footprints",
           kind: "trigger", context: trigger, symptom,
           samples: { with: withT.length, without: withoutT.length },
@@ -999,7 +999,7 @@ function analyzeCorrelations(logs) {
       if (rO === 0 && rL >= 0.5 && symL >= 4) {
         push({
           lift: 99, label: "strong",
-          text: `${symptom} has appeared on every short-sleep night (${symL}/${sleepLow.length}) — and never on a 6h+ night`,
+          text: `${symptom} has appeared on every short-sleep night (${symL}/${sleepLow.length}). And never on a 6h+ night`,
           icon: "Bed", kind: "sleep", context: "sleepHours", symptom,
           samples: { with: sleepLow.length, without: sleepOk.length },
         });
@@ -1027,7 +1027,7 @@ function analyzeCorrelations(logs) {
       if (rL === 0 && rH >= 0.5 && symH >= 4) {
         push({
           lift: 99, label: "strong",
-          text: `${symptom} has appeared on every high-stress day (${symH}/${stressHi.length}) — and never on a low-stress day`,
+          text: `${symptom} has appeared on every high-stress day (${symH}/${stressHi.length}). And never on a low-stress day`,
           icon: "CloudLightning", kind: "stress", context: "stress", symptom,
           samples: { with: stressHi.length, without: stressLo.length },
         });
@@ -1085,7 +1085,7 @@ function analyzeCorrelations(logs) {
       if (rateB === 0 && rateA >= 0.6) {
         push({
           lift: 99, label: "strong",
-          text: `${symptom} appears within ${lag} day${lag === 1 ? "" : "s"} of every ${label} (${triggerThenSymptom}/${triggerDays}) — and rarely otherwise`,
+          text: `${symptom} appears within ${lag} day${lag === 1 ? "" : "s"} of every ${label} (${triggerThenSymptom}/${triggerDays}). And rarely otherwise`,
           icon: "ArrowRight", kind: "lag", context: triggerKey, symptom, lag,
           samples: { with: triggerDays, without: noTriggerDays },
         });
@@ -1171,7 +1171,7 @@ function CrisisSupportCard({ context = "ask-vela" }) {
           <strong>You don't have to do this alone.</strong>
           <p>
             What you're saying matters. A trained, free, confidential listener
-            is one call or text away — they're trained for exactly this.
+            is one call or text away. They're trained for exactly this.
           </p>
         </div>
       </div>
@@ -1186,7 +1186,7 @@ function CrisisSupportCard({ context = "ask-vela" }) {
       </ul>
       <p className="crisis-foot">
         If you're in immediate danger, please call your local emergency number.
-        Vela is a journaling app — it's not a substitute for human support.
+        Vela is a journaling app. It's not a substitute for human support.
       </p>
     </article>
   );
@@ -1382,7 +1382,7 @@ function detectAnomalies(logs) {
         kind: "symptom-spike", symptom: sym,
         weekCount, baselineWeekly: +baselineWeekly.toFixed(1),
         lift: +lift.toFixed(1),
-        text: `${sym} has shown up ${weekCount}x this week — ${lift.toFixed(1)}x your usual.`,
+        text: `${sym} has shown up ${weekCount}x this week. ${lift.toFixed(1)}x your usual.`,
         icon: SYMPTOMS.find((s) => s.name === sym)?.icon || "Sparkle",
       });
     }
@@ -1391,7 +1391,7 @@ function detectAnomalies(logs) {
         kind: "symptom-quiet", symptom: sym,
         weekCount, baselineWeekly: +baselineWeekly.toFixed(1),
         lift: +lift.toFixed(1),
-        text: `${sym} has been quieter this week — ${weekCount} vs your usual ${baselineWeekly.toFixed(1)}.`,
+        text: `${sym} has been quieter this week. ${weekCount} vs your usual ${baselineWeekly.toFixed(1)}.`,
         icon: SYMPTOMS.find((s) => s.name === sym)?.icon || "Sparkle",
       });
     }
@@ -1410,8 +1410,8 @@ function detectAnomalies(logs) {
         kind: "sleep-shift",
         weekAvg: +weekAvg.toFixed(1), baseAvg: +baseAvg.toFixed(1), z: +z.toFixed(1),
         text: z < 0
-          ? `You're averaging ${weekAvg.toFixed(1)}h sleep this week — ${(baseAvg - weekAvg).toFixed(1)}h below your usual.`
-          : `You're averaging ${weekAvg.toFixed(1)}h sleep this week — ${(weekAvg - baseAvg).toFixed(1)}h above your usual.`,
+          ? `You're averaging ${weekAvg.toFixed(1)}h sleep this week. ${(baseAvg - weekAvg).toFixed(1)}h below your usual.`
+          : `You're averaging ${weekAvg.toFixed(1)}h sleep this week. ${(weekAvg - baseAvg).toFixed(1)}h above your usual.`,
         icon: "Bed",
       });
     }
@@ -1501,7 +1501,7 @@ function predictNextCycle(logs) {
     const days = Math.round((b - a) / (1000 * 60 * 60 * 24));
     if (days >= 14 && days <= 90) lengths.push(days); // sanity bounds
   }
-  if (lengths.length === 0) return { hasData: true, lastStart: starts[starts.length - 1], cyclesLogged: starts.length, reason: "Cycle gaps look unusual — keep logging and we'll try again." };
+  if (lengths.length === 0) return { hasData: true, lastStart: starts[starts.length - 1], cyclesLogged: starts.length, reason: "Cycle gaps look unusual. Keep logging and we'll try again." };
 
   const mean = lengths.reduce((s, x) => s + x, 0) / lengths.length;
   const variance = lengths.reduce((s, x) => s + (x - mean) ** 2, 0) / lengths.length;
@@ -1636,9 +1636,9 @@ function compareExperiment(experiment, logs) {
     const p = pCounts[sym] || 0;
     const delta = d - p;
     let summary;
-    if (p === 0 && d === 0) summary = "no change — neither week showed it";
-    else if (p === 0 && d > 0) summary = `appeared ${d}x — wasn't there the week before`;
-    else if (d === 0 && p > 0) summary = `gone — appeared ${p}x the week before`;
+    if (p === 0 && d === 0) summary = "no change. Neither week showed it";
+    else if (p === 0 && d > 0) summary = `appeared ${d}x. Wasn't there the week before`;
+    else if (d === 0 && p > 0) summary = `gone. Appeared ${p}x the week before`;
     else summary = `${delta > 0 ? "+" : ""}${delta} (${d} vs ${p})`;
     return { symptom: sym, during: d, prior: p, delta, summary };
   });
@@ -1733,10 +1733,10 @@ function suggestExperiments(logs, experiments = []) {
     tryAdd("magnesium", `${top.includes("Poor sleep") ? "Poor sleep" : "Night sweats"} has been your top symptom recently`, 1);
   }
   if (top.includes("Brain fog") || top.includes("Fatigue")) {
-    tryAdd("morning_protein", `${top.includes("Brain fog") ? "Brain fog" : "Fatigue"} keeps showing up — protein at breakfast is a low-effort variable to test`, 1);
+    tryAdd("morning_protein", `${top.includes("Brain fog") ? "Brain fog" : "Fatigue"} keeps showing up. Protein at breakfast is a low-effort variable to test`, 1);
   }
   if (top.some((s) => ["Anxiety", "Mood shifts", "Mood swings"].includes(s))) {
-    tryAdd("evening_walks", `Mood and anxiety days are frequent — evening walks are one of the most consistently-studied levers`, 1);
+    tryAdd("evening_walks", `Mood and anxiety days are frequent. Evening walks are one of the most consistently-studied levers`, 1);
   }
 
   // Sort by confidence (correlation-driven outranks heuristic)
@@ -2012,89 +2012,89 @@ const SYMPTOM_KNOWLEDGE = {
   "hot flash": {
     prevalence: "Up to 80% of women experience hot flashes, making them the most common menopause symptom.",
     science: "Hot flashes are caused by changes in the hypothalamus (your body's thermostat) as estrogen levels fluctuate. The brain briefly misreads your body temperature and triggers a cooling response.",
-    strategies: ["Layered clothing and keeping a room cool (68°F/20°C) can reduce frequency.", "Deep slow breathing (6-8 breaths/min) at the onset has been shown to reduce hot flash intensity in clinical trials.", "CBT for hot flashes has strong evidence — it doesn't reduce frequency but significantly reduces how bothersome they feel.", "Regular aerobic exercise improves overall quality of life during menopause. Its direct effect on hot flash frequency is still debated, but many women report benefit."],
+    strategies: ["Layered clothing and keeping a room cool (68°F/20°C) can reduce frequency.", "Deep slow breathing (6-8 breaths/min) at the onset has been shown to reduce hot flash intensity in clinical trials.", "CBT for hot flashes has strong evidence. It doesn't reduce frequency but significantly reduces how bothersome they feel.", "Regular aerobic exercise improves overall quality of life during menopause. Its direct effect on hot flash frequency is still debated, but many women report benefit."],
     stages: { perimenopause: "Hot flashes often peak in late perimenopause and the first 1-2 years after your final period.", postmenopause: "For most women, hot flashes gradually decrease over 2-5 years, though about 10% experience them for a decade or more.", surgical: "Surgical menopause often causes more sudden and intense hot flashes because estrogen drops rapidly rather than gradually." },
-    whenToSeeDoc: "If hot flashes are disrupting sleep or daily life, ask your provider about hormone therapy (HT) — it's the most effective treatment, with clinical trials showing up to a 75% reduction in hot flash frequency."
+    whenToSeeDoc: "If hot flashes are disrupting sleep or daily life, ask your provider about hormone therapy (HT). It's the most effective treatment, with clinical trials showing up to a 75% reduction in hot flash frequency."
   },
   "night sweat": {
-    prevalence: "Night sweats affect up to 75% of menopausal women — they're essentially hot flashes that happen during sleep.",
+    prevalence: "Night sweats affect up to 75% of menopausal women. They're essentially hot flashes that happen during sleep.",
     science: "Like hot flashes, they're driven by hormonal changes affecting your thermoregulatory center. They tend to be worse in the first half of the night.",
-    strategies: ["Moisture-wicking sleepwear and breathable bedding (cotton, bamboo) make a measurable difference.", "Keep bedroom temperature at 65-68°F (18-20°C) — cooler than most people think.", "Avoiding alcohol and spicy foods within 3 hours of bed has been shown to reduce night sweats.", "A cooling pillow or bedside fan directed at the upper body can help."],
+    strategies: ["Moisture-wicking sleepwear and breathable bedding (cotton, bamboo) make a measurable difference.", "Keep bedroom temperature at 65-68°F (18-20°C). Cooler than most people think.", "Avoiding alcohol and spicy foods within 3 hours of bed has been shown to reduce night sweats.", "A cooling pillow or bedside fan directed at the upper body can help."],
     stages: { perimenopause: "Night sweats often increase as you get deeper into perimenopause.", postmenopause: "They typically improve within 2-3 years post-menopause, but everyone's timeline is different.", surgical: "Night sweats may be more intense after surgical menopause and can benefit significantly from HT." },
-    whenToSeeDoc: "If night sweats are causing chronic sleep disruption, this is worth discussing — poor sleep compounds nearly every other menopause symptom."
+    whenToSeeDoc: "If night sweats are causing chronic sleep disruption, this is worth discussing. Poor sleep compounds nearly every other menopause symptom."
   },
   "brain fog": {
-    prevalence: "About 60% of women report cognitive changes during the menopause transition — you're not imagining it.",
+    prevalence: "About 60% of women report cognitive changes during the menopause transition. You're not imagining it.",
     science: "Estrogen plays a key role in the prefrontal cortex and hippocampus. As levels fluctuate, you may notice word-finding difficulty, forgetfulness, and trouble concentrating. Research shows this is typically temporary.",
-    strategies: ["Prioritizing sleep quality has the strongest evidence for improving cognitive function during menopause.", "Regular aerobic exercise increases blood flow to the brain and has been shown to improve cognitive performance.", "Breaking tasks into smaller chunks and using lists/reminders isn't giving up — it's a smart adaptation.", "Omega-3 fatty acids and a Mediterranean-style diet are associated with better cognitive function in midlife women."],
-    stages: { perimenopause: "Brain fog tends to be worst during perimenopause when hormones fluctuate most. The good news: research shows cognition typically recovers in postmenopause.", postmenopause: "Most women find cognitive function stabilizes and often improves in postmenopause as hormone levels settle.", surgical: "Cognitive changes after surgical menopause can be more pronounced — discuss HT timing with your provider." },
+    strategies: ["Prioritizing sleep quality has the strongest evidence for improving cognitive function during menopause.", "Regular aerobic exercise increases blood flow to the brain and has been shown to improve cognitive performance.", "Breaking tasks into smaller chunks and using lists/reminders isn't giving up. It's a smart adaptation.", "Omega-3 fatty acids and a Mediterranean-style diet are associated with better cognitive function in midlife women."],
+    stages: { perimenopause: "Brain fog tends to be worst during perimenopause when hormones fluctuate most. The good news: research shows cognition typically recovers in postmenopause.", postmenopause: "Most women find cognitive function stabilizes and often improves in postmenopause as hormone levels settle.", surgical: "Cognitive changes after surgical menopause can be more pronounced. Discuss HT timing with your provider." },
     whenToSeeDoc: "If cognitive changes are affecting your work or daily functioning, mention it to your provider. They can rule out other causes (thyroid, B12, sleep apnea) and discuss treatment options."
   },
   "fatigue": {
-    prevalence: "Fatigue affects up to 85% of menopausal women — it's one of the most common but least discussed symptoms.",
+    prevalence: "Fatigue affects up to 85% of menopausal women. It's one of the most common but least discussed symptoms.",
     science: "Menopause-related fatigue is multifactorial: disrupted sleep, hormonal shifts affecting energy metabolism, and the cumulative toll of other symptoms like night sweats and anxiety.",
-    strategies: ["Address sleep quality first — it's the #1 lever for energy. Even small improvements in sleep make a big difference.", "Regular moderate exercise paradoxically increases energy levels. Start with 15-20 minute walks if energy is very low.", "Iron and B12 levels are worth checking — deficiencies are common in midlife women and easily treated.", "Consistent wake times (even on weekends) help regulate your circadian rhythm and improve energy."],
-    stages: { perimenopause: "Fluctuating hormones can cause unpredictable energy crashes. Tracking patterns (like you're doing) helps identify your best times of day.", postmenopause: "Energy often stabilizes in postmenopause. If fatigue persists, thyroid function is worth checking.", surgical: "Post-surgical fatigue can be significant — your body is recovering from both surgery and sudden hormone changes." },
-    whenToSeeDoc: "If fatigue is severe or persistent, ask about thyroid function, iron/ferritin, B12, and vitamin D levels — these are common, treatable contributors."
+    strategies: ["Address sleep quality first. It's the #1 lever for energy. Even small improvements in sleep make a big difference.", "Regular moderate exercise paradoxically increases energy levels. Start with 15-20 minute walks if energy is very low.", "Iron and B12 levels are worth checking. Deficiencies are common in midlife women and easily treated.", "Consistent wake times (even on weekends) help regulate your circadian rhythm and improve energy."],
+    stages: { perimenopause: "Fluctuating hormones can cause unpredictable energy crashes. Tracking patterns (like you're doing) helps identify your best times of day.", postmenopause: "Energy often stabilizes in postmenopause. If fatigue persists, thyroid function is worth checking.", surgical: "Post-surgical fatigue can be significant. Your body is recovering from both surgery and sudden hormone changes." },
+    whenToSeeDoc: "If fatigue is severe or persistent, ask about thyroid function, iron/ferritin, B12, and vitamin D levels. These are common, treatable contributors."
   },
   "anxiety": {
     prevalence: "Up to 51% of women aged 40-55 experience increased anxiety during the menopause transition, even those with no prior history.",
-    science: "Estrogen modulates serotonin and norepinephrine, while progesterone has a calming effect via GABA receptors. As both hormones fluctuate during the menopause transition, anxiety can spike — even in women with no prior history. This is a physiological response, not a personal failing.",
-    strategies: ["Deep breathing exercises (4-7-8 technique: inhale 4s, hold 7s, exhale 8s) activate the parasympathetic nervous system.", "Regular exercise has strong evidence for reducing anxiety — as effective as medication for mild-moderate cases.", "CBT has been shown to be particularly effective for menopause-related anxiety.", "Limiting caffeine can help — sensitivity often increases during menopause."],
-    stages: { perimenopause: "Anxiety often peaks during perimenopause when hormone fluctuations are greatest. It's one of the symptoms most likely to improve with time.", postmenopause: "Many women find anxiety decreases significantly in postmenopause as hormones stabilize.", surgical: "Anxiety after surgical menopause can be intense due to the sudden hormone drop — don't hesitate to seek support." },
+    science: "Estrogen modulates serotonin and norepinephrine, while progesterone has a calming effect via GABA receptors. As both hormones fluctuate during the menopause transition, anxiety can spike. Even in women with no prior history. This is a physiological response, not a personal failing.",
+    strategies: ["Deep breathing exercises (4-7-8 technique: inhale 4s, hold 7s, exhale 8s) activate the parasympathetic nervous system.", "Regular exercise has strong evidence for reducing anxiety. As effective as medication for mild-moderate cases.", "CBT has been shown to be particularly effective for menopause-related anxiety.", "Limiting caffeine can help. Sensitivity often increases during menopause."],
+    stages: { perimenopause: "Anxiety often peaks during perimenopause when hormone fluctuations are greatest. It's one of the symptoms most likely to improve with time.", postmenopause: "Many women find anxiety decreases significantly in postmenopause as hormones stabilize.", surgical: "Anxiety after surgical menopause can be intense due to the sudden hormone drop. Don't hesitate to seek support." },
     whenToSeeDoc: "If anxiety is interfering with daily life, relationships, or sleep, talk to your provider. Both HT and targeted medications can be very effective."
   },
   "joint pain": {
-    prevalence: "Joint pain affects more than 50% of menopausal women — it's far more common than most people realize.",
+    prevalence: "Joint pain affects more than 50% of menopausal women. It's far more common than most people realize.",
     science: "Estrogen has anti-inflammatory properties and helps maintain joint cartilage and synovial fluid. As estrogen declines, joints can become stiffer and more painful, particularly in the hands, knees, and hips.",
-    strategies: ["Regular movement — even gentle stretching and walking — helps maintain joint lubrication and flexibility.", "Anti-inflammatory foods (fatty fish, berries, leafy greens, turmeric) may help reduce joint inflammation.", "Strength training builds muscle around joints, providing better support and reducing pain.", "Maintaining a healthy weight reduces stress on weight-bearing joints."],
-    stages: { perimenopause: "Joint pain often appears in perimenopause and can be one of the first noticeable symptoms.", postmenopause: "For some women, HT can significantly improve joint symptoms — it's worth discussing.", surgical: "Joint symptoms may be more sudden after surgical menopause due to rapid estrogen decline." },
+    strategies: ["Regular movement. Even gentle stretching and walking. Helps maintain joint lubrication and flexibility.", "Anti-inflammatory foods (fatty fish, berries, leafy greens, turmeric) may help reduce joint inflammation.", "Strength training builds muscle around joints, providing better support and reducing pain.", "Maintaining a healthy weight reduces stress on weight-bearing joints."],
+    stages: { perimenopause: "Joint pain often appears in perimenopause and can be one of the first noticeable symptoms.", postmenopause: "For some women, HT can significantly improve joint symptoms. It's worth discussing.", surgical: "Joint symptoms may be more sudden after surgical menopause due to rapid estrogen decline." },
     whenToSeeDoc: "If joint pain is new, persistent, or limiting your activity, see your provider. They can distinguish menopause-related joint changes from other conditions like inflammatory arthritis."
   },
   "poor sleep": {
-    prevalence: "Up to 60% of menopausal women report sleep disturbances — it's one of the most impactful symptoms.",
+    prevalence: "Up to 60% of menopausal women report sleep disturbances. It's one of the most impactful symptoms.",
     science: "Estrogen and progesterone both play roles in sleep regulation. Night sweats, anxiety, and changes in melatonin production all contribute to disrupted sleep during menopause.",
-    strategies: ["Keep a consistent sleep schedule — your circadian rhythm becomes more sensitive during menopause.", "Avoid screens 1 hour before bed — blue light suppresses melatonin, which already decreases with age.", "Cool, dark, quiet bedroom environment. Temperature is especially important during menopause.", "Magnesium glycinate (200-400mg before bed) has evidence for improving sleep quality in midlife women."],
-    stages: { perimenopause: "Sleep disruption often worsens as perimenopause progresses, particularly due to night sweats and anxiety.", postmenopause: "Sleep typically improves in later postmenopause, though it may not fully return to pre-menopausal patterns.", surgical: "Sleep disruption after surgical menopause can be significant — HT often helps substantially." },
+    strategies: ["Keep a consistent sleep schedule. Your circadian rhythm becomes more sensitive during menopause.", "Avoid screens 1 hour before bed. Blue light suppresses melatonin, which already decreases with age.", "Cool, dark, quiet bedroom environment. Temperature is especially important during menopause.", "Magnesium glycinate (200-400mg before bed) has evidence for improving sleep quality in midlife women."],
+    stages: { perimenopause: "Sleep disruption often worsens as perimenopause progresses, particularly due to night sweats and anxiety.", postmenopause: "Sleep typically improves in later postmenopause, though it may not fully return to pre-menopausal patterns.", surgical: "Sleep disruption after surgical menopause can be significant. HT often helps substantially." },
     whenToSeeDoc: "If sleep issues persist despite good sleep hygiene, discuss with your provider. They can screen for sleep apnea (risk increases after menopause) and discuss treatment options."
   },
   "irritability": {
     prevalence: "Irritability and mood changes affect up to 70% of women during the menopause transition.",
-    science: "Estrogen fluctuations affect serotonin, dopamine, and norepinephrine — all key mood regulators. Add sleep disruption and other symptoms on top, and irritability is a natural response.",
-    strategies: ["Regular exercise is one of the most effective mood regulators — even a 20-minute walk can help.", "Mindfulness and stress-reduction techniques have strong evidence for mood management during menopause.", "Adequate sleep is crucial — irritability and sleep deprivation are closely linked.", "Communicate with family/friends about what you're experiencing. Understanding helps everyone."],
-    stages: { perimenopause: "Mood fluctuations tend to be most intense during perimenopause, particularly in the 1-2 years before your final period.", postmenopause: "Most women find mood stabilizes in postmenopause as hormones settle.", surgical: "Mood changes after surgical menopause can be intense — HT may help significantly." },
+    science: "Estrogen fluctuations affect serotonin, dopamine, and norepinephrine. All key mood regulators. Add sleep disruption and other symptoms on top, and irritability is a natural response.",
+    strategies: ["Regular exercise is one of the most effective mood regulators. Even a 20-minute walk can help.", "Mindfulness and stress-reduction techniques have strong evidence for mood management during menopause.", "Adequate sleep is crucial. Irritability and sleep deprivation are closely linked.", "Communicate with family/friends about what you're experiencing. Understanding helps everyone."],
+    stages: { perimenopause: "Mood fluctuations tend to be most intense during perimenopause, particularly in the 1-2 years before your final period.", postmenopause: "Most women find mood stabilizes in postmenopause as hormones settle.", surgical: "Mood changes after surgical menopause can be intense. HT may help significantly." },
     whenToSeeDoc: "If irritability is affecting your relationships or quality of life, talk to your provider. Both HT and certain antidepressants (SSRIs/SNRIs) can help."
   },
   "depression": {
     prevalence: "Women are 2-4 times more likely to experience depression during the menopause transition compared to premenopause.",
-    science: "Estrogen modulates serotonin receptors and production. The hormonal instability of perimenopause can trigger depressive episodes even in women with no prior history. This is not 'just hormones' — it's a real neurochemical change.",
-    strategies: ["Exercise has strong evidence for treating mild-moderate depression — aim for 150 minutes/week of moderate activity.", "Social connection is protective. Isolation worsens depression — lean into your support network.", "Sunlight exposure (especially morning light) helps regulate mood-related neurotransmitters.", "CBT and mindfulness-based therapies have strong evidence for menopause-related mood changes."],
-    stages: { perimenopause: "Depression risk peaks during the menopause transition, particularly in late perimenopause.", postmenopause: "Depression risk typically decreases in later postmenopause.", surgical: "Risk of depression is elevated after surgical menopause — proactive treatment planning is important." },
-    whenToSeeDoc: "Please reach out to your healthcare provider. Depression during menopause is highly treatable with therapy, medication, or HT — you don't have to push through this alone."
+    science: "Estrogen modulates serotonin receptors and production. The hormonal instability of perimenopause can trigger depressive episodes even in women with no prior history. This is not 'just hormones'. It's a real neurochemical change.",
+    strategies: ["Exercise has strong evidence for treating mild-moderate depression. Aim for 150 minutes/week of moderate activity.", "Social connection is protective. Isolation worsens depression. Lean into your support network.", "Sunlight exposure (especially morning light) helps regulate mood-related neurotransmitters.", "CBT and mindfulness-based therapies have strong evidence for menopause-related mood changes."],
+    stages: { perimenopause: "Depression risk peaks during the menopause transition, particularly in late perimenopause.", postmenopause: "Depression risk typically decreases in later postmenopause.", surgical: "Risk of depression is elevated after surgical menopause. Proactive treatment planning is important." },
+    whenToSeeDoc: "Please reach out to your healthcare provider. Depression during menopause is highly treatable with therapy, medication, or HT. You don't have to push through this alone."
   },
   "palpitation": {
     prevalence: "Heart palpitations affect about 25-40% of menopausal women and are usually harmless, though they can be alarming.",
-    science: "Estrogen helps regulate heart rhythm. As levels fluctuate, you may notice your heart racing, skipping beats, or pounding — often during or after a hot flash.",
-    strategies: ["Deep breathing during an episode can help slow your heart rate.", "Reducing caffeine and alcohol can decrease palpitation frequency.", "Regular exercise strengthens your cardiovascular system and can reduce episodes.", "Staying hydrated is important — dehydration can trigger palpitations."],
+    science: "Estrogen helps regulate heart rhythm. As levels fluctuate, you may notice your heart racing, skipping beats, or pounding. Often during or after a hot flash.",
+    strategies: ["Deep breathing during an episode can help slow your heart rate.", "Reducing caffeine and alcohol can decrease palpitation frequency.", "Regular exercise strengthens your cardiovascular system and can reduce episodes.", "Staying hydrated is important. Dehydration can trigger palpitations."],
     stages: { perimenopause: "Palpitations tend to be most common during perimenopause when hormones fluctuate most.", postmenopause: "They typically decrease as hormone levels stabilize.", surgical: "Palpitations may be more frequent immediately after surgical menopause." },
     whenToSeeDoc: "While menopause-related palpitations are usually benign, any new palpitations should be evaluated by your provider to rule out cardiac causes."
   },
   "headache": {
     prevalence: "About 30-40% of menopausal women experience increased headaches or migraines.",
     science: "Estrogen withdrawal can trigger headaches and migraines. Women who had menstrual migraines are particularly susceptible during perimenopause.",
-    strategies: ["Staying hydrated — dehydration is a common and easily fixable headache trigger.", "Regular sleep schedule helps prevent hormone-related headaches.", "Magnesium supplementation (400mg/day) has evidence for migraine prevention.", "Identify your personal triggers through tracking — that's exactly what you're doing here."],
-    stages: { perimenopause: "Headaches often worsen during perimenopause due to fluctuating estrogen.", postmenopause: "Many women — especially migraine sufferers — find significant improvement in postmenopause.", surgical: "Headache patterns can change after surgical menopause and may respond well to stable HT." },
+    strategies: ["Staying hydrated. Dehydration is a common and easily fixable headache trigger.", "Regular sleep schedule helps prevent hormone-related headaches.", "Magnesium supplementation (400mg/day) has evidence for migraine prevention.", "Identify your personal triggers through tracking. That's exactly what you're doing here."],
+    stages: { perimenopause: "Headaches often worsen during perimenopause due to fluctuating estrogen.", postmenopause: "Many women. Especially migraine sufferers. Find significant improvement in postmenopause.", surgical: "Headache patterns can change after surgical menopause and may respond well to stable HT." },
     whenToSeeDoc: "If headaches are new, changing in pattern, or not responding to over-the-counter treatment, see your provider."
   },
   "weight change": {
     prevalence: "Women gain an average of 5-8 pounds during the menopause transition, with a shift toward abdominal fat storage.",
     science: "Declining estrogen changes how your body stores fat (more abdominally), reduces metabolic rate by about 50 calories/day, and can increase appetite through hormonal signals.",
-    strategies: ["Strength training is especially important — it counteracts the muscle loss that slows metabolism.", "Protein intake (20-30g per meal) helps maintain muscle mass and promotes satiety.", "Focus on body composition rather than scale weight — muscle weighs more than fat.", "A Mediterranean-style eating pattern has the best evidence for midlife weight management."],
-    stages: { perimenopause: "Weight shifts often begin in perimenopause as metabolic changes take effect.", postmenopause: "Metabolic rate continues to decrease, making strength training increasingly important.", surgical: "Rapid hormone changes can accelerate metabolic shifts — early intervention with exercise helps." },
+    strategies: ["Strength training is especially important. It counteracts the muscle loss that slows metabolism.", "Protein intake (20-30g per meal) helps maintain muscle mass and promotes satiety.", "Focus on body composition rather than scale weight. Muscle weighs more than fat.", "A Mediterranean-style eating pattern has the best evidence for midlife weight management."],
+    stages: { perimenopause: "Weight shifts often begin in perimenopause as metabolic changes take effect.", postmenopause: "Metabolic rate continues to decrease, making strength training increasingly important.", surgical: "Rapid hormone changes can accelerate metabolic shifts. Early intervention with exercise helps." },
     whenToSeeDoc: "If you're experiencing rapid or unexplained weight changes, check thyroid function and discuss metabolic health with your provider."
   },
   "low libido": {
-    prevalence: "Up to 52% of women report decreased sexual desire during menopause — it's one of the most common but least discussed symptoms.",
+    prevalence: "Up to 52% of women report decreased sexual desire during menopause. It's one of the most common but least discussed symptoms.",
     science: "Both estrogen and testosterone decline during menopause, affecting desire, arousal, and physical comfort. Vaginal dryness, fatigue, mood changes, and body image can also contribute.",
     strategies: ["Vaginal moisturizers (used regularly) and lubricants (during intimacy) can address physical discomfort.", "Open communication with your partner about changes reduces pressure and improves connection.", "Regular physical activity boosts body confidence and increases blood flow.", "Pelvic floor exercises can improve sexual function and sensation."],
     stages: { perimenopause: "Desire may fluctuate unpredictably along with hormones.", postmenopause: "Low estrogen and testosterone can reduce desire, but many women find satisfying solutions.", surgical: "Libido changes can be more abrupt after surgical menopause." },
@@ -2103,14 +2103,14 @@ const SYMPTOM_KNOWLEDGE = {
   "vaginal dryness": {
     prevalence: "Up to 50% of postmenopausal women experience vaginal dryness, though many don't report it to their doctor.",
     science: "Estrogen maintains vaginal tissue elasticity, moisture, and pH. As estrogen declines, tissues can become thinner, drier, and more susceptible to irritation and infection.",
-    strategies: ["Regular use of vaginal moisturizers (not just lubricants) helps maintain tissue health.", "Sexual activity (including solo) helps maintain blood flow and tissue elasticity.", "Avoid irritating products — scented soaps, douches, and some laundry detergents.", "Stay well hydrated — it helps all mucous membranes."],
+    strategies: ["Regular use of vaginal moisturizers (not just lubricants) helps maintain tissue health.", "Sexual activity (including solo) helps maintain blood flow and tissue elasticity.", "Avoid irritating products. Scented soaps, douches, and some laundry detergents.", "Stay well hydrated. It helps all mucous membranes."],
     stages: { perimenopause: "Vaginal changes often begin in late perimenopause.", postmenopause: "Unlike hot flashes, vaginal symptoms typically don't improve on their own and may worsen without treatment.", surgical: "Changes can be more rapid after surgical menopause." },
-    whenToSeeDoc: "Local vaginal estrogen therapy is considered safe and highly effective — even for women who can't take systemic HT. Ask your provider about it."
+    whenToSeeDoc: "Local vaginal estrogen therapy is considered safe and highly effective. Even for women who can't take systemic HT. Ask your provider about it."
   },
   "bloating": {
     prevalence: "Bloating and digestive changes are reported by about 40% of menopausal women.",
     science: "Estrogen and progesterone influence gut motility, water retention, and the gut microbiome. Fluctuating hormones can cause bloating, gas, and changes in bowel habits.",
-    strategies: ["Eat smaller, more frequent meals rather than large ones.", "Probiotics and fermented foods may help support your changing gut microbiome.", "Stay hydrated and increase fiber gradually — too much too fast worsens bloating.", "Regular physical activity helps maintain healthy gut motility."],
+    strategies: ["Eat smaller, more frequent meals rather than large ones.", "Probiotics and fermented foods may help support your changing gut microbiome.", "Stay hydrated and increase fiber gradually. Too much too fast worsens bloating.", "Regular physical activity helps maintain healthy gut motility."],
     stages: { perimenopause: "Bloating often fluctuates with hormonal cycles during perimenopause.", postmenopause: "Digestive symptoms usually stabilize in postmenopause.", surgical: "Digestive changes can occur as the body adjusts to new hormone levels." },
     whenToSeeDoc: "If bloating is persistent, severe, or accompanied by significant changes in bowel habits, see your provider to rule out other causes."
   }
@@ -2149,12 +2149,12 @@ const TRIGGER_KNOWLEDGE = {
   caffeine: {
     science: "Caffeine is a central nervous system stimulant that can trigger hot flashes by dilating blood vessels. It also blocks adenosine (a sleep-promoting neurotransmitter), worsening sleep issues. Sensitivity to caffeine often increases during menopause.",
     tip: "Try reducing gradually rather than quitting cold turkey. Switching to half-caf or cutting off caffeine by noon may be enough.",
-    nuance: "Some studies show caffeine doesn't significantly worsen menopause symptoms for everyone — your personal data is your best guide."
+    nuance: "Some studies show caffeine doesn't significantly worsen menopause symptoms for everyone. Your personal data is your best guide."
   },
   alcohol: {
     science: "Alcohol dilates blood vessels (triggering hot flashes), disrupts sleep architecture (you fall asleep faster but sleep quality is worse), and can worsen anxiety and mood instability. Even moderate intake can amplify symptoms.",
     tip: "If you enjoy alcohol, try tracking which types and amounts affect you most. Red wine tends to be more triggering for hot flashes than other types.",
-    nuance: "The relationship is dose-dependent — one glass occasionally may be fine, while regular consumption may noticeably worsen symptoms."
+    nuance: "The relationship is dose-dependent. One glass occasionally may be fine, while regular consumption may noticeably worsen symptoms."
   },
   exercise: {
     science: "Regular exercise is one of the strongest evidence-based strategies for managing menopause symptoms. It improves mood (via endorphins), strengthens bones, improves sleep, and helps manage weight. Its direct effect on hot flash frequency is debated, but it significantly improves overall quality of life. The evidence supports 150 minutes/week of moderate aerobic activity plus 2 sessions of strength training.",
@@ -2167,7 +2167,7 @@ const TRIGGER_KNOWLEDGE = {
     nuance: "You can't eliminate stress, but your response to it can be modified. Women who practice mindfulness report fewer and less bothersome symptoms."
   },
   sleep: {
-    science: "Sleep is a multiplier — poor sleep worsens nearly every other menopause symptom. It increases pain sensitivity, lowers mood, reduces cognitive function, and even makes hot flashes feel more intense. Prioritizing sleep quality is one of the highest-impact things you can do.",
+    science: "Sleep is a multiplier. Poor sleep worsens nearly every other menopause symptom. It increases pain sensitivity, lowers mood, reduces cognitive function, and even makes hot flashes feel more intense. Prioritizing sleep quality is one of the highest-impact things you can do.",
     tip: "Sleep hygiene matters more during menopause: consistent schedule, cool room, no screens before bed, limit caffeine after noon.",
     nuance: "If you're doing everything right and still sleeping poorly, discuss with your provider. Sleep apnea risk increases after menopause and is often undiagnosed in women."
   }
@@ -2287,7 +2287,7 @@ function generateResponse(handler, logs, profile) {
   const stageNote = stage ? ` During ${stage.toLowerCase()}, this is quite common.` : "";
   const energyLogs = logs.filter((l) => l.energy !== null && l.energy !== undefined);
   const avgEnergy = energyLogs.length > 0 ? Math.round(energyLogs.slice(0, 14).reduce((s, l) => s + l.energy, 0) / Math.min(energyLogs.length, 14) * 10) / 10 : null;
-  const energyNote = avgEnergy !== null ? (avgEnergy <= 1 ? " I also notice your energy has been quite low — that's worth mentioning to your provider." : avgEnergy >= 3 ? " Your energy levels have been looking good, which is a positive sign." : "") : "";
+  const energyNote = avgEnergy !== null ? (avgEnergy <= 1 ? " I also notice your energy has been quite low. That's worth mentioning to your provider." : avgEnergy >= 3 ? " Your energy levels have been looking good, which is a positive sign." : "") : "";
 
   // Helper: suggest a relevant follow-up question
   const suggestFollowUp = (handler, param) => {
@@ -2311,7 +2311,7 @@ function generateResponse(handler, logs, profile) {
 
   // ─── NEW: Help handler ───
   if (handler.handler === "help") {
-    return `I analyze your logged data to help you understand your patterns. Here's what I can help with:\n\n• Ask about any symptom — "How are my hot flashes?"\n• Trigger analysis — "How does caffeine affect me?"\n• Compound questions — "What triggers my brain fog?"\n• Trends — "Am I getting better or worse?"\n• Day analysis — "Which day is best for me?"\n• Doctor prep — "What should I tell my doctor?"\n• Weekly recap — "How am I doing this week?"\n\nThe more you log, the smarter my answers get!`;
+    return `I analyze your logged data to help you understand your patterns. Here's what I can help with:\n\n• Ask about any symptom. "How are my hot flashes?"\n• Trigger analysis. "How does caffeine affect me?"\n• Compound questions. "What triggers my brain fog?"\n• Trends. "Am I getting better or worse?"\n• Day analysis. "Which day is best for me?"\n• Doctor prep. "What should I tell my doctor?"\n• Weekly recap. "How am I doing this week?"\n\nThe more you log, the smarter my answers get!`;
   }
 
   // ─── NEW: Thanks handler ───
@@ -2383,7 +2383,7 @@ function generateResponse(handler, logs, profile) {
     const pctWith = Math.round(rateWith * 100);
     const pctWithout = Math.round(rateWithout * 100);
     if (pctWith > pctWithout + 10) return `There may be a connection: ${symptom} appears ${pctWith}% of the time on ${trigger} days, vs ${pctWithout}% on non-${trigger} days. That's a ${pctWith - pctWithout} percentage point difference.${stageNote} Worth discussing with your provider.` + suggestFollowUp("triggerSymptom", handler.param);
-    if (pctWith < pctWithout - 10) return `Interesting — ${symptom} actually appears less on ${trigger} days (${pctWith}% vs ${pctWithout}%). ${trigger} might be helping with this one!` + suggestFollowUp("triggerSymptom", handler.param);
+    if (pctWith < pctWithout - 10) return `Interesting. ${symptom} actually appears less on ${trigger} days (${pctWith}% vs ${pctWithout}%). ${trigger} might be helping with this one!` + suggestFollowUp("triggerSymptom", handler.param);
     return `${trigger} doesn't seem to have a strong effect on your ${symptom} specifically. It appears about ${pctWith}% of the time either way. Other factors might be more relevant.` + suggestFollowUp("triggerSymptom", handler.param);
   }
 
@@ -2406,8 +2406,8 @@ function generateResponse(handler, logs, profile) {
     if (avgEnergy !== null) msg += `Energy correlation: ${avgEnergy >= 2.5 ? "your energy and mood are both in a decent place" : "your energy has been low, which often pulls mood down too"}.\n`;
     // Research-backed mood context
     const moodKnowledge = data.recentMood < 2 ?
-      `\n📚 Estrogen helps regulate serotonin — your brain's "feel good" neurotransmitter. As estrogen fluctuates, mood dips are a physiological response, not a character flaw. Research shows mood changes are most intense during the transition and typically improve afterward.` :
-      `\n📚 Research shows that mood during menopause is influenced by hormonal changes, sleep quality, stress, and social support. The fact that you're tracking is itself a positive step — self-awareness is linked to better emotional regulation.`;
+      `\n📚 Estrogen helps regulate serotonin. Your brain's "feel good" neurotransmitter. As estrogen fluctuates, mood dips are a physiological response, not a character flaw. Research shows mood changes are most intense during the transition and typically improve afterward.` :
+      `\n📚 Research shows that mood during menopause is influenced by hormonal changes, sleep quality, stress, and social support. The fact that you're tracking is itself a positive step. Self-awareness is linked to better emotional regulation.`;
     msg += moodKnowledge;
     if (data.recentMood < 1.5) msg += `\n\n💡 If your mood has been consistently low, please consider talking to your healthcare provider. Depression during menopause is very common and highly treatable.`;
     else msg += `\n\n💡 Regular exercise (even 20 minutes) has evidence as strong as medication for mild-moderate mood changes during menopause.`;
@@ -2437,8 +2437,8 @@ function generateResponse(handler, logs, profile) {
     }
     // Research-backed energy context
     msg += `\n\n📚 Menopause-related fatigue is multifactorial: disrupted sleep, hormonal shifts affecting energy metabolism, and the cumulative toll of other symptoms. Up to 85% of menopausal women report it.`;
-    if (avg <= 1.5) msg += `\n\n💡 Your energy has been quite low. Checking iron, B12, thyroid, and vitamin D levels with your provider is a good idea — these are common, easily treatable contributors to fatigue in midlife women.`;
-    else msg += `\n\n💡 Regular moderate exercise paradoxically increases energy. Consistent wake times — even on weekends — also help regulate your circadian rhythm.`;
+    if (avg <= 1.5) msg += `\n\n💡 Your energy has been quite low. Checking iron, B12, thyroid, and vitamin D levels with your provider is a good idea. These are common, easily treatable contributors to fatigue in midlife women.`;
+    else msg += `\n\n💡 Regular moderate exercise paradoxically increases energy. Consistent wake times. Even on weekends. Also help regulate your circadian rhythm.`;
     return msg + suggestFollowUp("energy");
   }
 
@@ -2450,7 +2450,7 @@ function generateResponse(handler, logs, profile) {
       if (knowledge) msg += `\n\n📚 For context: ${knowledge.prevalence}`;
       return msg;
     }
-    const trendWord = data.trend === "increasing" ? "more frequently" : data.trend === "decreasing" ? "less often — that's encouraging!" : "at about the same rate";
+    const trendWord = data.trend === "increasing" ? "more frequently" : data.trend === "decreasing" ? "less often. That's encouraging!" : "at about the same rate";
     let msg = `Looking at your ${handler.param} pattern: you've logged it ${data.recentCount} times in the last 2 weeks, compared to ${data.prevCount} the 2 weeks before. It's appearing ${trendWord}.`;
     // Severity info
     if (data.recentSev > 0 && data.prevSev > 0) {
@@ -2477,7 +2477,7 @@ function generateResponse(handler, logs, profile) {
     }
     // Concern callout
     if (concern && handler.param.toLowerCase().includes(concern.toLowerCase().split(" ")[0])) {
-      msg += `\n\n📌 This is one of the concerns you flagged during onboarding — I'm keeping a close eye on it.`;
+      msg += `\n\n📌 This is one of the concerns you flagged during onboarding. I'm keeping a close eye on it.`;
     }
     return msg + suggestFollowUp("symptomTrend", handler.param);
   }
@@ -2524,9 +2524,9 @@ function generateResponse(handler, logs, profile) {
     const worst = results.filter((r) => r.impact === "worsens").sort((a, b) => b.avgSymptomsWith - a.avgSymptomsWith);
     const best = results.filter((r) => r.impact === "helps");
     let msg = "";
-    if (worst.length > 0) msg += `Based on your logs, these show a possible link to more symptoms: ${worst.map((w) => `${w.triggerName} (+${(w.avgSymptomsWith - w.avgSymptomsWithout).toFixed(1)} symptoms/day)`).join(", ")}. Note: individual patterns may differ from clinical evidence — share these findings with your provider. `;
+    if (worst.length > 0) msg += `Based on your logs, these show a possible link to more symptoms: ${worst.map((w) => `${w.triggerName} (+${(w.avgSymptomsWith - w.avgSymptomsWithout).toFixed(1)} symptoms/day)`).join(", ")}. Note: individual patterns may differ from clinical evidence. Share these findings with your provider. `;
     if (best.length > 0) msg += `Your data also suggests ${best.map((b) => b.triggerName).join(" and ")} may be associated with fewer symptoms. `;
-    if (msg === "") msg = "I need a bit more trigger data to give you a clear picture. Keep logging what you eat, drink, and do — I'll spot the connections!";
+    if (msg === "") msg = "I need a bit more trigger data to give you a clear picture. Keep logging what you eat, drink, and do. I'll spot the connections!";
     // Add research context for the worst trigger
     if (worst.length > 0) {
       const topTrigger = worst[0].triggerName.toLowerCase().replace("poor ", "");
@@ -2545,8 +2545,8 @@ function generateResponse(handler, logs, profile) {
     if (data.recentDays < 3) return concern ? `I need a few more days of ${concern} data to spot a reliable trend. Keep logging!` : "I need a few more days of data to spot a reliable trend. Keep logging!";
     const energyTrend = data.recentEnergy > 0 && data.prevEnergy > 0 ? (data.recentEnergy > data.prevEnergy ? " Your energy is also trending up!" : data.recentEnergy < data.prevEnergy ? " I notice your energy has dipped a bit too." : "") : "";
     if (data.direction === "improving") {
-      let msg = `Great news — you're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}.${energyTrend} Whatever you're doing, it's working!`;
-      msg += `\n\n📚 Research shows that the menopause transition is not a steady decline — many women experience periods of improvement. Consistent tracking helps you identify what's working so you can do more of it.`;
+      let msg = `Great news. You're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}.${energyTrend} Whatever you're doing, it's working!`;
+      msg += `\n\n📚 Research shows that the menopause transition is not a steady decline. Many women experience periods of improvement. Consistent tracking helps you identify what's working so you can do more of it.`;
       return msg + suggestFollowUp("trend");
     }
     if (data.direction === "worse") {
@@ -2563,11 +2563,11 @@ function generateResponse(handler, logs, profile) {
           msg += `\n\n💡 ${topKnowledge.strategies[0]}`;
         }
       }
-      msg += `\n\n📚 Symptom fluctuation is normal during the menopausal transition — research shows symptoms naturally wax and wane. This isn't a setback, it's part of the process.${energyNote}`;
-      if (data.recentSymptoms > 4) msg += ` If this pattern continues, consider bringing your Vela data to your healthcare provider — they can help.`;
+      msg += `\n\n📚 Symptom fluctuation is normal during the menopausal transition. Research shows symptoms naturally wax and wane. This isn't a setback, it's part of the process.${energyNote}`;
+      if (data.recentSymptoms > 4) msg += ` If this pattern continues, consider bringing your Vela data to your healthcare provider. They can help.`;
       return msg + suggestFollowUp("trend");
     }
-    let stableMsg = `Things are holding steady — ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}.${energyTrend}`;
+    let stableMsg = `Things are holding steady. ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}.${energyTrend}`;
     stableMsg += `\n\n📚 Stability is actually a positive sign. Research shows that many women reach a "new baseline" during menopause where symptoms become predictable and manageable. You may be finding yours.`;
     return stableMsg + suggestFollowUp("trend");
   }
@@ -2588,7 +2588,7 @@ function generateResponse(handler, logs, profile) {
       const topK = getSymptomKnowledge(topEntry[0]);
       if (topK) msg += `\n\n📚 About your most frequent symptom (${topEntry[0]}): ${topK.whenToSeeDoc}`;
     }
-    msg += "\n\n📋 Tip: Generate a full PDF report from the Doctor Prep section — providers respond well to structured data.";
+    msg += "\n\n📋 Tip: Generate a full PDF report from the Doctor Prep section. Providers respond well to structured data.";
     return msg;
   }
 
@@ -2606,10 +2606,10 @@ function generateResponse(handler, logs, profile) {
       if (data.worst.avgEnergy !== null) msg += `, energy: ${data.worst.avgEnergy}`;
       msg += `). `;
     }
-    msg += `\n\n💡 Research on chronobiology suggests that aligning demanding tasks with your best days and scheduling recovery time on harder days can significantly improve quality of life. Your data gives you this advantage — use it!`;
+    msg += `\n\n💡 Research on chronobiology suggests that aligning demanding tasks with your best days and scheduling recovery time on harder days can significantly improve quality of life. Your data gives you this advantage. Use it!`;
     if (data.best && data.worst && data.best.day !== data.worst?.day) {
       const moodGap = (data.best.avgMood || 0) - (data.worst.avgMood || 0);
-      if (moodGap > 1) msg += `\n\n📊 The mood gap between your best and worst days is significant (${moodGap.toFixed(1)} points). Look at what's different about your ${data.worst.day} routine — sleep the night before, schedule, stress levels.`;
+      if (moodGap > 1) msg += `\n\n📊 The mood gap between your best and worst days is significant (${moodGap.toFixed(1)} points). Look at what's different about your ${data.worst.day} routine. Sleep the night before, schedule, stress levels.`;
     }
     return msg + suggestFollowUp("bestWorstDays");
   }
@@ -2624,7 +2624,7 @@ function generateResponse(handler, logs, profile) {
       const extra = correlations.slice(0, 3 - patterns.length).filter((c) => !patterns.some((pt) => pt.includes(c.text)));
       if (extra.length > 0) msg += "\n" + extra.map((c) => `• ${c.icon} ${c.text}`).join("\n");
     }
-    msg += `\n\nThese patterns are based on your personal data — everyone's experience is unique.${stageNote}`;
+    msg += `\n\nThese patterns are based on your personal data. Everyone's experience is unique.${stageNote}`;
     return msg + suggestFollowUp("patterns");
   }
 
@@ -2788,7 +2788,7 @@ const EXPERIMENTS = [
   { id: "sleep-hygiene-7", title: "Sleep before 10pm", desc: "Aim for 7+ hours of sleep for 7 nights", duration: 7, track: "sleepHours", trackValue: 7, icon: "🛏️", category: "sleep", xpReward: 50 },
   { id: "mood-journal-7", title: "Daily mood check", desc: "Log your mood every day for a full week", duration: 7, track: "mood", trackValue: true, icon: "📓", category: "tracking", xpReward: 40 },
   { id: "no-alcohol-14", title: "14-day alcohol reset", desc: "Skip alcohol for 2 weeks and compare your symptom patterns", duration: 14, track: "alcohol", trackValue: false, icon: "🍷", category: "triggers", xpReward: 75 },
-  { id: "stress-mgmt-7", title: "Low-stress week", desc: "Practice stress management — aim for stress level ≤3 for 7 days", duration: 7, track: "stress", trackValue: 3, icon: "🧘", category: "wellness", xpReward: 60 },
+  { id: "stress-mgmt-7", title: "Low-stress week", desc: "Practice stress management. Aim for stress level ≤3 for 7 days", duration: 7, track: "stress", trackValue: 3, icon: "🧘", category: "wellness", xpReward: 60 },
   { id: "hydration-7", title: "Hydration challenge", desc: "Note your water intake daily for 7 days. Stay hydrated!", duration: 7, track: "notes", trackValue: "water", icon: "💧", category: "wellness", xpReward: 40 },
   { id: "full-log-7", title: "Complete tracker", desc: "Log mood, symptoms, AND context every day for a week", duration: 7, track: "complete", trackValue: true, icon: "✅", category: "tracking", xpReward: 75 },
   { id: "morning-light-7", title: "Morning light exposure", desc: "Get outside within 30 minutes of waking for 7 days", duration: 7, track: "notes", trackValue: "morning light", icon: "🌅", category: "wellness", xpReward: 50 },
@@ -2811,32 +2811,32 @@ const CBT_PROGRAMS = [
     desc: "Cognitive-behavioral therapy has Level I evidence for reducing the impact of hot flashes. This program teaches you practical techniques week by week.",
     modules: [
       { week: 1, title: "Understanding your triggers", lessons: [
-        { day: 1, title: "What actually happens during a hot flash", content: "Hot flashes occur when your hypothalamus — the brain's thermostat — becomes more sensitive to small changes in body temperature. Understanding the mechanism helps you respond calmly rather than reactively." },
-        { day: 2, title: "Identifying your personal triggers", content: "Common triggers include warm environments, spicy food, alcohol, caffeine, and stress — but triggers are individual. Review your Vela logs today. Which days had hot flashes, and what context did you log?" },
+        { day: 1, title: "What actually happens during a hot flash", content: "Hot flashes occur when your hypothalamus. The brain's thermostat. Becomes more sensitive to small changes in body temperature. Understanding the mechanism helps you respond calmly rather than reactively." },
+        { day: 2, title: "Identifying your personal triggers", content: "Common triggers include warm environments, spicy food, alcohol, caffeine, and stress. But triggers are individual. Review your Vela logs today. Which days had hot flashes, and what context did you log?" },
         { day: 3, title: "The stress-hot flash connection", content: "Stress activates your sympathetic nervous system, which can trigger or intensify hot flashes. This week, notice: do hot flashes happen more during stressful moments?" },
         { day: 5, title: "Your trigger map", content: "By now you may see patterns. Write down your top 3 suspected triggers. Over the next weeks, we'll test these hypotheses with your tracking data." },
         { day: 7, title: "Week 1 reflection", content: "Review your logs from this week. How many hot flashes did you have? Any patterns with time of day, stress, or context? This is your baseline." },
       ]},
       { week: 2, title: "Paced breathing & relaxation", lessons: [
         { day: 1, title: "Introduction to paced breathing", content: "Slow, diaphragmatic breathing at 5-7 breaths per minute has been shown to reduce hot flash frequency in some studies. Try it: breathe in for 5 counts, out for 5 counts, for 5 minutes." },
-        { day: 2, title: "Using paced breathing in the moment", content: "When you feel a hot flash beginning, start paced breathing immediately. The goal isn't to stop it — it's to reduce the distress and duration. Practice during a calm moment first." },
+        { day: 2, title: "Using paced breathing in the moment", content: "When you feel a hot flash beginning, start paced breathing immediately. The goal isn't to stop it. It's to reduce the distress and duration. Practice during a calm moment first." },
         { day: 3, title: "Progressive muscle relaxation", content: "Tense each muscle group for 5 seconds, then release. Start from your toes and work up. This activates the parasympathetic nervous system, counteracting the stress response." },
-        { day: 5, title: "Building a relaxation routine", content: "Choose one technique — paced breathing or progressive relaxation — and practice it twice daily this week. Consistency matters more than duration. Even 3 minutes counts." },
+        { day: 5, title: "Building a relaxation routine", content: "Choose one technique. Paced breathing or progressive relaxation. And practice it twice daily this week. Consistency matters more than duration. Even 3 minutes counts." },
         { day: 7, title: "Week 2 check-in", content: "Compare this week's hot flash count to last week. Even if the number hasn't changed, has your experience of them shifted? Reduced distress is a real and measurable outcome." },
       ]},
       { week: 3, title: "Cognitive restructuring", lessons: [
         { day: 1, title: "Thoughts about hot flashes matter", content: "Research shows that catastrophic thoughts ('Everyone can see me sweating,' 'I can't handle this') intensify the hot flash experience. Today, notice your automatic thoughts when a hot flash occurs." },
-        { day: 2, title: "Challenging unhelpful thoughts", content: "When you notice a negative thought, ask: Is this definitely true? What would I say to a friend? A hot flash is uncomfortable but temporary — it typically peaks in 3-5 minutes." },
+        { day: 2, title: "Challenging unhelpful thoughts", content: "When you notice a negative thought, ask: Is this definitely true? What would I say to a friend? A hot flash is uncomfortable but temporary. It typically peaks in 3-5 minutes." },
         { day: 3, title: "Replacing with balanced thoughts", content: "Instead of 'This is unbearable,' try 'This is uncomfortable, and it will pass in a few minutes.' Instead of 'Everyone notices,' try 'Most people are focused on themselves.'" },
-        { day: 5, title: "The acceptance approach", content: "Paradoxically, accepting hot flashes rather than fighting them often reduces their impact. 'I'm having a hot flash. It's temporary. My body is adjusting.' This isn't giving up — it's a proven strategy." },
+        { day: 5, title: "The acceptance approach", content: "Paradoxically, accepting hot flashes rather than fighting them often reduces their impact. 'I'm having a hot flash. It's temporary. My body is adjusting.' This isn't giving up. It's a proven strategy." },
         { day: 7, title: "Week 3 reflection", content: "Which cognitive technique felt most natural? Write it down. Having a go-to thought pattern ready is the key to making CBT automatic rather than effortful." },
       ]},
       { week: 4, title: "Lifestyle integration", lessons: [
         { day: 1, title: "Your complete toolkit", content: "You now have: trigger awareness, paced breathing, relaxation techniques, and cognitive restructuring. This week, we combine them into a personalized action plan." },
-        { day: 2, title: "Environmental strategies", content: "Layer clothing, keep cold water nearby, use a fan. These aren't treatments — they're practical comfort strategies that pair with your CBT techniques." },
+        { day: 2, title: "Environmental strategies", content: "Layer clothing, keep cold water nearby, use a fan. These aren't treatments. They're practical comfort strategies that pair with your CBT techniques." },
         { day: 3, title: "Sleep and hot flashes", content: "Night sweats disrupt sleep, and poor sleep worsens daytime symptoms. Use your relaxation technique before bed. Keep your bedroom cool. Have a change of clothes ready." },
         { day: 5, title: "Your personal action plan", content: "Write your plan: 'When I feel a hot flash coming, I will [your chosen technique]. My thought will be [your balanced thought]. My environmental strategy is [your approach].'" },
-        { day: 7, title: "Program complete", content: "Compare your week 4 logs to week 1. Most women see improvement in hot flash distress, even if frequency hasn't changed. Reduced distress IS success. Continue using your techniques — they get easier with practice." },
+        { day: 7, title: "Program complete", content: "Compare your week 4 logs to week 1. Most women see improvement in hot flash distress, even if frequency hasn't changed. Reduced distress IS success. Continue using your techniques. They get easier with practice." },
       ]},
     ],
     xpReward: 200,
@@ -2857,18 +2857,18 @@ const CBT_PROGRAMS = [
         { day: 7, title: "Week 1 review", content: "Check your Vela logs: what's your average sleep this week? What time did you go to bed vs fall asleep? This data helps you set a realistic sleep window for next week." },
       ]},
       { week: 2, title: "Cognitive techniques for sleep", lessons: [
-        { day: 1, title: "Racing thoughts at bedtime", content: "Write worries in a 'worry journal' before bed — not in bed. Literally tell your brain: 'I've noted this. I'll address it tomorrow.' The act of writing externalizes the thought." },
-        { day: 2, title: "Clock-watching worsens insomnia", content: "Turn your clock away. Checking the time triggers anxiety ('It's 2am and I'm still awake!'), which triggers adrenaline, which prevents sleep. The time doesn't matter — only sleepiness does." },
+        { day: 1, title: "Racing thoughts at bedtime", content: "Write worries in a 'worry journal' before bed. Not in bed. Literally tell your brain: 'I've noted this. I'll address it tomorrow.' The act of writing externalizes the thought." },
+        { day: 2, title: "Clock-watching worsens insomnia", content: "Turn your clock away. Checking the time triggers anxiety ('It's 2am and I'm still awake!'), which triggers adrenaline, which prevents sleep. The time doesn't matter. Only sleepiness does." },
         { day: 3, title: "Managing night sweats", content: "If night sweats wake you: have a cool damp cloth ready, change clothes if needed, use your paced breathing. Don't check the time. Focus on returning to sleep, not the disruption." },
         { day: 5, title: "Daytime habits that affect sleep", content: "No caffeine after noon. Regular exercise (but not within 3 hours of bedtime). Brief morning sunlight exposure helps set your circadian rhythm. Small changes compound." },
         { day: 7, title: "Week 2 check-in", content: "Compare your sleep hours this week to last week. Are you falling asleep faster? Waking less? Even small improvements indicate your brain is re-learning healthy sleep patterns." },
       ]},
       { week: 3, title: "Sustaining good sleep", lessons: [
-        { day: 1, title: "Relaxation for sleep", content: "Try progressive muscle relaxation or a body scan meditation before bed. These activate the parasympathetic nervous system. The key is consistency — same technique, same time, every night." },
+        { day: 1, title: "Relaxation for sleep", content: "Try progressive muscle relaxation or a body scan meditation before bed. These activate the parasympathetic nervous system. The key is consistency. Same technique, same time, every night." },
         { day: 2, title: "When to talk to your doctor", content: "If sleep issues persist despite CBT-I techniques, discuss with your healthcare provider. They may evaluate for sleep apnea (more common post-menopause) or discuss short-term medication options." },
         { day: 3, title: "Building your sleep routine", content: "Your ideal routine: dim lights 1 hour before bed → worry journal → relaxation technique → bed (only when drowsy). This routine becomes a sleep signal for your brain." },
-        { day: 5, title: "Handling setbacks", content: "Bad nights will happen — that's normal. Don't compensate by sleeping in or napping long. Stick to your wake time. One bad night doesn't erase your progress." },
-        { day: 7, title: "Program complete", content: "Review your 3 weeks of sleep data. CBT-I shows cumulative benefit — your best improvements may come in the weeks after completing this program. Keep using your techniques." },
+        { day: 5, title: "Handling setbacks", content: "Bad nights will happen. That's normal. Don't compensate by sleeping in or napping long. Stick to your wake time. One bad night doesn't erase your progress." },
+        { day: 7, title: "Program complete", content: "Review your 3 weeks of sleep data. CBT-I shows cumulative benefit. Your best improvements may come in the weeks after completing this program. Keep using your techniques." },
       ]},
     ],
     xpReward: 150,
@@ -2890,24 +2890,24 @@ const CBT_PROGRAMS = [
       ]},
       { week: 2, title: "Challenging anxious thoughts", lessons: [
         { day: 1, title: "Catching automatic thoughts", content: "When you feel anxious, pause and ask: 'What am I thinking right now?' Write the thought down. Often, awareness alone reduces its power. Common ones: catastrophizing, mind-reading, fortune-telling." },
-        { day: 2, title: "Evidence for and against", content: "For each anxious thought, list evidence supporting it AND evidence against it. Usually the 'against' column is longer. This isn't positive thinking — it's balanced thinking." },
+        { day: 2, title: "Evidence for and against", content: "For each anxious thought, list evidence supporting it AND evidence against it. Usually the 'against' column is longer. This isn't positive thinking. It's balanced thinking." },
         { day: 3, title: "Decatastrophizing", content: "Ask: 'What's the worst that could happen? How would I cope? What's most likely to happen?' Most catastrophic predictions never materialize, and you're more resilient than anxiety tells you." },
         { day: 5, title: "Behavioral experiments", content: "Test your anxious predictions. If you think 'I'll fall apart if I go to that event,' go and observe what actually happens. Real-world evidence is the strongest antidote to anxiety." },
         { day: 7, title: "Week 2 reflection", content: "Which challenging technique worked best for you? There's no wrong answer. The technique that feels most natural is the one you'll actually use." },
       ]},
       { week: 3, title: "Building resilience", lessons: [
-        { day: 1, title: "The role of exercise", content: "Exercise has strong Level I evidence for improving mood during menopause. Even 30 minutes of brisk walking produces mood benefits. It's not about fitness — it's about neurochemistry." },
-        { day: 2, title: "Social connection matters", content: "Isolation worsens anxiety. Schedule one social interaction this week, even brief. The Vela community counts — connecting with others who understand your experience has measurable benefits." },
+        { day: 1, title: "The role of exercise", content: "Exercise has strong Level I evidence for improving mood during menopause. Even 30 minutes of brisk walking produces mood benefits. It's not about fitness. It's about neurochemistry." },
+        { day: 2, title: "Social connection matters", content: "Isolation worsens anxiety. Schedule one social interaction this week, even brief. The Vela community counts. Connecting with others who understand your experience has measurable benefits." },
         { day: 3, title: "Grounding techniques", content: "When anxiety spikes, try 5-4-3-2-1: Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste. This redirects your brain from threat mode to sensory mode." },
         { day: 5, title: "Self-compassion", content: "Talk to yourself like you'd talk to a friend going through this. 'This is hard, and it's okay to struggle. Many women experience this, and it does get better.' Self-compassion reduces cortisol." },
-        { day: 7, title: "Week 3 check-in", content: "Compare your mood scores to week 1. Are you seeing improvement? Remember: CBT is a skill — like any skill, it improves with practice." },
+        { day: 7, title: "Week 3 check-in", content: "Compare your mood scores to week 1. Are you seeing improvement? Remember: CBT is a skill. Like any skill, it improves with practice." },
       ]},
       { week: 4, title: "Your maintenance plan", lessons: [
         { day: 1, title: "Recognizing warning signs", content: "What are YOUR early signs of mood dipping? Changes in sleep, appetite, motivation, or social withdrawal? Catching it early means intervening early." },
         { day: 2, title: "Your wellness toolkit", content: "List your top 3 strategies from this program. Maybe it's challenging thoughts, exercise, and grounding. Write them where you'll see them. Simplicity is key." },
         { day: 3, title: "When to seek more help", content: "CBT self-help is effective for mild-moderate anxiety. If symptoms are severe, persistent, or interfering with daily life, talk to your healthcare provider. Therapy and/or medication may be appropriate." },
         { day: 5, title: "Hormones aren't everything", content: "Menopause coincides with major life changes: aging parents, empty nest, career shifts, relationship changes. Address ALL contributors to mood, not just hormonal ones." },
-        { day: 7, title: "Program complete", content: "You've built real skills. Mood changes during menopause typically improve over time, especially with the tools you now have. Continue tracking — your data shows your progress." },
+        { day: 7, title: "Program complete", content: "You've built real skills. Mood changes during menopause typically improve over time, especially with the tools you now have. Continue tracking. Your data shows your progress." },
       ]},
     ],
     xpReward: 200,
@@ -2945,7 +2945,7 @@ const css = `
        Translucent surfaces with backdrop-filter blur. Sage-tinted creams
        preserve the brand identity over content while adding the depth +
        refraction that defines Apple's iOS 26 Liquid Glass language. */
-    --glass-cream:        rgba(250, 246, 241, 0.72);   /* warm cream glass — primary floating surfaces */
+    --glass-cream:        rgba(250, 246, 241, 0.72);   /* warm cream glass. Primary floating surfaces */
     --glass-cream-strong: rgba(250, 246, 241, 0.88);   /* heavier opacity for high-contrast contexts */
     --glass-sage:         rgba(122, 158, 135, 0.16);   /* sage-tinted glass for accent surfaces */
     --glass-sage-card:    rgba(234, 240, 236, 0.78);   /* sage-cream glass for tip / insight cards */
@@ -2975,7 +2975,7 @@ const css = `
     --border:     #342820;
     --card-bg:    #241C17;
 
-    /* Liquid Glass tokens (dark) — warm dark glass keeps the calm, never reads as gray */
+    /* Liquid Glass tokens (dark). Warm dark glass keeps the calm, never reads as gray */
     --glass-cream:        rgba(26, 20, 18, 0.68);
     --glass-cream-strong: rgba(26, 20, 18, 0.86);
     --glass-sage:         rgba(143, 184, 155, 0.14);
@@ -3174,7 +3174,7 @@ const css = `
   .vela-greeting .meta { margin: 0; font-size: 13px; color: var(--ink-mid); letter-spacing: 0.01em; }
   .vela-greeting .meta .dot { margin: 0 7px; color: var(--ink-light); }
 
-  /* Section label (single source — overrides earlier .section-label) */
+  /* Section label (single source. Overrides earlier .section-label) */
   .today-section-label {
     font-size: 11px; font-weight: 500; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--ink-light);
@@ -3186,7 +3186,7 @@ const css = `
     color: var(--ink-light); font-size: 11px;
   }
 
-  /* Reveal card — sage glass with radial gradient overlay */
+  /* Reveal card. Sage glass with radial gradient overlay */
   /* Forecast card — light surface, list of probabilities + reason.
      Locked variant uses the gold gating accent. */
   .forecast-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
@@ -3248,7 +3248,7 @@ const css = `
   .reveal-foot { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink-mid); }
   .reveal-link { color: var(--sage-dark); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 
-  /* Mood row — square aspect tiles with custom SVG faces */
+  /* Mood row. Square aspect tiles with custom SVG faces */
   .mood-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
   .mood-tile {
     aspect-ratio: 1; background: var(--card-bg); border: 1px solid var(--border);
@@ -3265,7 +3265,7 @@ const css = `
   .mood-tile.active .label { color: var(--clay-dark); }
   .mood-tile:active { transform: scale(0.96); }
 
-  /* Energy row — 5 tiles with custom SVG bar glyph */
+  /* Energy row. 5 tiles with custom SVG bar glyph */
   .energy-row-v2 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
   .energy-tile {
     background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
@@ -3294,7 +3294,7 @@ const css = `
   }
   .seg button.active { background: var(--clay); color: #fff; font-weight: 600; }
 
-  /* Symptom grid — 3 columns, severity strip below name */
+  /* Symptom grid. 3 columns, severity strip below name */
   .symptom-grid-v2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .symptom-tile-v2 {
     background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
@@ -3318,7 +3318,7 @@ const css = `
   }
   .severity-strip .sev-dot.on { background: var(--clay); }
 
-  /* Context cards — 2-col grid */
+  /* Context cards. 2-col grid */
   .context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .context-card {
     background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
@@ -3630,7 +3630,7 @@ const css = `
   .suggest-card .suggest-cta { display: inline-flex; align-items: center; gap: 6px; background: var(--sage); color: #fff; border: none; border-radius: 999px; padding: 8px 14px 8px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; margin-left: 38px; }
   .suggest-card .suggest-cta.locked { background: linear-gradient(135deg, var(--gold), #BD8F38); }
 
-  /* Experiment promo CTA — when no experiments exist */
+  /* Experiment promo CTA. When no experiments exist */
   .exp-promo { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 14px; width: 100%; cursor: pointer; font-family: var(--font-sans); text-align: left; }
   .exp-promo .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .exp-promo .body { flex: 1; min-width: 0; }
@@ -3652,7 +3652,7 @@ const css = `
   .exp-lib-targets { font-size: 11px; color: var(--ink-light); letter-spacing: 0.02em; }
   .exp-lib-status { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sage-dark); }
 
-  /* Shelf — horizontal scroll cards */
+  /* Shelf. Horizontal scroll cards */
   .shelf-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
   .shelf-row::-webkit-scrollbar { display: none; }
   .shelf-card { flex: 0 0 220px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
@@ -5754,7 +5754,7 @@ function OnboardingScreen({ onComplete }) {
   useEffect(() => {
     try {
       localStorage.setItem("vela_onboarding_progress", JSON.stringify({ qIndex: step, answers }));
-    } catch { /* private mode — fine */ }
+    } catch { /* private mode. Fine */ }
   }, [step, answers]);
 
   const total = QUESTIONS.length;
@@ -5793,8 +5793,8 @@ function OnboardingScreen({ onComplete }) {
             </div>
             <h1>A quiet place for the <em>noisy years.</em></h1>
             <p className="blurb">
-              Vela learns the rhythm of your body — hot flashes, sleep, mood, the
-              rest — and shows you what's actually going on. No coaching, no fixes.
+              Vela learns the rhythm of your body. Hot flashes, sleep, mood, the
+              rest. And shows you what's actually going on. No coaching, no fixes.
               Just your data, kept private and made plain.
             </p>
             <div className="pillars">
@@ -5865,7 +5865,7 @@ function OnboardingScreen({ onComplete }) {
     } else {
       items.push({ title: "Make sense of your data", detail: "Plain-language insights, never advice." });
     }
-    if (guidanceIdx === 0) items.push({ title: "Two gentle nudges a day", detail: "Morning and evening — turn them off any time." });
+    if (guidanceIdx === 0) items.push({ title: "Two gentle nudges a day", detail: "Morning and evening. Turn them off any time." });
     else if (guidanceIdx === 1) items.push({ title: "Sunday summaries", detail: "One quiet email each week, nothing more." });
     else if (guidanceIdx === 2) items.push({ title: "No notifications", detail: "You'll come to Vela on your own time." });
 
@@ -5896,7 +5896,7 @@ function OnboardingScreen({ onComplete }) {
                   : primaryGoal === 2
                   ? "Track for seven days, then we'll suggest one small experiment based on what we see."
                   : primaryGoal === 3
-                  ? "Today's prompt is waiting in the Circle. No name, no thread — just shared moments."
+                  ? "Today's prompt is waiting in the Circle. No name, no thread. Just shared moments."
                   : "Log when you can. After a week, the patterns start to surface on their own."}
               </p>
             </div>
@@ -6092,7 +6092,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
             localStorage.setItem("vela_last_brief_date", today);
           } catch { /* private mode */ }
         }
-      } catch { /* network — try again tomorrow */ }
+      } catch { /* network. Try again tomorrow */ }
       finally { if (!cancelled) setBriefLoading(false); }
     })();
     return () => { cancelled = true; };
@@ -6142,7 +6142,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       celebText = "6 more days until your first pattern report.";
       celebIcon = "🌱";
     } else if (uniqueDays === 2) {
-      celebTitle = "Day 2 — building your baseline";
+      celebTitle = "Day 2. Building your baseline";
       celebText = concern
         ? `Vela is now watching your ${concern} patterns. 5 more days to insights.`
         : "Building your baseline. 5 more days to insights.";
@@ -6171,7 +6171,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         celebIcon = "👑";
       } else if (currentStreak === 21) {
         celebTitle = "21-day streak!";
-        celebText = "Three weeks strong. Research shows it takes 21 days to form a habit — tracking is now part of your routine.";
+        celebText = "Three weeks strong. Research shows it takes 21 days to form a habit. Tracking is now part of your routine.";
         celebIcon = "🏆";
       } else if (currentStreak === 14) {
         celebTitle = "14-day streak!";
@@ -6244,7 +6244,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       return {
         eyebrow: "Day 1 · Welcome",
         headline: <>This is where your <em>patterns</em> will live.</>,
-        body: "Log today below — even a quick mood check counts. After seven days, Vela starts surfacing the rhythms in your symptoms.",
+        body: "Log today below. Even a quick mood check counts. After seven days, Vela starts surfacing the rhythms in your symptoms.",
         chartType: "none",
         foot: "Up to 80% of women experience hot flashes during the menopausal transition.",
         link: null,
@@ -6255,7 +6255,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       return {
         eyebrow: `Day ${uniqueDays} · Building your baseline`,
         headline: <>Patterns will emerge in <em>{left} more day{left !== 1 ? "s" : ""}.</em></>,
-        body: "Keep logging daily — even a quick mood check counts. Your first weekly pattern report unlocks at seven days.",
+        body: "Keep logging daily. Even a quick mood check counts. Your first weekly pattern report unlocks at seven days.",
         chartType: "build",
         foot: `${uniqueDays} of 7 days logged so far.`,
         link: null,
@@ -6377,7 +6377,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
           </div>
         </section>
       ) : (
-        /* Reveal card — content morphs by data state */
+        /* Reveal card. Content morphs by data state */
         <section
           className="reveal-card-v2"
           onClick={reveal.link ? () => onNavigate && onNavigate("insights") : undefined}
@@ -6537,19 +6537,19 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       {/* Context */}
       <div className="today-section-label"><span>Context</span><span className="hint">Optional</span></div>
       <div className="context-grid">
-        {/* Sleep — stepper. Auto-fills from Apple Health when enabled. */}
+        {/* Sleep. Stepper. Auto-fills from Apple Health when enabled. */}
         <div className="context-card">
           <div className="label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><UIIcon name="Bed" size={13} /> Sleep</span>
             {hkSyncedSleep && (
-              <span className="hk-pill" title="Pulled from Apple Health — tap +/− to override">
+              <span className="hk-pill" title="Pulled from Apple Health. Tap +/− to override">
                 <UIIcon name="Heart" size={10} weight="fill" /> Health
               </span>
             )}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
             <span className="value">
-              {sleepHours !== null ? sleepHours : "—"}
+              {sleepHours !== null ? sleepHours : "-"}
               {sleepHours !== null && <span className="unit">hrs</span>}
             </span>
             <div className="context-stepper">
@@ -6559,12 +6559,12 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
           </div>
         </div>
 
-        {/* Stress — 1-5 dots */}
+        {/* Stress. 1-5 dots */}
         <div className="context-card">
           <div className="label"><UIIcon name="CloudLightning" size={13} /> Stress</div>
           <div>
             <div className="value" style={{ fontSize: 16 }}>
-              {stress !== null ? ["Calm", "Mild", "Moderate", "High", "Acute"][stress - 1] : "—"}
+              {stress !== null ? ["Calm", "Mild", "Moderate", "High", "Acute"][stress - 1] : "-"}
             </div>
             <div className="context-dots">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -6582,7 +6582,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
           </div>
         </div>
 
-        {/* Period — chips, full width */}
+        {/* Period. Chips, full width */}
         <div className="context-card" style={{ gridColumn: "1 / -1" }}>
           <div className="label"><UIIcon name="Drop" size={13} /> Period today</div>
           <div className="period-chips">
@@ -6641,7 +6641,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-          placeholder="A line or two on what shaped today — a meeting, a meal, a moment that helped."
+          placeholder="A line or two on what shaped today. A meeting, a meal, a moment that helped."
         />
       </div>
 
@@ -6778,7 +6778,7 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
         <section className="empty-card">
           <div className="glyph"><UIIcon name="FileText" size={26} /></div>
           <h3>Your story <em>starts today.</em></h3>
-          <p>Each entry builds a picture of your patterns. After seven days, Vela starts connecting the dots — until then, this is your private journal.</p>
+          <p>Each entry builds a picture of your patterns. After seven days, Vela starts connecting the dots. Until then, this is your private journal.</p>
           <button className="cta" type="button" onClick={() => onNavigate && onNavigate("tracker")}>
             <UIIcon name="Sparkle" size={14} /> Log your first entry
           </button>
@@ -7032,7 +7032,7 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
         );
       })}
 
-      {/* Show-older affordance — when feed is capped */}
+      {/* Show-older affordance. When feed is capped */}
       {cappedFeed && (
         <button
           type="button"
@@ -7210,7 +7210,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     if (logs.length < 7) {
       setChatMessages((prev) => [...prev, {
         role: "assistant",
-        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${logs.length} — keep going.`,
+        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${logs.length}. Keep going.`,
         time: new Date().toISOString(),
       }]);
       setIsTyping(false);
@@ -7482,14 +7482,14 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         </p>
       </section>
 
-      {/* LOCKED — single state, no other modules */}
+      {/* LOCKED. Single state, no other modules */}
       {isLocked && (
         <section className="locked-card">
           <div className="lock-glyph"><UIIcon name="Lock" size={22} /></div>
           <h3>Patterns unlock at <em>day 7</em></h3>
           <p>
             You're {7 - uniqueDays} {7 - uniqueDays === 1 ? "day" : "days"} away. Vela needs a week of entries to
-            spot rhythms in your symptoms — anything sooner would be guessing.
+            spot rhythms in your symptoms. Anything sooner would be guessing.
           </p>
           <div className="locked-progress" aria-label={`${uniqueDays} of 7 days logged`}>
             {Array.from({ length: 7 }).map((_, i) => (
@@ -7500,7 +7500,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
         </section>
       )}
 
-      {/* UNLOCKED — Day 7 reveal hero */}
+      {/* UNLOCKED. Day 7 reveal hero */}
       {!isLocked && dataState === "unlocked" && (
         <section className="unlock-card">
           <div className="unlock-eyebrow">
@@ -7514,7 +7514,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             )}
           </h2>
           <p className="unlock-body">
-            A starting signal. Your patterns sharpen with every week of logging — keep going.
+            A starting signal. Your patterns sharpen with every week of logging. Keep going.
           </p>
           <div className="unlock-row">
             <button className="unlock-btn-primary" type="button" onClick={dismissReveal}>See the week</button>
@@ -7531,7 +7531,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             <p className="quote">
               {topSymptomDef
                 ? <>Your top symptom this week: <em>{topSymptomName.toLowerCase()}</em>.</>
-                : <>A <em>steady week</em> of logging — keep going.</>}
+                : <>A <em>steady week</em> of logging. Keep going.</>}
             </p>
             <div className="week-stats">
               <div className="stat">
@@ -7544,7 +7544,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
               </div>
               <div className="stat">
                 <div className="v" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--clay)", minHeight: 30 }}>
-                  {avgMoodIdx !== null ? <MoodFace kind={MOOD_KIND[avgMoodIdx]} size={30} /> : "—"}
+                  {avgMoodIdx !== null ? <MoodFace kind={MOOD_KIND[avgMoodIdx]} size={30} /> : "-"}
                 </div>
                 <div className="l">Avg mood</div>
               </div>
@@ -7637,7 +7637,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 {!isPremium && <span className="ws-tag">Premium</span>}
               </div>
               <p className="ws-summary">
-                {isPremium ? weeklySummary.summary : `${weeklySummary.daysLogged} of 7 days logged. Premium opens the full week-over-week comparison — sleep, mood, top symptoms, and what shifted.`}
+                {isPremium ? weeklySummary.summary : `${weeklySummary.daysLogged} of 7 days logged. Premium opens the full week-over-week comparison. Sleep, mood, top symptoms, and what shifted.`}
               </p>
               <div className="ws-foot">
                 <span>{weeklySummary.daysLogged}/7 days</span>
@@ -7670,7 +7670,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                       <strong>Predict your next period</strong>
                     </div>
                     <p className="cycle-body">
-                      Vela learns your rhythm — even when cycles get irregular — and gives you a
+                      Vela learns your rhythm. Even when cycles get irregular. And gives you a
                       window for what's likely next. Helpful for planning, travel, and naming
                       what your body's doing.
                     </p>
@@ -7752,7 +7752,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                           <div key={t.symptom} className="exp-delta">
                             <span className="sym">{t.symptom}</span>
                             <span className={`val${t.delta < 0 ? " good" : t.delta > 0 ? " bad" : ""}`}>
-                              {t.delta < 0 ? "↓ " : t.delta > 0 ? "↑ " : "— "}
+                              {t.delta < 0 ? "↓ " : t.delta > 0 ? "↑ " : "- "}
                               {t.summary}
                             </span>
                           </div>
@@ -7790,7 +7790,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                           <div key={t.symptom} className="exp-delta">
                             <span className="sym">{t.symptom}</span>
                             <span className={`val${t.delta < 0 ? " good" : t.delta > 0 ? " bad" : ""}`}>
-                              {t.delta < 0 ? "↓ " : t.delta > 0 ? "↑ " : "— "}
+                              {t.delta < 0 ? "↓ " : t.delta > 0 ? "↑ " : "- "}
                               {t.summary}
                             </span>
                           </div>
@@ -7859,7 +7859,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                           >
                             <UIIcon name="ArrowUp" size={11} style={{ transform: "rotate(180deg)" }} />
                           </button>
-                          {f.up > 0 && <span className="fb-thanks">Got it — more like this.</span>}
+                          {f.up > 0 && <span className="fb-thanks">Got it. More like this.</span>}
                           {f.down > 0 && f.down < 3 && <span className="fb-thanks">Noted.</span>}
                         </div>
                       </div>
@@ -7976,7 +7976,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 <div className="ico"><UIIcon name="Flask" size={18} /></div>
                 <div className="body">
                   <h4>Run a small experiment</h4>
-                  <p>Pick one change for 7-14 days. Vela compares the symptom days against the week before — no guessing.</p>
+                  <p>Pick one change for 7-14 days. Vela compares the symptom days against the week before. No guessing.</p>
                 </div>
                 <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
               </button>
@@ -8179,7 +8179,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                       {s.count} <small>(was {s.prior})</small>
                     </span>
                     <span className={`delta ${s.delta < 0 ? "good" : s.delta > 0 ? "bad" : "flat"}`}>
-                      {s.delta < 0 ? `↓ ${Math.abs(s.delta)}` : s.delta > 0 ? `↑ ${s.delta}` : "—"}
+                      {s.delta < 0 ? `↓ ${Math.abs(s.delta)}` : s.delta > 0 ? `↑ ${s.delta}` : "-"}
                     </span>
                   </div>
                 ))}
@@ -8240,25 +8240,25 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "ChatCircle",
       tone: "sage",
       title: "Ask Vela",
-      body: "Real AI grounded in your data — not generic web advice. Ask anything about your symptoms, sleep, cycle, or what to bring to your next appointment.",
+      body: "Real AI grounded in your data. Not generic web advice. Ask anything about your symptoms, sleep, cycle, or what to bring to your next appointment.",
     },
     {
       icon: "Sparkle",
       tone: "gold",
       title: "Personalized suggestions",
-      body: "Vela watches your patterns and suggests experiments tied to what's actually showing up in your data — not a generic to-do list.",
+      body: "Vela watches your patterns and suggests experiments tied to what's actually showing up in your data. Not a generic to-do list.",
     },
     {
       icon: "FileText",
       tone: "clay",
       title: "Doctor-ready report",
-      body: "A printable PDF your provider will actually read. Charts, dates, what's been working — built from months of your real entries.",
+      body: "A printable PDF your provider will actually read. Charts, dates, what's been working. Built from months of your real entries.",
     },
     {
       icon: "Flask",
       tone: "sage",
       title: "Run experiments",
-      body: "Pick one change for 7-14 days — caffeine cutoff, evening walks, magnesium. Vela compares the symptom days against the week before.",
+      body: "Pick one change for 7-14 days. Caffeine cutoff, evening walks, magnesium. Vela compares the symptom days against the week before.",
     },
     {
       icon: "Calendar",
@@ -8270,7 +8270,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "Sparkle",
       tone: "clay",
       title: "Weekly summary",
-      body: "Every Sunday: a quiet read on your week — top symptoms, sleep, mood, what shifted. One scroll, no work.",
+      body: "Every Sunday: a quiet read on your week. Top symptoms, sleep, mood, what shifted. One scroll, no work.",
     },
     {
       icon: "Heart",
@@ -8282,7 +8282,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "ChartBar",
       tone: "gold",
       title: "Full pattern history",
-      body: "Look back across months — see how this autumn compares to last spring. Free shows the last 7 days.",
+      body: "Look back across months. See how this autumn compares to last spring. Free shows the last 7 days.",
     },
   ];
 
@@ -8305,7 +8305,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           Real AI grounded in your data, personalized experiments from your patterns, and a doctor-ready report. Built for the years between.
         </p>
 
-        {/* Hero — doctor report preview */}
+        {/* Hero. Doctor report preview */}
         <div className="pw-hero">
           <div className="pw-hero-row">
             <span className="badge"><UIIcon name="FileText" size={18} /></span>
@@ -8344,7 +8344,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           ))}
         </div>
 
-        {/* Quote — kept generic, not a fabricated testimonial */}
+        {/* Quote. Kept generic, not a fabricated testimonial */}
         <div className="pw-quote">
           <p className="body">
             "Walk into your appointment armed with data, not vibes."
@@ -8427,7 +8427,7 @@ function generateDoctorReport(logs, profile) {
     margin, y
   );
   y += 5;
-  doc.text("Generated by Vela — velahealth.health", margin, y);
+  doc.text("Generated by Vela. Velahealth.health", margin, y);
   y += 10;
 
   // Line
@@ -8816,7 +8816,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <p className="meta">Profile, preferences, and exports.</p>
       </div>
 
-      {/* Journey card — replaces the old XP/level/badges grid */}
+      {/* Journey card. Replaces the old XP/level/badges grid */}
       <section className="journey-card">
         <span className="eye"><UIIcon name="Sparkle" size={11} /> Your record</span>
         <h2 className="name">
@@ -8905,7 +8905,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="glyph"><UIIcon name="Bell" size={16} /></span>
           <span className="body">
             <span className="label">Notifications</span>
-            <span className="sub">{remindersEnabled ? "On" : "Off — you'll come to us"}</span>
+            <span className="sub">{remindersEnabled ? "On" : "Off. You'll come to us"}</span>
           </span>
           <span
             className={`set-toggle${remindersEnabled ? " on" : ""}`}
@@ -9007,7 +9007,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             </span>
           </span>
           <span className={`value${!isPremium ? " gold" : hkOn ? " sage" : ""}`}>
-            {!isPremium ? "Premium" : hkOn ? "On" : (hkStatus === "available" ? "Off" : "—")}
+            {!isPremium ? "Premium" : hkOn ? "On" : (hkStatus === "available" ? "Off" : "-")}
           </span>
         </button>
       </div>
@@ -9066,7 +9066,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
           <span className="body">
             <span className="label">Export data</span>
-            <span className="sub">CSV — for your records</span>
+            <span className="sub">CSV. For your records</span>
           </span>
           <span className="arrow">›</span>
         </button>
@@ -9138,7 +9138,7 @@ function CommunityScreen() {
   const replies = [
     {
       avatar: "M", tone: "a", who: "Anonymous", age: "52 · post-meno", when: "2h",
-      body: "What helped most was naming it out loud at work. Not as an apology — just \"I'm in a hot flash, give me 30 seconds.\" The first time felt impossible. The fifth time felt like nothing.",
+      body: "What helped most was naming it out loud at work. Not as an apology. Just \"I'm in a hot flash, give me 30 seconds.\" The first time felt impossible. The fifth time felt like nothing.",
       hearts: 47, echoed: 12, featured: true,
     },
     {
@@ -9175,7 +9175,7 @@ function CommunityScreen() {
         <section className="cir-first-welcome">
           <div className="cir-first-eye"><UIIcon name="Sparkle" size={12} /> First time here</div>
           <h3>You don't have to <em>say anything yet.</em></h3>
-          <p>Most people read for a week before they answer. That's fine. The prompt below is today's — there will be a new one tomorrow.</p>
+          <p>Most people read for a week before they answer. That's fine. The prompt below is today's. There will be a new one tomorrow.</p>
           <div className="cir-first-rules">
             <span><UIIcon name="Eye" size={12} /> Anonymous by default</span>
             <span><UIIcon name="Lock" size={12} /> No replies, no DMs</span>
@@ -9186,7 +9186,7 @@ function CommunityScreen() {
             onClick={dismissFirst}
             style={{ marginTop: 12, background: "transparent", border: "none", color: "var(--clay-dark)", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 4, textDecoration: "underline" }}
           >
-            Got it — show me the prompt
+            Got it. Show me the prompt
           </button>
         </section>
       )}
@@ -9419,7 +9419,7 @@ export default function App() {
     let msg = "Entry logged.";
     if (uniqueDays === 1) msg = concern ? `First entry in. Vela starts watching your ${concern} from here.` : "First entry in. Keep going.";
     else if (uniqueDays === 3) msg = "3 days logged. Halfway to the day-7 pattern unlock.";
-    else if (uniqueDays === 7) msg = "7 days. Your first pattern is ready — tap Insights.";
+    else if (uniqueDays === 7) msg = "7 days. Your first pattern is ready. Tap Insights.";
     else if (uniqueDays === 14) msg = "Two weeks in. Patterns get sharper from here.";
     else if (streak >= 7 && streak % 7 === 0) msg = `${streak}-day streak. That's a real record.`;
     else if (symptoms.length >= 3) {
@@ -9538,7 +9538,7 @@ export default function App() {
         symptoms["Fatigue"] = true; severities["Fatigue"] = 1;
       }
       if (day % 7 === 0) { symptoms["Joint stiffness"] = true; severities["Joint stiffness"] = 1; }
-      const notes = day === 5 ? "Bad night — woke up drenched around 3am after the late espresso." : (day === 12 ? "Felt great today. Slept 8 hours and walked 5k." : "");
+      const notes = day === 5 ? "Bad night. Woke up drenched around 3am after the late espresso." : (day === 12 ? "Felt great today. Slept 8 hours and walked 5k." : "");
       demoLogs.unshift({
         date: localISOString(d),
         mood: caffeine ? 1 : 3,
@@ -9832,10 +9832,10 @@ export default function App() {
                 {[
                   { label: "Basic log", msg: "Entry logged! Keep it up. 🌿 +15 XP" },
                   { label: "First entry", msg: "First entry logged! Vela is now learning your hot flashes patterns. 🌱 +20 XP" },
-                  { label: "Day 7", msg: "7 days! Your hot flashes insights are ready — tap Insights. ✨ +20 XP" },
+                  { label: "Day 7", msg: "7 days! Your hot flashes insights are ready. Tap Insights. ✨ +20 XP" },
                   { label: "With streak 1.5x", msg: "Entry logged! Keep it up. 🌿 +23 XP (1.5x streak bonus!)" },
                   { label: "With streak 3x", msg: "Entry logged! Keep it up. 🌿 +45 XP (3x streak bonus!)" },
-                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more — great detail! 💡 +25 XP" },
+                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more. Great detail! 💡 +25 XP" },
                 ].map((t, i) => (
                   <button key={i} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
                     onClick={() => { setToastMsg(t.msg); setToast(true); setTimeout(() => setToast(false), 3500); }}>
@@ -9863,7 +9863,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Bottom nav — hidden during onboarding */}
+      {/* Bottom nav. Hidden during onboarding */}
       {onboarded && (
         <nav className="nav-bottom" aria-label="Main navigation">
           {tabs.map((t) => (
