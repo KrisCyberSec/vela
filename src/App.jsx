@@ -312,6 +312,26 @@ function getGreeting() {
   return "Good evening";
 }
 
+// Adaptive greeting. When a user hasn't logged in 3+ days the generic
+// time-of-day greeting reads as oblivious. Replace it with a direct,
+// no-cheer-filler acknowledgement of the gap. The 45-55 audience would
+// rather hear "you haven't logged in 4 days" than "Welcome back!"
+function getAdaptiveGreeting(logs) {
+  if (!logs || logs.length === 0) return getGreeting();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let mostRecent = null;
+  for (const l of logs) {
+    const d = new Date(l.date); d.setHours(0, 0, 0, 0);
+    if (!mostRecent || d > mostRecent) mostRecent = d;
+  }
+  if (!mostRecent) return getGreeting();
+  const daysAgo = Math.floor((today - mostRecent) / (1000 * 60 * 60 * 24));
+  if (daysAgo >= 14) return "It's been a couple weeks";
+  if (daysAgo >= 7) return "It's been over a week";
+  if (daysAgo >= 3) return `You haven't logged in ${daysAgo} days`;
+  return getGreeting();
+}
+
 // Helper: get YYYY-MM-DD in local timezone (avoids UTC date shift bug)
 function localDateStr(date) {
   const y = date.getFullYear();
@@ -1305,6 +1325,25 @@ function applyFeedbackRanking(insights) {
     .sort((a, b) => b._ranked - a._ranked);
 }
 
+// Returns the currently-detected correlations the user has thumbs-up'd
+// in Insights, sorted by most recently liked. Used by the Settings
+// "Patterns you've marked helpful" card to confirm validated patterns
+// still appear. If a previously-liked pattern is no longer detected
+// (data shifted), it quietly drops off — that's intentional.
+function getThumbsUpInsights(logs) {
+  const fmap = getInsightFeedback();
+  const upKeys = new Set(
+    Object.entries(fmap)
+      .filter(([, v]) => (v?.up || 0) > 0)
+      .map(([k]) => k)
+  );
+  if (upKeys.size === 0) return [];
+  const correlations = analyzeCorrelations(logs);
+  return correlations
+    .filter((c) => upKeys.has(insightKey(c)))
+    .map((c) => ({ text: c.text, ts: fmap[insightKey(c)]?.ts || 0 }));
+}
+
 // ─── forecastTomorrow ───────────────────────────────────────────────────
 // Bayesian-flavored prediction for what tomorrow might look like. For
 // each top-frequency symptom, we compute a personal prior (overall rate
@@ -1499,6 +1538,30 @@ function detectAnomalies(logs) {
   return anomalies;
 }
 
+// Build a natural-language Ask-Vela question from an anomaly card.
+// Phrased first-person so the chat reads like the user typed it. We
+// include the actual numbers because the AI proxy strips them on
+// retrieval and the user wants the brief on what's odd, not vague.
+function anomalyToQuestion(a) {
+  if (a.kind === "symptom-spike") {
+    return `${a.symptom} has shown up ${a.weekCount} times this week, ${a.lift} times my usual. What might be driving the spike?`;
+  }
+  if (a.kind === "symptom-quiet") {
+    return `My ${a.symptom.toLowerCase()} has been quieter this week. Anything in my data that might explain why?`;
+  }
+  if (a.kind === "sleep-shift") {
+    if (a.z < 0) {
+      return `My sleep is averaging ${a.weekAvg}h this week, ${(a.baseAvg - a.weekAvg).toFixed(1)}h below my usual. What might be going on?`;
+    }
+    return `My sleep is averaging ${a.weekAvg}h this week, ${(a.weekAvg - a.baseAvg).toFixed(1)}h above my usual. Anything in the data that might explain it?`;
+  }
+  if (a.kind === "mood-shift") {
+    if (a.delta < 0) return "My mood has dipped this week. What might be contributing?";
+    return "My mood has lifted this week. What might be helping?";
+  }
+  return "What's unusual about my week so far?";
+}
+
 // ─── Cycle prediction (Premium) ──────────────────────────────────────────
 // Looks at logged period flow days, infers cycle starts (transition from
 // non-period → period day-1), computes mean cycle length + spread, and
@@ -1668,6 +1731,93 @@ const EXPERIMENT_LIBRARY = [
     contextExpect: null,
   },
 ];
+
+// Maps each experiment library id to keywords the daily-brief AI is
+// likely to use when mentioning it. Order matters: longer/more specific
+// phrases first so they win the earliest-match scan. We accept casual
+// shorthand ("caffeine", "alcohol") because the system prompt nudges
+// the model toward short references like "Day 4 of the caffeine cutoff."
+const EXPERIMENT_BRIEF_KEYWORDS = {
+  caffeine_cutoff: ["caffeine cutoff", "caffeine cut-off", "caffeine"],
+  evening_walks: ["evening walks", "evening walk"],
+  no_alcohol: ["no alcohol", "alcohol-free", "alcohol free", "dry days", "alcohol"],
+  consistent_bedtime: ["consistent bedtime", "bedtime window", "bedtime"],
+  magnesium: ["magnesium glycinate", "magnesium"],
+  morning_protein: ["morning protein", "30g protein", "protein at breakfast", "protein"],
+};
+
+// Find the earliest mention of each active experiment in the brief
+// and return a sorted, non-overlapping list of match ranges. Each
+// range becomes a tap target on render.
+function parseBriefForExperiments(text, activeExperiments) {
+  if (!text || !activeExperiments || activeExperiments.length === 0) return [];
+  const lower = text.toLowerCase();
+  const matches = [];
+  for (const exp of activeExperiments) {
+    const keywords = EXPERIMENT_BRIEF_KEYWORDS[exp.libraryId] || [];
+    let earliest = null;
+    let earliestKw = null;
+    for (const kw of keywords) {
+      const idx = lower.indexOf(kw);
+      if (idx !== -1 && (earliest === null || idx < earliest)) {
+        earliest = idx;
+        earliestKw = kw;
+      }
+    }
+    if (earliest !== null) {
+      matches.push({
+        start: earliest,
+        end: earliest + earliestKw.length,
+        libraryId: exp.libraryId,
+        expId: exp.id,
+      });
+    }
+  }
+  matches.sort((a, b) => a.start - b.start);
+  // De-overlap by keeping the earliest match in any conflict
+  const result = [];
+  let lastEnd = -1;
+  for (const m of matches) {
+    if (m.start >= lastEnd) {
+      result.push(m);
+      lastEnd = m.end;
+    }
+  }
+  return result;
+}
+
+// Renders the brief body with any experiment mentions wrapped in
+// tappable links. Stashes the experiment libraryId in localStorage
+// before navigating so InsightsScreen can scroll to that card on
+// mount. Returns a string when there are no matches so React doesn't
+// re-render unnecessarily.
+function renderBriefBody(text, activeExperiments, onNavigate) {
+  const matches = parseBriefForExperiments(text, activeExperiments);
+  if (matches.length === 0) return text;
+  const segments = [];
+  let cursor = 0;
+  matches.forEach((m, i) => {
+    if (m.start > cursor) segments.push(text.slice(cursor, m.start));
+    segments.push(
+      <button
+        type="button"
+        key={`m${i}`}
+        className="brief-body-link"
+        onClick={(e) => {
+          e.stopPropagation();
+          try { localStorage.setItem("vela_focus_experiment", m.libraryId); } catch { /* private mode */ }
+          haptic("Light");
+          if (onNavigate) onNavigate("insights");
+        }}
+      >
+        {text.slice(m.start, m.end)}
+      </button>
+    );
+    cursor = m.end;
+  });
+  if (cursor < text.length) segments.push(text.slice(cursor));
+  return segments;
+}
 
 function compareExperiment(experiment, logs) {
   const start = new Date(experiment.startDate); start.setHours(0, 0, 0, 0);
@@ -3290,6 +3440,12 @@ const css = `
   .brief-card .brief-body em { font-style: italic; color: var(--clay); }
   .brief-card .brief-foot { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--ink-light); }
   .brief-card .brief-link { display: inline-flex; align-items: center; gap: 4px; color: var(--sage-dark); font-weight: 600; cursor: pointer; }
+  /* Inline experiment link inside the brief body. Inherits the serif
+     font so it reads as part of the sentence, not a button bolted on.
+     Subtle sage underline so it's discoverable without shouting. */
+  .brief-card .brief-body-link { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--sage-dark); border-bottom: 1px solid rgba(122,158,135,0.45); cursor: pointer; font-style: italic; }
+  .brief-card .brief-body-link:hover { color: var(--clay-dark); border-bottom-color: rgba(201,123,92,0.55); }
+  .brief-card .brief-body-link:active { transform: scale(0.99); }
 
   .reveal-card-v2 {
     position: relative; border-radius: 22px; padding: 18px 18px 16px;
@@ -3610,6 +3766,11 @@ const css = `
   .anomaly-card .body { flex: 1; min-width: 0; }
   .anomaly-card .head { font-size: 13px; color: var(--ink); line-height: 1.45; }
   .anomaly-unlock { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; border: none; border-radius: 999px; padding: 5px 11px; font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  /* "Ask Vela why" handoff on a premium-tier anomaly card. Quiet
+     inline button that mirrors the History day-detail Ask handoff. */
+  .anomaly-card .anomaly-ask { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: var(--clay-dark); cursor: pointer; font-family: inherit; }
+  .anomaly-card .anomaly-ask:hover { background: var(--clay-light); border-color: var(--clay); }
+  .anomaly-card .anomaly-ask:active { transform: scale(0.98); }
 
   .weak-banner { margin-top: 8px; padding: 10px 12px; background: var(--clay-light); border-radius: 12px; font-size: 12px; color: var(--clay-dark); display: flex; align-items: center; gap: 8px; line-height: 1.4; }
 
@@ -3686,6 +3847,13 @@ const css = `
      show only the deltas. */
   .exp-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 12px; margin-bottom: 10px; position: relative; overflow: hidden; }
   .exp-card.active::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--clay), var(--sage)); }
+  /* Brief deep-link arrival flash. Pulsed sage halo so the user lands
+     exactly at the experiment they tapped on Today's brief. */
+  .exp-card.flash { animation: expFlash 1.6s ease-out; }
+  @keyframes expFlash {
+    0% { box-shadow: 0 0 0 0 rgba(143,184,155,0.55); }
+    100% { box-shadow: 0 0 0 14px rgba(143,184,155,0); }
+  }
   .exp-card.completed { border-style: dashed; }
   .exp-card .exp-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
   .exp-card .exp-head .ico { width: 32px; height: 32px; border-radius: 10px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -3856,6 +4024,17 @@ const css = `
   .set-premium-row .body strong { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
   .set-premium-row .body small { display: block; font-size: 12px; color: var(--ink-mid); margin-top: 2px; line-height: 1.4; }
   .set-premium-row .cta { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--clay-dark); text-transform: uppercase; }
+
+  /* "Patterns you've marked helpful" — Settings card pulling thumbs-up'd
+     correlations from Insights, so the user can see validated patterns
+     still surface. Tap to jump to Insights. Hidden when none. */
+  .set-recent { display: block; width: 100%; text-align: left; background: linear-gradient(135deg, rgba(143,184,155,0.10), rgba(212,168,83,0.05)); border: 1px solid rgba(143,184,155,0.26); border-radius: 16px; padding: 14px 16px; cursor: pointer; font-family: inherit; }
+  .set-recent:active { transform: scale(0.99); }
+  .set-recent .eye { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 8px; }
+  .set-recent ul { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
+  .set-recent li { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; color: var(--ink); line-height: 1.45; }
+  .set-recent li svg { color: var(--clay); flex-shrink: 0; margin-top: 3px; }
+  .set-recent .cta { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--sage-dark); font-weight: 600; }
 
   .set-danger { display: block; width: 100%; margin: 22px 0 12px; padding: 14px; border-radius: 14px; background: transparent; color: #B0463A; font-size: 13px; font-weight: 500; border: 1px solid rgba(176,70,58,0.2); font-family: inherit; cursor: pointer; }
   .set-danger:active { background: rgba(176,70,58,0.05); }
@@ -6196,6 +6375,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
 
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
 
+  // Active experiments live in InsightsScreen state, persisted in
+  // localStorage. We read on each render (cheap) so the brief can
+  // detect mentions and turn them into deep-link taps.
+  const activeExperimentsForBrief = (() => {
+    try {
+      const all = JSON.parse(localStorage.getItem("vela_experiments") || "[]");
+      return all.filter((e) => e.status === "active");
+    } catch { return []; }
+  })();
+
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -6432,7 +6621,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
 
       {/* Greeting */}
       <section className="vela-greeting">
-        <h1>{getGreeting()}.</h1>
+        <h1>{getAdaptiveGreeting(logs)}.</h1>
         <p className="meta">{today}{journeyStage ? <> <span className="dot">·</span> {journeyStage}</> : null}</p>
       </section>
 
@@ -6463,7 +6652,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
           <div className="brief-eyebrow">
             <UIIcon name="Sparkle" size={11} weight="fill" /> Vela today
           </div>
-          <p className="brief-body">{dailyBrief.brief}</p>
+          <p className="brief-body">{renderBriefBody(dailyBrief.brief, activeExperimentsForBrief, onNavigate)}</p>
           <div className="brief-foot">
             <span>Refreshes each morning</span>
             <span className="brief-link" onClick={() => onNavigate && onNavigate("insights")}>
@@ -7403,6 +7592,33 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Cross-screen pickup: when the daily brief on Today links an
+  // experiment name, that tap stashes the libraryId here. We scroll
+  // the matching active-experiment card into view and flash it
+  // briefly so the user lands at the thing they tapped.
+  useEffect(() => {
+    let focusLib = null;
+    try {
+      focusLib = localStorage.getItem("vela_focus_experiment");
+      if (focusLib) localStorage.removeItem("vela_focus_experiment");
+    } catch { /* private mode */ }
+    if (!focusLib) return;
+    setTimeout(() => {
+      const list = (() => {
+        try { return JSON.parse(localStorage.getItem("vela_experiments") || "[]"); }
+        catch { return []; }
+      })();
+      const exp = list.find((e) => e.libraryId === focusLib && e.status === "active");
+      if (!exp) return;
+      const el = document.getElementById(`exp-card-${exp.id}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 1800);
+    }, 220);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleQuestion = async (text) => {
     if (!text.trim() || isTyping) return;
     track("ask_vela_used", { logCount: logs.length, gatedByDataMin: logs.length < 7 });
@@ -7958,7 +8174,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 const pct = Math.min(100, Math.max(0, (elapsed / exp.duration) * 100));
                 const comp = compareExperiment(exp, logs);
                 return (
-                  <article key={exp.id} className="exp-card active">
+                  <article id={`exp-card-${exp.id}`} key={exp.id} className="exp-card active">
                     <div className="exp-head">
                       <span className="ico"><UIIcon name={exp.icon || "Sparkle"} size={16} /></span>
                       <div className="ttl">
@@ -8138,7 +8354,22 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                           </button>
                         </>
                       ) : (
-                        <div className="head">{a.text}</div>
+                        <>
+                          <div className="head">{a.text}</div>
+                          <button
+                            type="button"
+                            className="anomaly-ask"
+                            onClick={() => {
+                              const q = anomalyToQuestion(a);
+                              setChatInput(q);
+                              setAskOpen(true);
+                              setTimeout(() => { handleQuestion(q); }, 600);
+                              haptic("Light");
+                            }}
+                          >
+                            <UIIcon name="ChatCircle" size={11} /> Ask Vela why
+                          </button>
+                        </>
                       )}
                     </div>
                   </article>
@@ -9094,6 +9325,32 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
 
         <p className="quote">"{journeyQuote}"</p>
       </section>
+
+      {/* Patterns the user has thumbs-up'd in Insights, when any are
+          still currently detected. Hidden when none, so it doesn't sit
+          empty in the early-baseline weeks. Tap jumps to Insights. */}
+      {(() => {
+        const liked = getThumbsUpInsights(logs);
+        if (liked.length === 0) return null;
+        return (
+          <>
+            <div className="set-section-label"><span>Patterns you've marked helpful</span></div>
+            <button
+              type="button"
+              className="set-recent"
+              onClick={() => { haptic("Light"); if (onNavigate) onNavigate("insights"); }}
+            >
+              <span className="eye"><UIIcon name="Sparkle" size={11} /> Still surfacing</span>
+              <ul>
+                {liked.slice(0, 3).map((ins, i) => (
+                  <li key={i}><UIIcon name="Heart" size={11} weight="fill" /> {ins.text}</li>
+                ))}
+              </ul>
+              <span className="cta">See in Insights <UIIcon name="ArrowRight" size={12} /></span>
+            </button>
+          </>
+        );
+      })()}
 
       {/* Profile */}
       <div className="set-section-label"><span>Profile</span></div>

@@ -19,7 +19,7 @@ locally + landing page live at velahealth.health.
 
 **Tech**:
 - React 18 + Capacitor 8 (iOS hybrid)
-- Single file: `src/App.jsx` (~9000 lines, intentional)
+- Single file: `src/App.jsx` (~10400 lines, intentional)
 - CRA (`react-scripts 5`) build
 - Netlify Functions for AI proxy + waitlist
 - Netlify Blobs for rate limits + cost tracking + caches
@@ -31,9 +31,10 @@ locally + landing page live at velahealth.health.
 
 ## Where we are right now
 
-Latest commit: `e61e2af` (Within-app cohesion. Three cross-screen actions).
+Latest commit: round-two cohesion (brief deep-links, anomaly Ask Vela, Settings recent insights, gap-aware greeting).
 
 Recent commits:
+- (this commit) Round-two within-app cohesion (4 cross-screen handoffs)
 - `e61e2af` Within-app cohesion (History → Ask Vela, Insights pattern → experiment, Today trigger nudge)
 - `8af959a` Bumped Ask Vela monthly cap 60 → 250, richer Claude summary
 - `1e997aa` Stripped 213 em dashes from user-facing copy + cost-tracking warning logs
@@ -103,16 +104,23 @@ From `~/.claude/projects/-Users-kristopher-Vela/memory/`:
 
 International resources hardcoded: 988 (US), 116 123 (UK), 1-833-456-4566 (CA), 13 11 14 (AU), ifindahelpline.com (worldwide).
 
-### Cross-screen integrations (most recent ship)
+### Cross-screen integrations
 
+Round one:
 - History day-detail → Ask Vela about this day (prefilled question)
 - Insights pattern card → Run as experiment (one-tap)
 - Today logging → trigger-aware experiment nudge (when correlation exists)
 
+Round two:
+- Daily brief on Today deep-links any active-experiment mention to its card on Insights (with sage flash on arrival)
+- Anomaly card on Insights → "Ask Vela why" prefilled with the actual numbers (premium tier)
+- Settings → "Patterns you've marked helpful" card pulling thumbs-up'd correlations that are still detected
+- Today greeting adapts to logging gaps (3+ days = "You haven't logged in N days", 7+ = "It's been over a week")
+
 ## Key file map
 
 ```
-src/App.jsx              ~9000 lines, all components + CSS-in-JS + helpers
+src/App.jsx              ~10400 lines, all components + CSS-in-JS + helpers
 src/healthkit.js         Capacitor plugin wrapper for VelaHealth
 src/subscription.js      RevenueCat wrapper, 3-mode (native/web/misconfigured)
 src/analytics.js         PostHog wrapper (key pending)
@@ -196,13 +204,7 @@ If the user wants to keep going:
    - Lock screen widget (one-tap mood log + cycle countdown)
    - Smart cycle notification ("heads up, your usual window is in 2 days")
 
-2. **More within-app cohesion** (4 leftover from cross-screen round):
-   - Daily brief deep-links (when brief mentions experiment, make text tappable)
-   - Anomaly card → "Ask Vela why" handoff
-   - Settings → "Recent insights" card pulling thumbs-up'd patterns
-   - Today greeting adapts to recent activity ("You haven't logged in 3 days")
-
-3. **App Store prep** (only if user explicitly asks):
+2. **App Store prep** (only if user explicitly asks):
    - Screenshot generation
    - Final ASO keyword pass
    - TestFlight soft launch sequence
