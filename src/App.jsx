@@ -247,7 +247,7 @@ const SYMPTOMS = [
 // compat with stored vela_profile arrays.
 const QUESTIONS = [
   {
-    text: "Where are you in your hormonal journey?",
+    text: "Where are you in the transition?",
     eyebrow: "About you",
     headline: <>Where are you in the <em>transition?</em></>,
     sub: "There's no right answer — and you can change this any time. We use it to surface what's most relevant for your stage.",
@@ -407,9 +407,9 @@ function getPersonalization(profile) {
   // Stage-aware greeting subtitles
   const stageMessages = [
     "Your cycle patterns matter — tracking now builds a baseline for what's ahead.",
-    "Your body is changing — every log helps you understand and navigate this transition.",
-    "You've crossed the threshold — tracking helps optimize this new chapter.",
-    "Your journey is unique — Vela adapts to your specific experience.",
+    "Your body is shifting — each log helps Vela learn what's normal for you, so the changes ahead don't feel like guesswork.",
+    "You've crossed the threshold — tracking helps you understand what's settling and what's still adjusting.",
+    "Surgical menopause moves on a different timeline. Vela adapts to what you're actually experiencing — not a textbook average.",
   ];
   const stageMessage = stageMessages[stage] || stageMessages[1];
 
@@ -929,9 +929,22 @@ function analyzeCorrelations(logs) {
     if (withT.length < 5 || withoutT.length < 5) return;
 
     allSymptoms.forEach((symptom) => {
-      const rateW = withT.filter((d) => d.symptoms[symptom]).length / withT.length;
-      const rateWO = withoutT.filter((d) => d.symptoms[symptom]).length / withoutT.length;
-      if (rateWO > 0.05 && rateW / rateWO >= liftThreshold) {
+      const symW = withT.filter((d) => d.symptoms[symptom]).length;
+      const symWO = withoutT.filter((d) => d.symptoms[symptom]).length;
+      const rateW = symW / withT.length;
+      const rateWO = symWO / withoutT.length;
+      // PERFECT CORRELATION case — symptom never appears without trigger.
+      // We can't compute a finite lift, but this is exactly the cleanest
+      // signal in the data and the user deserves to see it.
+      if (rateWO === 0 && rateW >= 0.5 && symW >= 4) {
+        push({
+          lift: 99, label: "strong",
+          text: `${symptom} has appeared on every ${trigger} day (${symW}/${withT.length}) — and never on a non-${trigger} day`,
+          icon: trigger === "caffeine" ? "Sparkle" : trigger === "alcohol" ? "Drop" : "Footprints",
+          kind: "trigger", context: trigger, symptom,
+          samples: { with: withT.length, without: withoutT.length },
+        });
+      } else if (rateWO > 0.05 && rateW / rateWO >= liftThreshold) {
         const lift = rateW / rateWO;
         push({
           lift, label: labelFor(lift, withT.length, withoutT.length),
@@ -979,9 +992,18 @@ function analyzeCorrelations(logs) {
   const sleepOk = days.filter((d) => d.context.sleepHours !== null && d.context.sleepHours >= 6);
   if (sleepLow.length >= 5 && sleepOk.length >= 5) {
     allSymptoms.forEach((symptom) => {
-      const rL = sleepLow.filter((d) => d.symptoms[symptom]).length / sleepLow.length;
-      const rO = sleepOk.filter((d) => d.symptoms[symptom]).length / sleepOk.length;
-      if (rO > 0.05 && rL / rO >= liftThreshold) {
+      const symL = sleepLow.filter((d) => d.symptoms[symptom]).length;
+      const symO = sleepOk.filter((d) => d.symptoms[symptom]).length;
+      const rL = symL / sleepLow.length;
+      const rO = symO / sleepOk.length;
+      if (rO === 0 && rL >= 0.5 && symL >= 4) {
+        push({
+          lift: 99, label: "strong",
+          text: `${symptom} has appeared on every short-sleep night (${symL}/${sleepLow.length}) — and never on a 6h+ night`,
+          icon: "Bed", kind: "sleep", context: "sleepHours", symptom,
+          samples: { with: sleepLow.length, without: sleepOk.length },
+        });
+      } else if (rO > 0.05 && rL / rO >= liftThreshold) {
         const lift = rL / rO;
         push({
           lift, label: labelFor(lift, sleepLow.length, sleepOk.length),
@@ -998,9 +1020,18 @@ function analyzeCorrelations(logs) {
   const stressLo = days.filter((d) => d.context.stress !== null && d.context.stress < 4);
   if (stressHi.length >= 5 && stressLo.length >= 5) {
     allSymptoms.forEach((symptom) => {
-      const rH = stressHi.filter((d) => d.symptoms[symptom]).length / stressHi.length;
-      const rL = stressLo.filter((d) => d.symptoms[symptom]).length / stressLo.length;
-      if (rL > 0.05 && rH / rL >= liftThreshold) {
+      const symH = stressHi.filter((d) => d.symptoms[symptom]).length;
+      const symL = stressLo.filter((d) => d.symptoms[symptom]).length;
+      const rH = symH / stressHi.length;
+      const rL = symL / stressLo.length;
+      if (rL === 0 && rH >= 0.5 && symH >= 4) {
+        push({
+          lift: 99, label: "strong",
+          text: `${symptom} has appeared on every high-stress day (${symH}/${stressHi.length}) — and never on a low-stress day`,
+          icon: "CloudLightning", kind: "stress", context: "stress", symptom,
+          samples: { with: stressHi.length, without: stressLo.length },
+        });
+      } else if (rL > 0.05 && rH / rL >= liftThreshold) {
         const lift = rH / rL;
         push({
           lift, label: labelFor(lift, stressHi.length, stressLo.length),
@@ -1024,14 +1055,16 @@ function analyzeCorrelations(logs) {
   const checkLag = (lag, triggerKey, triggerCheck, label) => {
     if (n < 21) return; // need a real baseline before lag claims
     // For each day with a symptom, was the trigger present `lag` days ago?
+    // Lag thresholds are STRICTER than same-day to dampen false positives.
+    // At 31 days a 30% baseline symptom can fluctuate to 1.9x by chance.
+    // Require at least 2.0x lift AND at least 4 trigger-then-symptom hits
+    // before surfacing a lag finding.
+    const LAG_LIFT_MIN = Math.max(2.0, liftThreshold);
     allSymptoms.forEach((symptom) => {
       let triggerThenSymptom = 0;     // trigger on day-N, symptom on day-N+lag
       let noTriggerThenSymptom = 0;
       let triggerDays = 0;
       let noTriggerDays = 0;
-      days.forEach((d) => {
-        if (!triggerCheck(d.context)) return;
-      });
       // Walk pairs (prevDay, currentDay)
       days.forEach((d) => {
         const prev = dayMap.get(dateMinus(d.date, lag));
@@ -1044,10 +1077,19 @@ function analyzeCorrelations(logs) {
           if (d.symptoms[symptom]) noTriggerThenSymptom++;
         }
       });
-      if (triggerDays < 5 || noTriggerDays < 5) return;
+      if (triggerDays < 5 || noTriggerDays < 5 || triggerThenSymptom < 4) return;
       const rateA = triggerThenSymptom / triggerDays;
       const rateB = noTriggerThenSymptom / noTriggerDays;
-      if (rateB > 0.05 && rateA / rateB >= liftThreshold) {
+      // Perfect-correlation case: symptom always follows trigger AND
+      // never appears without it. Surface as a strong lag finding.
+      if (rateB === 0 && rateA >= 0.6) {
+        push({
+          lift: 99, label: "strong",
+          text: `${symptom} appears within ${lag} day${lag === 1 ? "" : "s"} of every ${label} (${triggerThenSymptom}/${triggerDays}) — and rarely otherwise`,
+          icon: "ArrowRight", kind: "lag", context: triggerKey, symptom, lag,
+          samples: { with: triggerDays, without: noTriggerDays },
+        });
+      } else if (rateB > 0.05 && rateA / rateB >= LAG_LIFT_MIN) {
         const lift = rateA / rateB;
         push({
           lift, label: labelFor(lift, triggerDays, noTriggerDays),
@@ -1069,6 +1111,85 @@ function analyzeCorrelations(logs) {
   return insights
     .sort((a, b) => (b.lift - a.lift) || (a.lag - b.lag))
     .slice(0, 6);
+}
+
+// ─── Crisis safety net ──────────────────────────────────────────────────
+// First line of defense: client-side keyword pre-filter that intercepts
+// crisis-language messages BEFORE they hit any AI path. The user gets a
+// dedicated support card with international hotlines instead of any
+// AI-generated response. This guarantees the right behavior even when:
+//   - The Anthropic API is down (we'd otherwise fall back to canned text)
+//   - The user is on free tier (no AI access at all)
+//   - The system prompt instructions don't catch a phrasing variant
+//
+// Keywords are tuned for high-confidence matches only. We use word
+// boundaries and exclude common idioms ("I'm dying for a coffee").
+const CRISIS_PATTERNS = [
+  /\bkill(ing)?\s+myself\b/i,
+  /\bend(ing)?\s+my\s+(own\s+)?life\b/i,
+  /\b(don'?t|do\s*not)\s+want\s+to\s+(live|be\s+alive|exist)\b/i,
+  /\b(want|wish)\s+(to|i\s+could)\s+(die|be\s+dead)\b/i,
+  /\bsuicid(e|al)\b/i,
+  /\b(hurt|harm)\s+myself\b/i,
+  /\bself[\s-]harm\b/i,
+  /\bbetter\s+off\s+dead\b/i,
+  /\bno\s+reason\s+to\s+(live|go\s+on)\b/i,
+  /\bcan'?t\s+go\s+on\b/i,
+  /\bgoing\s+to\s+(kill|end)\s+myself\b/i,
+];
+
+function looksLikeCrisis(text) {
+  if (!text || typeof text !== "string") return false;
+  const t = text.toLowerCase();
+  // Quick exits for common false-positive idioms
+  if (/dying\s+(to|for)\s+(a|some|one|that|this|the)\b/.test(t)) return false; // "dying for a coffee"
+  if (/dead\s+(tired|asleep|on\s+my\s+feet)\b/.test(t)) return false;
+  return CRISIS_PATTERNS.some((re) => re.test(text));
+}
+
+// International crisis-support resources. Keep this list short and
+// well-vetted — bad numbers do real harm. All verified May 2026; if
+// the user is shipping internationally, audit annually.
+const CRISIS_RESOURCES = [
+  { region: "United States", line: "988", note: "Suicide & Crisis Lifeline · call or text" },
+  { region: "United Kingdom & Ireland", line: "116 123", note: "Samaritans · free, 24/7" },
+  { region: "Canada", line: "1-833-456-4566", note: "Talk Suicide Canada · call or text 45645" },
+  { region: "Australia", line: "13 11 14", note: "Lifeline · 24/7" },
+  { region: "Anywhere else", line: "ifindahelpline.com", note: "International directory of free, vetted lines" },
+];
+
+// Standalone component — used inline in the Ask Vela sheet AND on Today
+// when the daily-brief flow detects a sustained mood crash. Same surface
+// either place so the user recognizes "this is the safety card" wherever
+// it appears.
+function CrisisSupportCard({ context = "ask-vela" }) {
+  return (
+    <article className="crisis-card" role="alert">
+      <div className="crisis-head">
+        <span className="ico"><UIIcon name="Heart" size={18} weight="fill" /></span>
+        <div>
+          <strong>You don't have to do this alone.</strong>
+          <p>
+            What you're saying matters. A trained, free, confidential listener
+            is one call or text away — they're trained for exactly this.
+          </p>
+        </div>
+      </div>
+      <ul className="crisis-list">
+        {CRISIS_RESOURCES.map((r) => (
+          <li key={r.region}>
+            <span className="region">{r.region}</span>
+            <span className="line">{r.line}</span>
+            <span className="note">{r.note}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="crisis-foot">
+        If you're in immediate danger, please call your local emergency number.
+        Vela is a journaling app — it's not a substitute for human support.
+      </p>
+    </article>
+  );
 }
 
 // ─── Insight feedback ───────────────────────────────────────────────────
@@ -3563,6 +3684,22 @@ const css = `
   .av-name { font-family: var(--font-serif); font-size: 18px; color: var(--ink); line-height: 1.1; }
   .av-sub { font-size: 11px; color: var(--ink-light); margin-top: 2px; display: inline-flex; gap: 5px; align-items: center; }
   .av-q-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding: 4px 0; }
+
+  /* Crisis support card — appears in two places (Ask Vela sheet inline,
+     Today screen when sustained mood crash detected). Same surface in
+     both so the user recognizes the safety affordance wherever it
+     shows up. Soft sage to read as care, not alarm. */
+  .crisis-card { background: linear-gradient(135deg, rgba(143,184,155,0.18), rgba(255,255,255,0.55)); border: 1px solid rgba(143,184,155,0.40); border-radius: 16px; padding: 16px; margin: 8px 0; }
+  .crisis-card .crisis-head { display: flex; gap: 12px; margin-bottom: 12px; }
+  .crisis-card .crisis-head .ico { width: 32px; height: 32px; border-radius: 999px; background: var(--sage); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .crisis-card .crisis-head strong { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 18px; color: var(--ink); line-height: 1.2; margin-bottom: 4px; }
+  .crisis-card .crisis-head p { margin: 0; font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+  .crisis-card .crisis-list { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+  .crisis-card .crisis-list li { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 8px 10px; background: rgba(255,255,255,0.4); border: 1px solid var(--border); border-radius: 10px; }
+  .crisis-card .crisis-list .region { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-light); text-transform: uppercase; }
+  .crisis-card .crisis-list .line { font-family: var(--font-serif); font-size: 18px; color: var(--ink); }
+  .crisis-card .crisis-list .note { font-size: 12px; color: var(--ink-mid); }
+  .crisis-card .crisis-foot { font-size: 12px; color: var(--ink-light); line-height: 1.5; margin: 0; font-style: italic; }
   .av-q { background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink); line-height: 1.4; text-align: left; cursor: pointer; font-family: var(--font-sans); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .av-q em { font-style: italic; color: var(--clay-dark); }
   .av-q .arr { flex-shrink: 0; color: var(--ink-light); }
@@ -6204,6 +6341,24 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         <p className="meta">{today}{journeyStage ? <> <span className="dot">·</span> {journeyStage}</> : null}</p>
       </section>
 
+      {/* CRISIS PRECONDITION — if the user has logged sustained low
+          mood (avg ≤ 1 over the last 5 days with ≥ 3 entries), suppress
+          the cheerful AI brief and surface the support card instead.
+          This is the highest-priority "do no harm" check on Today. */}
+      {(() => {
+        const fiveAgo = new Date(); fiveAgo.setHours(0,0,0,0); fiveAgo.setDate(fiveAgo.getDate() - 5);
+        const recentMood = logs
+          .filter((l) => { const d = new Date(l.date); d.setHours(0,0,0,0); return d >= fiveAgo; })
+          .filter((l) => l.mood !== null && l.mood !== undefined);
+        const avgMood = recentMood.length >= 3
+          ? recentMood.reduce((s, l) => s + l.mood, 0) / recentMood.length
+          : null;
+        if (avgMood !== null && avgMood <= 1) {
+          return <CrisisSupportCard context="today-mood-crash" />;
+        }
+        return null;
+      })()}
+
       {/* Daily AI brief (Premium) — when present, replaces the static
           reveal card. This is the proactive Vela voice: a fresh 2-3
           sentence read on yesterday + the past week, generated each
@@ -7035,6 +7190,21 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     setChatInput("");
     setIsTyping(true);
     haptic("Light");
+
+    // CRISIS SAFETY — first check, before everything else. We never send
+    // crisis-language messages to AI or canned engines; the user gets the
+    // dedicated CrisisSupportCard rendered inline as the assistant turn.
+    if (looksLikeCrisis(text)) {
+      track("crisis_intercepted", {});
+      setChatMessages((prev) => [...prev, {
+        role: "assistant",
+        crisis: true, // sentinel — chat renderer shows CrisisSupportCard
+        time: new Date().toISOString(),
+      }]);
+      setIsTyping(false);
+      haptic("Medium");
+      return;
+    }
 
     // Pre-flight: too little data for a meaningful answer
     if (logs.length < 7) {
@@ -7880,15 +8050,24 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           </div>
         ) : (
           <div className="av-q-list">
-            {chatMessages.slice(-10).map((m, i) => (
-              <div key={i} style={{
-                background: m.role === "user" ? "var(--clay-light)" : "rgba(255,255,255,0.55)",
-                border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px",
-                fontSize: 13, color: "var(--ink)", lineHeight: 1.45,
-                alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                maxWidth: "85%",
-              }}>{m.text}</div>
-            ))}
+            {chatMessages.slice(-10).map((m, i) => {
+              if (m.crisis) {
+                return (
+                  <div key={i} style={{ alignSelf: "stretch" }}>
+                    <CrisisSupportCard context="ask-vela" />
+                  </div>
+                );
+              }
+              return (
+                <div key={i} style={{
+                  background: m.role === "user" ? "var(--clay-light)" : "rgba(255,255,255,0.55)",
+                  border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px",
+                  fontSize: 13, color: "var(--ink)", lineHeight: 1.45,
+                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "85%",
+                }}>{m.text}</div>
+              );
+            })}
             {isTyping && <div style={{ fontSize: 12, color: "var(--ink-light)", padding: "4px 14px" }}>Vela is thinking…</div>}
           </div>
         )}
@@ -8612,9 +8791,10 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   const streak = stats.streak;
   const entries = logs.length;
 
-  // First log date for "Tracking since"
+  // First log date for "Tracking since" — null when no logs (we hide
+  // the line in the JSX rather than print "Tracking since today").
   const trackingSince = (() => {
-    if (logs.length === 0) return "today";
+    if (logs.length === 0) return null;
     const earliest = logs.map((l) => l.date).sort()[0];
     const d = new Date(earliest);
     return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
@@ -8623,10 +8803,11 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   // Position the marker on a 5-stage arc (Regular cycles → Perimenopause → Postmenopause → Surgical)
   const stagePosition = profile && profile[0] !== undefined ? [0.10, 0.45, 0.85, 0.65][profile[0]] || 0.45 : 0.45;
 
-  // Recent quote — pull from the strongest correlation if we have one
+  // Recent quote — pull from the strongest correlation if we have one.
+  // Empty-state copy avoids "journey" (banned brand-voice word).
   const correlations = analyzeCorrelations(logs);
   const journeyQuote = correlations[0]?.text
-    || (days > 0 ? `${days} days of data, still listening for the patterns that matter to you.` : "Your journey starts the day you begin to log.");
+    || (days > 0 ? `${days} days in. Vela is still listening for the patterns that matter.` : "Your record starts the day you log your first entry.");
 
   return (
     <div className="screen active">
@@ -8643,7 +8824,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             : days < 30 ? <>Building the <em>baseline.</em></>
             : <>{Math.floor(days/30)} {days < 60 ? "month" : "months"} in, <em>finding the rhythm.</em></>}
         </h2>
-        <p className="since">Tracking since {trackingSince}</p>
+        {trackingSince && <p className="since">Tracking since {trackingSince}</p>}
 
         <div className="journey-grid">
           <div className="journey-cell">
@@ -8851,6 +9032,13 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
             <span className="sub">Encrypted, on this device only</span>
           </span>
           <span className="value">On-device</span>
+        </div>
+        <div className="set-row" style={{ cursor: "default" }}>
+          <span className="glyph"><UIIcon name="ChatCircle" size={16} /></span>
+          <span className="body">
+            <span className="label">What Ask Vela sends</span>
+            <span className="sub">Aggregated counts + averages only. Never your notes, custom symptoms, or exact dates.</span>
+          </span>
         </div>
       </div>
 

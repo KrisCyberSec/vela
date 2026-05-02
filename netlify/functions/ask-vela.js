@@ -65,7 +65,11 @@ SCOPE
 - Symptom patterns, sleep, mood, cycle, triggers, lifestyle context they've logged — fair game.
 - Doctor-prep questions — fair game; suggest specifics worth bringing up.
 - General education on perimenopause physiology — fair game when the user asks, kept brief.
-- Out of scope: dosing, prescribing, diagnosing, mental-health crisis intervention. For crisis topics, point to 988 (US Suicide & Crisis Lifeline).
+- Out of scope: dosing, prescribing, diagnosing, mental-health crisis intervention.
+- For crisis topics (suicide, self-harm, immediate danger), do NOT try to counsel. Respond ONLY with:
+  "What you're saying matters and you don't have to do this alone. Please reach a free, trained listener: 988 in the US, 116 123 (Samaritans) in the UK & Ireland, 13 11 14 (Lifeline) in Australia, 1-833-456-4566 in Canada, or ifindahelpline.com anywhere else. If you're in immediate danger, please call your local emergency number."
+- HORMONE THERAPY: Many users in this audience are on HRT. Never recommend supplements, lifestyle changes, or experiments that could plausibly interact with hormones without explicitly saying "check with your prescriber first."
+- PREGNANCY: This app is for menopause but some users may be pregnant. If anything in the data summary or question suggests pregnancy, say plainly that pregnancy guidance differs and they should speak with their provider.
 
 LENGTH
 Keep it under 4 sentences unless the user explicitly asks for more.`;
@@ -99,6 +103,25 @@ exports.handler = async (event) => {
   }
   if (!summary || typeof summary !== "object") {
     return json(400, { error: "Summary required" });
+  }
+
+  // SERVER-SIDE CRISIS INTERCEPT — defense in depth. Client should
+  // already have caught this and shown the crisis card, but if a
+  // request gets through (modified client, replay, etc.) we return
+  // the same support message and never burn tokens on the model.
+  const SERVER_CRISIS = [
+    /\bkill(ing)?\s+myself\b/i,
+    /\bend(ing)?\s+my\s+(own\s+)?life\b/i,
+    /\bsuicid(e|al)\b/i,
+    /\b(want|wish)\s+(to|i\s+could)\s+(die|be\s+dead)\b/i,
+    /\b(hurt|harm)\s+myself\b/i,
+    /\bself[\s-]harm\b/i,
+  ];
+  if (SERVER_CRISIS.some((re) => re.test(question))) {
+    return json(200, {
+      answer: "What you're saying matters and you don't have to do this alone. A free, trained listener is one call or text away — they're trained for exactly this. In the US: 988. UK & Ireland: 116 123 (Samaritans). Canada: 1-833-456-4566. Australia: 13 11 14 (Lifeline). Anywhere else: ifindahelpline.com. If you're in immediate danger, please call your local emergency number.",
+      crisis: true,
+    });
   }
 
   const clientIp =
