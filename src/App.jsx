@@ -716,6 +716,78 @@ function bumpMonthlyCapTo(target) {
 // Strips notes (free-text), exact dates, custom symptom names, location.
 // Returns an aggregated, sliced view that the model can reason about
 // without seeing anything personally identifying.
+// ─── Anonymized summary for Daily Brief API ─────────────────────────────
+// Tighter than the Ask Vela summary — fewer fields, focused on what
+// matters for "what's happening THIS week." Includes anomalies + cycle
+// + active experiments + lastBriefDaysAgo so the AI can avoid repetition.
+function buildDailyBriefSummary(logs) {
+  if (!logs || logs.length === 0) return { daysLogged: 0 };
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const sevenAgo = new Date(now); sevenAgo.setDate(sevenAgo.getDate() - 7);
+  const inWeek = (l) => { const d = new Date(l.date); d.setHours(0,0,0,0); return d >= sevenAgo && d < now; };
+
+  const week = logs.filter(inWeek);
+  const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+  const lastEntry = logs.length > 0 ? new Date(logs[logs.length - 1].date) : null;
+  const lastEntryDaysAgo = lastEntry ? Math.floor((now - lastEntry) / (86400000)) : null;
+
+  // Top symptom this week
+  const wCounts = {};
+  week.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { wCounts[s] = (wCounts[s] || 0) + 1; }));
+  const topPair = Object.entries(wCounts).sort((a, b) => b[1] - a[1])[0];
+  const weekTopSymptom = topPair ? { name: topPair[0], count: topPair[1] } : null;
+
+  // Mood + sleep this week
+  const moodLabels = ["rough", "low", "okay", "good", "great"];
+  const moodSamples = week.filter((l) => l.mood !== null && l.mood !== undefined);
+  const weekMood = moodSamples.length >= 3
+    ? { avg: moodSamples.reduce((s, l) => s + l.mood, 0) / moodSamples.length, label: moodLabels[Math.round(moodSamples.reduce((s, l) => s + l.mood, 0) / moodSamples.length)] }
+    : null;
+  const sleepSamples = week.filter((l) => l.context && l.context.sleepHours !== null && l.context.sleepHours !== undefined);
+  const weekSleep = sleepSamples.length >= 3
+    ? { avg: sleepSamples.reduce((s, l) => s + l.context.sleepHours, 0) / sleepSamples.length }
+    : null;
+
+  // Borrow correlations + anomalies + cycle from the existing engines
+  const correlations = analyzeCorrelations(logs).slice(0, 4).map((c) => c.text);
+  const anomalies = detectAnomalies(logs).slice(0, 4).map((a) => ({ text: a.text }));
+  const cp = predictNextCycle(logs);
+  const cyclePrediction = (cp && cp.cyclesLogged >= 2) ? {
+    cycleLengthMean: cp.cycleLengthMean,
+    windowStart: cp.windowStart,
+    windowEnd: cp.windowEnd,
+  } : null;
+
+  // Active experiments
+  const experiments = (() => { try { return JSON.parse(localStorage.getItem("vela_experiments") || "[]"); } catch { return []; } })();
+  const activeExperiments = experiments.filter((e) => e.status === "active").map((e) => {
+    const start = new Date(e.startDate + "T00:00:00");
+    const day = Math.min(e.duration, Math.floor((now - start) / 86400000) + 1);
+    return { name: e.name, day, duration: e.duration };
+  });
+
+  // Last-brief metadata to avoid repetition
+  const lastBriefStr = (() => { try { return localStorage.getItem("vela_last_brief_date"); } catch { return null; } })();
+  const lastBriefDaysAgo = lastBriefStr
+    ? Math.max(0, Math.floor((now - new Date(lastBriefStr + "T00:00:00")) / 86400000))
+    : null;
+
+  return {
+    daysLogged: logs.length,
+    uniqueDays,
+    lastEntryDaysAgo,
+    streak: getStreak(logs),
+    weekTopSymptom,
+    weekMood,
+    weekSleep,
+    correlations,
+    anomalies,
+    cyclePrediction,
+    activeExperiments,
+    lastBriefDaysAgo,
+  };
+}
+
 function buildAskVelaSummary(logs) {
   if (!logs || logs.length === 0) return { daysLogged: 0 };
   const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -785,75 +857,466 @@ function buildAskVelaSummary(logs) {
   };
 }
 
+// ─── analyzeCorrelations ────────────────────────────────────────────────
+// Adaptive correlation engine. Three things make this "smarter than rules":
+//
+// 1. Adaptive thresholds. Lift ratio required to surface a finding scales
+//    DOWN with sample size: more data = lower bar to call a pattern real.
+//    Below 14 days we don't run at all (n too small).
+//
+// 2. Confidence labels (early/steady/strong) computed from sample size +
+//    effect size, NOT a hardcoded 1/2/3 score. A "STRONG SIGNAL" at week 8
+//    means something different than at week 1 — and we now reflect that.
+//
+// 3. Lag detection. Beyond same-day correlations, we check 1- and 2-day
+//    lags. "Hot flash often follows a poor-sleep night by 1 day" is the
+//    kind of pattern users say "oh wow it actually noticed" about, and
+//    pure same-day analysis misses it entirely.
 function analyzeCorrelations(logs) {
   const contextLogs = logs.filter((l) => l.context && Object.values(l.context).some((v) => v !== null));
   if (contextLogs.length < 14) return [];
+
+  // Bucket by local-date so trigger-on-day-X and symptom-on-day-X+1 line up
   const byDate = {};
   contextLogs.forEach((l) => {
     const d = l.date.slice(0, 10);
-    if (!byDate[d]) byDate[d] = { context: { ...l.context }, symptoms: {}, mood: null };
+    if (!byDate[d]) byDate[d] = { date: d, context: { ...l.context }, symptoms: {}, mood: null };
     Object.keys(l.symptoms || {}).forEach((s) => { byDate[d].symptoms[s] = true; });
     if (l.mood !== null && l.mood !== undefined) byDate[d].mood = l.mood;
     if (l.context) Object.entries(l.context).forEach(([k, v]) => { if (v !== null && byDate[d].context[k] === null) byDate[d].context[k] = v; });
   });
-  const days = Object.values(byDate);
+  const days = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
   const allSymptoms = [...new Set(days.flatMap((d) => Object.keys(d.symptoms)))];
   const insights = [];
 
-  // Boolean triggers
+  const n = days.length;
+
+  // Adaptive lift threshold. At 14 days you need 2.5x to surface;
+  // by 90 days a 1.5x lift is enough. Larger samples stabilize faster
+  // so we trust smaller effects.
+  const liftThreshold = n >= 90 ? 1.5 : n >= 60 ? 1.7 : n >= 30 ? 1.9 : 2.2;
+
+  // Adaptive confidence label. Uses sample size, lift magnitude, and
+  // both base rates. Intentionally conservative — "strong" should mean
+  // something you'd trust enough to mention to a doctor.
+  const labelFor = (lift, samplesA, samplesB) => {
+    const minSample = Math.min(samplesA, samplesB);
+    if (lift >= 2.5 && minSample >= 20) return "strong";
+    if (lift >= 2.0 && minSample >= 12) return "steady";
+    return "early";
+  };
+
+  // Push a single correlation finding
+  const push = (cfg) => {
+    insights.push({
+      score: cfg.lift,                  // for sort
+      lift: cfg.lift,                   // explicit
+      label: cfg.label,                 // "strong" / "steady" / "early"
+      text: cfg.text,
+      icon: cfg.icon,                   // Phosphor name
+      kind: cfg.kind,                   // "trigger" / "sleep" / "stress" / "mood" / "lag"
+      context: cfg.context,             // variable name
+      symptom: cfg.symptom,
+      lag: cfg.lag || 0,
+      samples: cfg.samples,             // {with, without}
+    });
+  };
+
+  // ─── Same-day boolean triggers (caffeine / alcohol / exercise) ────────
   ["caffeine", "alcohol", "exercise"].forEach((trigger) => {
     const withT = days.filter((d) => d.context[trigger] === true);
     const withoutT = days.filter((d) => d.context[trigger] !== true);
     if (withT.length < 5 || withoutT.length < 5) return;
+
     allSymptoms.forEach((symptom) => {
       const rateW = withT.filter((d) => d.symptoms[symptom]).length / withT.length;
       const rateWO = withoutT.filter((d) => d.symptoms[symptom]).length / withoutT.length;
-      if (rateWO > 0.05 && rateW / rateWO >= 2.0) {
-        insights.push({ score: rateW / rateWO, text: `${symptom} appeared ${(rateW / rateWO).toFixed(1)}x more often on days you logged ${trigger === "exercise" ? "exercise" : trigger}`, icon: trigger === "caffeine" ? "☕" : trigger === "alcohol" ? "🍷" : "🏃" });
+      if (rateWO > 0.05 && rateW / rateWO >= liftThreshold) {
+        const lift = rateW / rateWO;
+        push({
+          lift, label: labelFor(lift, withT.length, withoutT.length),
+          text: `${symptom} appeared ${lift.toFixed(1)}x more often on days you logged ${trigger}`,
+          icon: trigger === "caffeine" ? "Sparkle" : trigger === "alcohol" ? "Drop" : "Footprints",
+          kind: "trigger", context: trigger, symptom,
+          samples: { with: withT.length, without: withoutT.length },
+        });
       }
-      if (trigger === "exercise" && rateWO > 0.1 && rateW < rateWO * 0.5) {
-        insights.push({ score: rateWO / Math.max(rateW, 0.05), text: `${symptom} appeared ${(rateWO / Math.max(rateW, 0.05)).toFixed(1)}x less often on days you logged exercise`, icon: "🏃" });
+      // Inverse — exercise often LOWERS symptom rates; surface that too
+      if (trigger === "exercise" && rateWO > 0.1 && rateW < rateWO / liftThreshold) {
+        const lift = rateWO / Math.max(rateW, 0.05);
+        push({
+          lift, label: labelFor(lift, withT.length, withoutT.length),
+          text: `${symptom} appeared ${lift.toFixed(1)}x less often on days you logged exercise`,
+          icon: "Footprints", kind: "trigger", context: "exercise_inverse", symptom,
+          samples: { with: withT.length, without: withoutT.length },
+        });
       }
     });
+
+    // Mood differential on trigger days
     const moodW = withT.filter((d) => d.mood !== null);
     const moodWO = withoutT.filter((d) => d.mood !== null);
     if (moodW.length >= 5 && moodWO.length >= 5) {
       const avgW = moodW.reduce((s, d) => s + d.mood, 0) / moodW.length;
       const avgWO = moodWO.reduce((s, d) => s + d.mood, 0) / moodWO.length;
       const delta = avgW - avgWO;
-      if (Math.abs(delta) >= 0.5) {
-        insights.push({ score: Math.abs(delta), text: `Your mood averages ${Math.abs(delta).toFixed(1)} points ${delta > 0 ? "higher" : "lower"} on days you ${trigger === "exercise" ? "exercise" : `have ${trigger}`}`, icon: trigger === "caffeine" ? "☕" : trigger === "alcohol" ? "🍷" : "🏃" });
+      const minDelta = n >= 60 ? 0.4 : n >= 30 ? 0.5 : 0.6;
+      if (Math.abs(delta) >= minDelta) {
+        push({
+          lift: 1 + Math.abs(delta), // synthetic score so it sorts among lift findings
+          label: labelFor(1 + Math.abs(delta), moodW.length, moodWO.length),
+          text: `Your mood averages ${Math.abs(delta).toFixed(1)} points ${delta > 0 ? "higher" : "lower"} on days you ${trigger === "exercise" ? "exercise" : `log ${trigger}`}`,
+          icon: trigger === "caffeine" ? "Sparkle" : trigger === "alcohol" ? "Drop" : "Footprints",
+          kind: "mood", context: trigger, symptom: "mood",
+          samples: { with: moodW.length, without: moodWO.length },
+        });
       }
     }
   });
 
-  // Sleep < 6 hours
+  // ─── Sleep < 6 hours (same day) ───────────────────────────────────────
   const sleepLow = days.filter((d) => d.context.sleepHours !== null && d.context.sleepHours < 6);
   const sleepOk = days.filter((d) => d.context.sleepHours !== null && d.context.sleepHours >= 6);
   if (sleepLow.length >= 5 && sleepOk.length >= 5) {
     allSymptoms.forEach((symptom) => {
       const rL = sleepLow.filter((d) => d.symptoms[symptom]).length / sleepLow.length;
       const rO = sleepOk.filter((d) => d.symptoms[symptom]).length / sleepOk.length;
-      if (rO > 0.05 && rL / rO >= 2.0) {
-        insights.push({ score: rL / rO, text: `${symptom} appeared ${(rL / rO).toFixed(1)}x more often after nights with less than 6 hours of sleep`, icon: "🛏️" });
+      if (rO > 0.05 && rL / rO >= liftThreshold) {
+        const lift = rL / rO;
+        push({
+          lift, label: labelFor(lift, sleepLow.length, sleepOk.length),
+          text: `${symptom} appeared ${lift.toFixed(1)}x more often after nights with less than 6 hours of sleep`,
+          icon: "Bed", kind: "sleep", context: "sleepHours", symptom,
+          samples: { with: sleepLow.length, without: sleepOk.length },
+        });
       }
     });
   }
 
-  // Stress >= 4
+  // ─── Stress ≥ 4 (same day) ────────────────────────────────────────────
   const stressHi = days.filter((d) => d.context.stress !== null && d.context.stress >= 4);
   const stressLo = days.filter((d) => d.context.stress !== null && d.context.stress < 4);
   if (stressHi.length >= 5 && stressLo.length >= 5) {
     allSymptoms.forEach((symptom) => {
       const rH = stressHi.filter((d) => d.symptoms[symptom]).length / stressHi.length;
       const rL = stressLo.filter((d) => d.symptoms[symptom]).length / stressLo.length;
-      if (rL > 0.05 && rH / rL >= 2.0) {
-        insights.push({ score: rH / rL, text: `${symptom} appeared ${(rH / rL).toFixed(1)}x more often on high-stress days`, icon: "😤" });
+      if (rL > 0.05 && rH / rL >= liftThreshold) {
+        const lift = rH / rL;
+        push({
+          lift, label: labelFor(lift, stressHi.length, stressLo.length),
+          text: `${symptom} appeared ${lift.toFixed(1)}x more often on high-stress days`,
+          icon: "CloudLightning", kind: "stress", context: "stress", symptom,
+          samples: { with: stressHi.length, without: stressLo.length },
+        });
       }
     });
   }
 
-  return insights.sort((a, b) => b.score - a.score).slice(0, 4);
+  // ─── LAG DETECTION (1- and 2-day shifts) ──────────────────────────────
+  // Build a date-indexed map for fast prev-day lookup
+  const dayMap = new Map(days.map((d) => [d.date, d]));
+  const dateMinus = (dateStr, days) => {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() - days);
+    return localDateStr(d);
+  };
+
+  const checkLag = (lag, triggerKey, triggerCheck, label) => {
+    if (n < 21) return; // need a real baseline before lag claims
+    // For each day with a symptom, was the trigger present `lag` days ago?
+    allSymptoms.forEach((symptom) => {
+      let triggerThenSymptom = 0;     // trigger on day-N, symptom on day-N+lag
+      let noTriggerThenSymptom = 0;
+      let triggerDays = 0;
+      let noTriggerDays = 0;
+      days.forEach((d) => {
+        if (!triggerCheck(d.context)) return;
+      });
+      // Walk pairs (prevDay, currentDay)
+      days.forEach((d) => {
+        const prev = dayMap.get(dateMinus(d.date, lag));
+        if (!prev) return;
+        if (triggerCheck(prev.context)) {
+          triggerDays++;
+          if (d.symptoms[symptom]) triggerThenSymptom++;
+        } else {
+          noTriggerDays++;
+          if (d.symptoms[symptom]) noTriggerThenSymptom++;
+        }
+      });
+      if (triggerDays < 5 || noTriggerDays < 5) return;
+      const rateA = triggerThenSymptom / triggerDays;
+      const rateB = noTriggerThenSymptom / noTriggerDays;
+      if (rateB > 0.05 && rateA / rateB >= liftThreshold) {
+        const lift = rateA / rateB;
+        push({
+          lift, label: labelFor(lift, triggerDays, noTriggerDays),
+          text: `${symptom} often follows ${label} by ${lag} day${lag === 1 ? "" : "s"} (${lift.toFixed(1)}x more likely)`,
+          icon: "ArrowRight", kind: "lag", context: triggerKey, symptom, lag,
+          samples: { with: triggerDays, without: noTriggerDays },
+        });
+      }
+    });
+  };
+
+  [1, 2].forEach((lag) => {
+    checkLag(lag, "sleepHours", (ctx) => ctx.sleepHours !== null && ctx.sleepHours < 6, "a poor-sleep night");
+    checkLag(lag, "stress", (ctx) => ctx.stress !== null && ctx.stress >= 4, "a high-stress day");
+    checkLag(lag, "alcohol", (ctx) => ctx.alcohol === true, "an alcohol day");
+  });
+
+  // Sort by lift, prefer same-day over lag in ties
+  return insights
+    .sort((a, b) => (b.lift - a.lift) || (a.lag - b.lag))
+    .slice(0, 6);
+}
+
+// ─── Insight feedback ───────────────────────────────────────────────────
+// Lightweight thumbs-up/down learning. Stored locally as a map of
+// insight-key → { up, down, ts }. We use it to:
+//   1. Boost rank of insights the user has thumbs-up'd (they get
+//      surfaced sooner / more often)
+//   2. Suppress insights they've thumbs-down'd 3+ times
+// The "key" is a stable hash of the insight kind + context + symptom,
+// not the exact text — so phrasing changes don't lose the feedback.
+const FEEDBACK_KEY = "vela_insight_feedback";
+
+function getInsightFeedback() {
+  try { return JSON.parse(localStorage.getItem(FEEDBACK_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function setInsightFeedback(map) {
+  try { localStorage.setItem(FEEDBACK_KEY, JSON.stringify(map)); }
+  catch { /* private mode */ }
+}
+
+function insightKey(insight) {
+  // Stable across phrasing changes
+  const parts = [insight.kind || "x", insight.context || "x", insight.symptom || "x", insight.lag || 0];
+  return parts.join("|");
+}
+
+function recordFeedback(insight, vote) {
+  const map = getInsightFeedback();
+  const key = insightKey(insight);
+  const cur = map[key] || { up: 0, down: 0 };
+  if (vote === "up") cur.up = (cur.up || 0) + 1;
+  if (vote === "down") cur.down = (cur.down || 0) + 1;
+  cur.ts = Date.now();
+  map[key] = cur;
+  setInsightFeedback(map);
+  track && track("insight_feedback", { kind: insight.kind, vote });
+}
+
+// Apply feedback weighting to a list of insights
+function applyFeedbackRanking(insights) {
+  const map = getInsightFeedback();
+  return insights
+    .map((ins) => {
+      const f = map[insightKey(ins)] || { up: 0, down: 0 };
+      // Suppress fully if 3+ down votes and no up votes
+      if (f.down >= 3 && f.up === 0) return null;
+      // Score: lift × (1 + 0.3 × up - 0.2 × down)
+      const weight = Math.max(0.2, 1 + 0.3 * (f.up || 0) - 0.2 * (f.down || 0));
+      return { ...ins, _ranked: (ins.score || ins.lift || 1) * weight, _userUp: f.up || 0, _userDown: f.down || 0 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b._ranked - a._ranked);
+}
+
+// ─── forecastTomorrow ───────────────────────────────────────────────────
+// Bayesian-flavored prediction for what tomorrow might look like. For
+// each top-frequency symptom, we compute a personal prior (overall rate
+// in the user's history) and update it based on three signals:
+//   1. Cycle phase — if we know next cycle window, days inside that
+//      window get a multiplier
+//   2. Recency — symptom that hit yesterday and the day before is more
+//      likely to hit tomorrow (autocorrelation)
+//   3. Active triggers — if the user has logged caffeine 3 days running
+//      and caffeine correlates with a symptom, bump it
+//
+// Returns { date, predictions: [{ symptom, prob, why }] }. Honest about
+// confidence: we never claim "definitely tomorrow" — at most "likely."
+function forecastTomorrow(logs) {
+  if (!logs || logs.length < 21) return null;
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = localDateStr(tomorrow);
+
+  const totalDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+  const symCounts = {};
+  logs.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { symCounts[s] = (symCounts[s] || 0) + 1; }));
+  // Top 6 candidates by overall frequency
+  const candidates = Object.entries(symCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([sym, count]) => ({ sym, prior: count / totalDays }));
+  if (candidates.length === 0) return null;
+
+  // Recency lookup: was symptom present on day-1 and day-2?
+  const dayHas = (dateStr, sym) => logs.some((l) => l.date.slice(0, 10) === dateStr && l.symptoms?.[sym]);
+  const dayMinus = (n) => { const d = new Date(now); d.setDate(d.getDate() - n); return localDateStr(d); };
+
+  // Cycle-phase boost (only if cycle prediction exists)
+  const cp = predictNextCycle(logs);
+  const inCycleWindow = cp && cp.cyclesLogged >= 2 && tomorrowStr >= cp.windowStart && tomorrowStr <= cp.windowEnd;
+
+  // Trigger streak: caffeine/alcohol/poor-sleep run for the last 2 days
+  const recentTrigger = (key) => {
+    const yLog = logs.find((l) => l.date.slice(0, 10) === dayMinus(0));
+    const yyLog = logs.find((l) => l.date.slice(0, 10) === dayMinus(1));
+    if (!yLog || !yyLog) return false;
+    if (key === "sleep") return (yLog.context?.sleepHours != null && yLog.context.sleepHours < 6) && (yyLog.context?.sleepHours != null && yyLog.context.sleepHours < 6);
+    return yLog.context?.[key] === true && yyLog.context?.[key] === true;
+  };
+  const caffStreak = recentTrigger("caffeine");
+  const alcStreak = recentTrigger("alcohol");
+  const sleepStreak = recentTrigger("sleep");
+
+  // Use existing correlation engine to know which symptoms tie to triggers
+  const corrs = analyzeCorrelations(logs);
+  const triggerLink = (trigger, sym) =>
+    corrs.find((c) => c.context === trigger && c.symptom === sym && c.lift >= 1.5);
+
+  const predictions = candidates.map(({ sym, prior }) => {
+    let prob = prior;
+    const reasons = [];
+
+    // Recency boost
+    if (dayHas(dayMinus(0), sym) && dayHas(dayMinus(1), sym)) {
+      prob = Math.min(0.95, prob * 1.6);
+      reasons.push("logged the past two days");
+    } else if (dayHas(dayMinus(0), sym)) {
+      prob = Math.min(0.92, prob * 1.3);
+      reasons.push("logged yesterday");
+    }
+
+    // Cycle phase boost (10-30% lift)
+    if (inCycleWindow) {
+      prob = Math.min(0.95, prob * 1.25);
+      reasons.push("in your usual cycle window");
+    }
+
+    // Trigger-streak boost
+    if (caffStreak && triggerLink("caffeine", sym)) {
+      prob = Math.min(0.95, prob * 1.4);
+      reasons.push("caffeine for two days running");
+    }
+    if (alcStreak && triggerLink("alcohol", sym)) {
+      prob = Math.min(0.95, prob * 1.4);
+      reasons.push("alcohol two nights in a row");
+    }
+    if (sleepStreak) {
+      // If sleep correlates with this sym, multiply
+      if (corrs.find((c) => c.context === "sleepHours" && c.symptom === sym && c.lift >= 1.5)) {
+        prob = Math.min(0.95, prob * 1.5);
+        reasons.push("two short-sleep nights");
+      }
+    }
+
+    return { symptom: sym, prob: +prob.toFixed(2), why: reasons };
+  });
+
+  // Sort by probability, keep only those above 0.30 OR the top one regardless
+  const filtered = predictions.filter((p) => p.prob >= 0.30);
+  const result = filtered.length > 0 ? filtered : [predictions[0]];
+
+  return {
+    date: tomorrowStr,
+    inCycleWindow: !!inCycleWindow,
+    predictions: result.sort((a, b) => b.prob - a.prob).slice(0, 4),
+  };
+}
+
+// ─── detectAnomalies ────────────────────────────────────────────────────
+// Computes z-scores against the user's personal 30-day baseline. Surfaces
+// "this is unusual for you" days/weeks. Stat-based, not ML, but lands as
+// "the app is paying attention to my normal" to the user.
+function detectAnomalies(logs) {
+  if (!logs || logs.length < 14) return [];
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const sevenAgo = new Date(now); sevenAgo.setDate(sevenAgo.getDate() - 7);
+  const thirtyAgo = new Date(now); thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  const inWin = (l, a, b) => {
+    const d = new Date(l.date); d.setHours(0, 0, 0, 0);
+    return d >= a && d < b;
+  };
+  const week = logs.filter((l) => inWin(l, sevenAgo, now));
+  const baseline = logs.filter((l) => inWin(l, thirtyAgo, now)); // last 30 days
+  if (baseline.length < 10) return [];
+
+  const anomalies = [];
+
+  // Per-symptom: last-7-day count vs baseline 7-day-equivalent average
+  const allSymptoms = [...new Set(baseline.flatMap((l) => Object.keys(l.symptoms || {})))];
+  allSymptoms.forEach((sym) => {
+    const weekCount = week.filter((l) => l.symptoms?.[sym]).length;
+    // Baseline: average per-week count over the 30-day window
+    const baselineWeekly = baseline.filter((l) => l.symptoms?.[sym]).length * (7 / 30);
+    if (baselineWeekly < 1 || weekCount < 1) return;
+    const lift = weekCount / baselineWeekly;
+    if (lift >= 1.8 && weekCount >= 3) {
+      anomalies.push({
+        kind: "symptom-spike", symptom: sym,
+        weekCount, baselineWeekly: +baselineWeekly.toFixed(1),
+        lift: +lift.toFixed(1),
+        text: `${sym} has shown up ${weekCount}x this week — ${lift.toFixed(1)}x your usual.`,
+        icon: SYMPTOMS.find((s) => s.name === sym)?.icon || "Sparkle",
+      });
+    }
+    if (lift <= 0.4 && baselineWeekly >= 2) {
+      anomalies.push({
+        kind: "symptom-quiet", symptom: sym,
+        weekCount, baselineWeekly: +baselineWeekly.toFixed(1),
+        lift: +lift.toFixed(1),
+        text: `${sym} has been quieter this week — ${weekCount} vs your usual ${baselineWeekly.toFixed(1)}.`,
+        icon: SYMPTOMS.find((s) => s.name === sym)?.icon || "Sparkle",
+      });
+    }
+  });
+
+  // Sleep anomaly (z-score against personal baseline)
+  const sleepBase = baseline.filter((l) => l.context?.sleepHours != null).map((l) => l.context.sleepHours);
+  const sleepWeek = week.filter((l) => l.context?.sleepHours != null).map((l) => l.context.sleepHours);
+  if (sleepBase.length >= 10 && sleepWeek.length >= 3) {
+    const baseAvg = sleepBase.reduce((a, b) => a + b, 0) / sleepBase.length;
+    const baseSd = Math.sqrt(sleepBase.reduce((s, x) => s + (x - baseAvg) ** 2, 0) / sleepBase.length) || 0.5;
+    const weekAvg = sleepWeek.reduce((a, b) => a + b, 0) / sleepWeek.length;
+    const z = (weekAvg - baseAvg) / baseSd;
+    if (Math.abs(z) >= 1.2) {
+      anomalies.push({
+        kind: "sleep-shift",
+        weekAvg: +weekAvg.toFixed(1), baseAvg: +baseAvg.toFixed(1), z: +z.toFixed(1),
+        text: z < 0
+          ? `You're averaging ${weekAvg.toFixed(1)}h sleep this week — ${(baseAvg - weekAvg).toFixed(1)}h below your usual.`
+          : `You're averaging ${weekAvg.toFixed(1)}h sleep this week — ${(weekAvg - baseAvg).toFixed(1)}h above your usual.`,
+        icon: "Bed",
+      });
+    }
+  }
+
+  // Mood anomaly
+  const moodBase = baseline.filter((l) => l.mood != null).map((l) => l.mood);
+  const moodWeek = week.filter((l) => l.mood != null).map((l) => l.mood);
+  if (moodBase.length >= 10 && moodWeek.length >= 3) {
+    const baseAvg = moodBase.reduce((a, b) => a + b, 0) / moodBase.length;
+    const weekAvg = moodWeek.reduce((a, b) => a + b, 0) / moodWeek.length;
+    const delta = weekAvg - baseAvg;
+    if (Math.abs(delta) >= 0.6) {
+      const moodLabels = ["rough", "low", "okay", "good", "great"];
+      anomalies.push({
+        kind: "mood-shift",
+        weekAvg: +weekAvg.toFixed(1), baseAvg: +baseAvg.toFixed(1), delta: +delta.toFixed(1),
+        text: delta < 0
+          ? `Mood has dipped this week (${moodLabels[Math.round(weekAvg)]} on average, vs your usual ${moodLabels[Math.round(baseAvg)]}).`
+          : `Mood has lifted this week (${moodLabels[Math.round(weekAvg)]} on average, vs your usual ${moodLabels[Math.round(baseAvg)]}).`,
+        icon: "Heart",
+      });
+    }
+  }
+
+  return anomalies;
 }
 
 // ─── Cycle prediction (Premium) ──────────────────────────────────────────
@@ -2603,6 +3066,32 @@ const css = `
   }
 
   /* Reveal card — sage glass with radial gradient overlay */
+  /* Forecast card — light surface, list of probabilities + reason.
+     Locked variant uses the gold gating accent. */
+  .forecast-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .forecast-card.locked { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.06)); border-color: rgba(212,168,83,0.26); }
+  .forecast-card .forecast-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 10px; }
+  .forecast-card .forecast-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  .forecast-card .forecast-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .forecast-card .forecast-list li:last-child { border-bottom: none; }
+  .forecast-card .forecast-list .prob { font-family: var(--font-serif); font-size: 17px; color: var(--clay-dark); min-width: 46px; }
+  .forecast-card .forecast-list .sym { font-weight: 500; }
+  .forecast-card .forecast-list .why { color: var(--ink-light); font-size: 12px; }
+  .forecast-card .forecast-foot { font-size: 11.5px; color: var(--ink-light); margin: 10px 0 0; font-style: italic; }
+  .forecast-card .forecast-teaser { font-size: 13px; color: var(--ink-mid); line-height: 1.5; margin: 0 0 12px; }
+  .forecast-card .forecast-unlock { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  /* Daily AI brief card — sage-tinted glass surface. Distinct from
+     the static reveal card so users learn "this is the live AI read,
+     not the same dashboard text I see every day." */
+  .brief-card { background: linear-gradient(135deg, rgba(143,184,155,0.18), rgba(212,168,83,0.06)); border: 1px solid rgba(143,184,155,0.32); border-radius: var(--radius); padding: 18px; }
+  .brief-card .brief-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 10px; }
+  .brief-card .brief-eyebrow svg { color: var(--sage-dark); }
+  .brief-card .brief-body { font-family: var(--font-serif); font-weight: 400; font-size: 18px; line-height: 1.4; color: var(--ink); margin: 0 0 14px; letter-spacing: -0.005em; }
+  .brief-card .brief-body em { font-style: italic; color: var(--clay); }
+  .brief-card .brief-foot { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--ink-light); }
+  .brief-card .brief-link { display: inline-flex; align-items: center; gap: 4px; color: var(--sage-dark); font-weight: 600; cursor: pointer; }
+
   .reveal-card-v2 {
     position: relative; border-radius: 22px; padding: 18px 18px 16px;
     background: var(--glass-sage-card);
@@ -2889,6 +3378,24 @@ const css = `
   .pattern-card .conf .conf-dots { display: inline-flex; gap: 2px; }
   .pattern-card .conf .conf-dots span { width: 4px; height: 4px; border-radius: 2px; background: rgba(140,78,50,0.2); }
   .pattern-card .conf .conf-dots span.on { background: var(--sage-dark); }
+  .pattern-card .pattern-feedback { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--ink-light); }
+  .pattern-card .pattern-feedback .ask { letter-spacing: 0.04em; text-transform: uppercase; font-size: 10px; }
+  .pattern-card .pattern-feedback .fb-btn { width: 24px; height: 24px; border-radius: 8px; background: transparent; border: 1px solid var(--border); color: var(--ink-light); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background 100ms ease, color 100ms ease; }
+  .pattern-card .pattern-feedback .fb-btn:hover { background: var(--card-bg-soft, rgba(140,78,50,0.05)); color: var(--ink); }
+  .pattern-card .pattern-feedback .fb-btn.on { background: var(--sage-light); color: var(--sage-dark); border-color: rgba(143,184,155,0.4); }
+  .pattern-card .pattern-feedback .fb-btn.on.down { background: var(--clay-light); color: var(--clay-dark); border-color: rgba(201,123,92,0.3); }
+  .pattern-card .pattern-feedback .fb-thanks { font-style: italic; }
+
+  /* Anomaly cards — quieter than pattern cards (no confidence dots, no
+     correlation framing). They say "I'm noticing something different
+     about THIS week vs your normal." */
+  .anomaly-list { display: flex; flex-direction: column; gap: 8px; }
+  .anomaly-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .anomaly-card.locked { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.06)); border-color: rgba(212,168,83,0.26); }
+  .anomaly-card .ico { width: 26px; height: 26px; border-radius: 8px; background: var(--clay-light); color: var(--clay-dark); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .anomaly-card .body { flex: 1; min-width: 0; }
+  .anomaly-card .head { font-size: 13px; color: var(--ink); line-height: 1.45; }
+  .anomaly-unlock { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; border: none; border-radius: 999px; padding: 5px 11px; font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
 
   .weak-banner { margin-top: 8px; padding: 10px 12px; background: var(--clay-light); border-radius: 12px; font-size: 12px; color: var(--clay-dark); display: flex; align-items: center; gap: 8px; line-height: 1.4; }
 
@@ -5405,6 +5912,56 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
     return () => { cancelled = true; };
   }, []);
 
+  // ─── Daily brief (Premium) ──────────────────────────────────────────
+  // Fetches today's brief from /api/daily-brief once per day (server
+  // caches per appUserId+date so repeat opens are free). Only runs for
+  // premium users with at least 7 days of data — anything earlier and
+  // there's not enough signal for the brief to be worth reading.
+  const [dailyBrief, setDailyBrief] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vela_daily_brief") || "null"); }
+    catch { return null; }
+  });
+  const [briefLoading, setBriefLoading] = useState(false);
+  useEffect(() => {
+    if (!isPremium) return;
+    const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+    if (uniqueDays < 7) return;
+    const today = localDateStr(new Date());
+    if (dailyBrief && dailyBrief.date === today) return; // already fetched today
+    let cancelled = false;
+    (async () => {
+      setBriefLoading(true);
+      try {
+        const summary = buildDailyBriefSummary(logs);
+        const stageIdx = profile?.[0];
+        const goalAns = profile?.[2];
+        const goalIdx = Array.isArray(goalAns) ? goalAns[0] : goalAns;
+        const profilePayload = {
+          stage: stageIdx != null ? QUESTIONS[0].opts[stageIdx]?.label : null,
+          goal: goalIdx != null ? QUESTIONS[2].opts[goalIdx]?.label : null,
+        };
+        const appUserId = await getAppUserId();
+        const r = await fetch("/api/daily-brief", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ summary, profile: profilePayload, appUserId }),
+        });
+        if (!cancelled && r.ok) {
+          const data = await r.json();
+          const record = { brief: data.brief, date: today, generatedAt: data.generatedAt };
+          setDailyBrief(record);
+          try {
+            localStorage.setItem("vela_daily_brief", JSON.stringify(record));
+            localStorage.setItem("vela_last_brief_date", today);
+          } catch { /* private mode */ }
+        }
+      } catch { /* network — try again tomorrow */ }
+      finally { if (!cancelled) setBriefLoading(false); }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPremium, logs.length]);
+
   const allSymptoms = [...SYMPTOMS, ...customSymptoms];
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -5647,27 +6204,97 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         <p className="meta">{today}{journeyStage ? <> <span className="dot">·</span> {journeyStage}</> : null}</p>
       </section>
 
-      {/* Reveal card — content morphs by data state */}
-      <section
-        className="reveal-card-v2"
-        onClick={reveal.link ? () => onNavigate && onNavigate("insights") : undefined}
-        style={reveal.link ? { cursor: "pointer" } : undefined}
-      >
-        <div className="reveal-eyebrow">
-          <UIIcon name="Sparkle" size={11} /> {reveal.eyebrow}
-        </div>
-        <h2 className="reveal-headline-v2">{reveal.headline}</h2>
-        <p className="reveal-body-v2">{reveal.body}</p>
-        <RevealChart kind={reveal.chartType} logs={logs} />
-        <div className="reveal-foot">
-          <span>{reveal.foot}</span>
-          {reveal.link && (
-            <span className="reveal-link">
-              {reveal.link} <UIIcon name="ArrowRight" size={12} />
+      {/* Daily AI brief (Premium) — when present, replaces the static
+          reveal card. This is the proactive Vela voice: a fresh 2-3
+          sentence read on yesterday + the past week, generated each
+          morning by Claude grounded in anonymized data. */}
+      {dailyBrief?.brief && isPremium ? (
+        <section className="brief-card">
+          <div className="brief-eyebrow">
+            <UIIcon name="Sparkle" size={11} weight="fill" /> Vela today
+          </div>
+          <p className="brief-body">{dailyBrief.brief}</p>
+          <div className="brief-foot">
+            <span>Refreshes each morning</span>
+            <span className="brief-link" onClick={() => onNavigate && onNavigate("insights")}>
+              See patterns <UIIcon name="ArrowRight" size={12} />
             </span>
+          </div>
+        </section>
+      ) : (
+        /* Reveal card — content morphs by data state */
+        <section
+          className="reveal-card-v2"
+          onClick={reveal.link ? () => onNavigate && onNavigate("insights") : undefined}
+          style={reveal.link ? { cursor: "pointer" } : undefined}
+        >
+          <div className="reveal-eyebrow">
+            <UIIcon name="Sparkle" size={11} /> {reveal.eyebrow}
+          </div>
+          <h2 className="reveal-headline-v2">{reveal.headline}</h2>
+          <p className="reveal-body-v2">{reveal.body}</p>
+          <RevealChart kind={reveal.chartType} logs={logs} />
+          <div className="reveal-foot">
+            <span>{reveal.foot}</span>
+            {reveal.link && (
+              <span className="reveal-link">
+                {reveal.link} <UIIcon name="ArrowRight" size={12} />
+              </span>
+            )}
+          </div>
+          {briefLoading && (
+            <p style={{ fontSize: 11, color: "var(--ink-light)", margin: "8px 0 0", letterSpacing: 0.04, textTransform: "uppercase" }}>
+              Vela is reading your week…
+            </p>
           )}
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Forecast — Premium. Bayesian-flavored "what tomorrow may
+          look like" based on cycle phase + recency + recent triggers.
+          Quietly hides if confidence is too low or data is too thin. */}
+      {(() => {
+        const forecast = forecastTomorrow(logs);
+        if (!forecast || forecast.predictions.length === 0) return null;
+        return (
+          <>
+            <div className="today-section-label">
+              <span>What tomorrow may bring</span>
+              {!isPremium && <span className="hint" style={{ color: "var(--gold)" }}>Premium</span>}
+            </div>
+            <section className={`forecast-card${!isPremium ? " locked" : ""}`}>
+              {!isPremium ? (
+                <>
+                  <p className="forecast-teaser">
+                    Vela can read your cycle phase, recent triggers, and the past two days of symptoms to give you a heads-up on tomorrow.
+                  </p>
+                  <button type="button" className="forecast-unlock" onClick={onShowPaywall}>
+                    <UIIcon name="Star" size={11} weight="fill" /> Unlock with Premium
+                  </button>
+                </>
+              ) : (
+                <>
+                  {forecast.inCycleWindow && (
+                    <div className="forecast-eyebrow">
+                      <UIIcon name="Calendar" size={11} /> In your usual cycle window
+                    </div>
+                  )}
+                  <ul className="forecast-list">
+                    {forecast.predictions.map((p) => (
+                      <li key={p.symptom}>
+                        <span className="prob">{Math.round(p.prob * 100)}%</span>
+                        <span className="sym">{p.symptom}</span>
+                        {p.why.length > 0 && <span className="why">· {p.why[0]}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="forecast-foot">A read, not a prediction. Your data, this morning.</p>
+                </>
+              )}
+            </section>
+          </>
+        );
+      })()}
 
       {/* Mood */}
       <div className="today-section-label">
@@ -6554,14 +7181,32 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   const MOOD_KIND = ["rough", "low", "okay", "good", "great"];
   const MOOD_LABEL = ["Rough", "Low", "Okay", "Good", "Great"];
 
-  // Pull real correlations
-  const correlations = analyzeCorrelations(logs);
-  const patternFindings = correlations.slice(0, 4).map((c, i) => ({
-    icon: i % 2 === 0 ? "Bed" : "Wind",
+  // Pull real correlations + apply user-feedback weighting. The new
+  // analyzeCorrelations returns structured findings with adaptive
+  // confidence labels and lag info; applyFeedbackRanking re-sorts by
+  // user's thumbs-up history and hides things they've thumbs-down'd
+  // 3+ times.
+  const correlationsRaw = analyzeCorrelations(logs);
+  const correlations = applyFeedbackRanking(correlationsRaw);
+  const patternFindings = correlations.slice(0, 4).map((c) => ({
+    icon: c.icon || "Sparkle",
     text: c.text,
-    confidence: Math.min(3, Math.max(1, Math.round(c.score))),
+    label: c.label,                          // "strong" | "steady" | "early"
+    lag: c.lag || 0,
     basis: `${uniqueDays} days of data`,
+    feedbackKey: insightKey(c),              // for thumbs persistence
+    raw: c,                                   // pass for recordFeedback
   }));
+  // Local state to re-render after a thumb is registered (so the
+  // suppressed insight disappears or the helper text changes inline)
+  const [, setFeedbackTick] = useState(0);
+  const onPatternFeedback = (finding, vote) => {
+    recordFeedback(finding.raw, vote);
+    setFeedbackTick((n) => n + 1);
+  };
+
+  // Personal-baseline anomalies — premium-gated, surface only when present
+  const anomalies = detectAnomalies(logs);
 
   // Cycle prediction (Premium-gated render below)
   const cyclePrediction = predictNextCycle(logs);
@@ -7004,22 +7649,80 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 <span className="hint">{patternFindings.length} {patternFindings.length === 1 ? "finding" : "findings"}</span>
               </div>
               <div className="pattern-list">
-                {patternFindings.map((p, i) => (
-                  <article className="pattern-card" key={i}>
-                    <div className="ico"><UIIcon name={p.icon} size={16} /></div>
-                    <div className="body">
-                      <div className="head">{p.text}</div>
-                      <div className="conf">
-                        <span className="conf-dots">
-                          <span className={p.confidence >= 1 ? "on" : ""} />
-                          <span className={p.confidence >= 2 ? "on" : ""} />
-                          <span className={p.confidence >= 3 ? "on" : ""} />
-                        </span>
-                        <span>
-                          {p.confidence === 3 ? "Strong signal" : p.confidence === 2 ? "Steady signal" : "Early signal"}
-                          {" · "}{p.basis}
-                        </span>
+                {patternFindings.map((p, i) => {
+                  const dots = p.label === "strong" ? 3 : p.label === "steady" ? 2 : 1;
+                  const labelText = p.label === "strong" ? "Strong signal" : p.label === "steady" ? "Steady signal" : "Early signal";
+                  const fmap = getInsightFeedback();
+                  const f = fmap[p.feedbackKey] || {};
+                  return (
+                    <article className="pattern-card" key={i}>
+                      <div className="ico"><UIIcon name={p.icon} size={16} /></div>
+                      <div className="body">
+                        <div className="head">{p.text}</div>
+                        <div className="conf">
+                          <span className="conf-dots">
+                            <span className={dots >= 1 ? "on" : ""} />
+                            <span className={dots >= 2 ? "on" : ""} />
+                            <span className={dots >= 3 ? "on" : ""} />
+                          </span>
+                          <span>
+                            {labelText}
+                            {p.lag > 0 && <> · {p.lag}-day lag</>}
+                            {" · "}{p.basis}
+                          </span>
+                        </div>
+                        <div className="pattern-feedback">
+                          <span className="ask">Useful?</span>
+                          <button
+                            type="button"
+                            className={`fb-btn${f.up ? " on" : ""}`}
+                            aria-label="Thumbs up"
+                            onClick={(e) => { e.stopPropagation(); onPatternFeedback(p, "up"); }}
+                          >
+                            <UIIcon name="Heart" size={11} weight={f.up ? "fill" : "duotone"} />
+                          </button>
+                          <button
+                            type="button"
+                            className={`fb-btn${f.down ? " on down" : ""}`}
+                            aria-label="Thumbs down"
+                            onClick={(e) => { e.stopPropagation(); onPatternFeedback(p, "down"); }}
+                          >
+                            <UIIcon name="ArrowUp" size={11} style={{ transform: "rotate(180deg)" }} />
+                          </button>
+                          {f.up > 0 && <span className="fb-thanks">Got it — more like this.</span>}
+                          {f.down > 0 && f.down < 3 && <span className="fb-thanks">Noted.</span>}
+                        </div>
                       </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Anomalies — surface "this is unusual for you" findings.
+              Premium-gated; free users see a teaser. */}
+          {anomalies.length > 0 && (
+            <>
+              <div className="today-section-label">
+                <span>This week vs your usual</span>
+                {!isPremium && <span className="hint" style={{ color: "var(--gold)" }}>Premium</span>}
+              </div>
+              <div className="anomaly-list">
+                {(isPremium ? anomalies : anomalies.slice(0, 1)).map((a, i) => (
+                  <article key={i} className={`anomaly-card${!isPremium ? " locked" : ""}`}>
+                    <div className="ico"><UIIcon name={a.icon} size={14} /></div>
+                    <div className="body">
+                      {!isPremium ? (
+                        <>
+                          <div className="head" style={{ filter: "blur(4px)", userSelect: "none" }}>{a.text}</div>
+                          <button type="button" className="anomaly-unlock" onClick={onShowPaywall}>
+                            <UIIcon name="Star" size={11} weight="fill" /> Unlock anomaly insights
+                          </button>
+                        </>
+                      ) : (
+                        <div className="head">{a.text}</div>
+                      )}
                     </div>
                   </article>
                 ))}

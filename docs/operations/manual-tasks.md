@@ -42,23 +42,24 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ---
 
-## Blocking real Ask Vela in production
+## Blocking real Ask Vela + Daily Brief in production
 
 ### [ ] Set `ANTHROPIC_API_KEY` in Netlify
 - Site Settings → Environment variables → Add a variable
 - Get the key from [console.anthropic.com](https://console.anthropic.com/settings/keys)
-- Until this is set, `/api/ask-vela` returns a 503 with a polite "not
-  configured yet" message and the client falls back to canned responses
+- Powers BOTH `/api/ask-vela` AND `/api/daily-brief`. Until set, both
+  return 503 with explainers and the client falls back to canned text.
 
 ### [ ] Set `REVENUECAT_REST_KEY` in Netlify
 - Get the **secret** REST API key (starts with `sk_`) from
   [app.revenuecat.com](https://app.revenuecat.com) → Project Settings → API Keys
-- Required so the function can verify a caller actually has the
-  `premium` entitlement before spending tokens
-- Without it, the function returns 403 to all premium-gated callers
+- Both AI functions verify against this before spending tokens
+- Without it, both return 403 to all premium-gated callers
 
 ### [ ] (Optional) Tune `ASK_VELA_DAILY_USD` in Netlify
-- Default is $50/day global cost ceiling
+- Default is $50/day SHARED budget across both ask-vela + daily-brief
+- At 1000 paying users with 1 brief each per day + ~10 questions/mo
+  per user, expected daily spend is ~$1.90 — plenty of headroom
 - Set lower if you want to be more conservative early on
 - Set higher once you have real usage data and aren't worried
 
