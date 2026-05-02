@@ -110,17 +110,37 @@ exports.handler = async (event) => {
   // already have caught this and shown the crisis card, but if a
   // request gets through (modified client, replay, etc.) we return
   // the same support message and never burn tokens on the model.
+  // Mirrors src/App.jsx CRISIS_PATTERNS exactly. The client should
+  // already have caught this and shown the crisis card, but if a
+  // request gets through (modified client, replay, etc.) we return
+  // the same support message and never burn tokens on the model.
+  // Keep this list in sync with the client; drift is what makes the
+  // defense-in-depth shallow instead of deep.
   const SERVER_CRISIS = [
     /\bkill(ing)?\s+myself\b/i,
     /\bend(ing)?\s+my\s+(own\s+)?life\b/i,
-    /\bsuicid(e|al)\b/i,
+    /\b(don'?t|do\s*not)\s+want\s+to\s+(live|be\s+alive|exist)\b/i,
     /\b(want|wish)\s+(to|i\s+could)\s+(die|be\s+dead)\b/i,
+    /\bsuicid(e|al)\b/i,
     /\b(hurt|harm)\s+myself\b/i,
     /\bself[\s-]harm\b/i,
+    /\bbetter\s+off\s+dead\b/i,
+    /\bno\s+reason\s+to\s+(live|go\s+on)\b/i,
+    /\bcan'?t\s+go\s+on\b/i,
+    /\bgoing\s+to\s+(kill|end)\s+myself\b/i,
   ];
-  if (SERVER_CRISIS.some((re) => re.test(question))) {
+  // Same false-positive guards as the client so we don't crisis-card a
+  // user who said "dying for a coffee" or "dead tired."
+  const lowered = String(question || "").toLowerCase();
+  const isFalsePositive =
+    /dying\s+(to|for)\s+(a|some|one|that|this|the)\b/.test(lowered) ||
+    /dead\s+(tired|asleep|on\s+my\s+feet)\b/.test(lowered);
+  if (!isFalsePositive && SERVER_CRISIS.some((re) => re.test(question))) {
+    // Log so we can monitor how often the server defense layer fires
+    // (i.e., the client failed to catch it). Not PII — a counter line.
+    console.error("[ask-vela] CRISIS INTERCEPTED at server (client filter missed)");
     return json(200, {
-      answer: "What you're saying matters and you don't have to do this alone. A free, trained listener is one call or text away — they're trained for exactly this. In the US: 988. UK & Ireland: 116 123 (Samaritans). Canada: 1-833-456-4566. Australia: 13 11 14 (Lifeline). Anywhere else: ifindahelpline.com. If you're in immediate danger, please call your local emergency number.",
+      answer: "What you're saying matters and you don't have to do this alone. A free, trained listener is one call or text away. They're trained for exactly this. In the US: 988. UK & Ireland: 116 123 (Samaritans). Canada: 1-833-456-4566. Australia: 13 11 14 (Lifeline). Anywhere else: ifindahelpline.com. If you're in immediate danger, please call your local emergency number.",
       crisis: true,
     });
   }

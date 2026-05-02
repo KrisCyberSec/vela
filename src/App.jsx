@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
@@ -6707,7 +6707,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
                   <p className="forecast-teaser">
                     Vela can read your cycle phase, recent triggers, and the past two days of symptoms to give you a heads-up on tomorrow.
                   </p>
-                  <button type="button" className="forecast-unlock" onClick={onShowPaywall}>
+                  <button type="button" className="forecast-unlock" onClick={() => onShowPaywall("forecast")}>
                     <UIIcon name="Star" size={11} weight="fill" /> Unlock with Premium
                   </button>
                 </>
@@ -6965,7 +6965,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
               type="button"
               className={`trigger-nudge-cta${!isPremium ? " locked" : ""}`}
               onClick={() => {
-                if (!isPremium) { onShowPaywall(); return; }
+                if (!isPremium) { onShowPaywall("trigger_nudge"); return; }
                 // Inline-start the experiment — same shape as the
                 // Insights startExperiment, kept here so this Today
                 // surface doesn't depend on a sibling component.
@@ -7437,7 +7437,7 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
           <div className="ico"><UIIcon name="Lock" size={20} /></div>
           <h4>{lockedCount} more days of <em>your story</em></h4>
           <p>Free tier shows your last 7 days. Vela Premium unlocks your full history, exports, and pattern tracking across cycles.</p>
-          <button type="button" onClick={onShowPaywall}>Unlock with Premium</button>
+          <button type="button" onClick={() => onShowPaywall("locked_banner")}>Unlock with Premium</button>
         </div>
       )}
 
@@ -7529,8 +7529,12 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
             <div className="dd-section" style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
               <button
                 type="button"
-                className="dd-ask-btn"
+                className={`dd-ask-btn${!isPremium ? " locked" : ""}`}
                 onClick={() => {
+                  // Ask Vela is premium. Free users hit the paywall here
+                  // instead of getting a confusing 403 from the chat sheet
+                  // after the question pre-fills + auto-submits.
+                  if (!isPremium) { setOpenDay(null); onShowPaywall("day_ask"); return; }
                   const dateLabel = openEntry.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
                   const symList = openEntry.symptoms.length > 0
                     ? openEntry.symptoms.map((s) => s.n).join(", ")
@@ -7542,8 +7546,9 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
                   haptic("Light");
                 }}
               >
+                {!isPremium && <UIIcon name="Star" size={11} weight="fill" />}
                 <UIIcon name="ChatCircle" size={14} />
-                Ask Vela about this day
+                {isPremium ? "Ask Vela about this day" : "Ask Vela about this day · Premium"}
               </button>
             </div>
           </>
@@ -7559,6 +7564,11 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     try { return JSON.parse(localStorage.getItem("vela_chat_messages")) || []; } catch { return []; }
   });
   const [chatInput, setChatInput] = useState("");
+  // Mirror chatInput into a ref so cross-screen handoffs can peek at
+  // the live value (used by the auto-submit timer to detect "user
+  // started typing in the 600ms grace window — don't fire").
+  const chatInputRef = useRef("");
+  useEffect(() => { chatInputRef.current = chatInput; }, [chatInput]);
   const [isTyping, setIsTyping] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [revealDismissed, setRevealDismissed] = useState(() => !!localStorage.getItem("vela_insights_revealed"));
@@ -7587,7 +7597,13 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       // Auto-submit after a short delay so the sheet animates in first
       // and the user sees the typed-in question briefly before the AI
       // starts answering. Feels more natural than instant fire.
-      setTimeout(() => { handleQuestion(pending); }, 600);
+      // BUT: if the user starts typing during that 600ms (chatInputRef
+      // diverges from pending), respect their edit and don't auto-fire.
+      // They can submit on their own when ready.
+      setTimeout(() => {
+        const live = chatInputRef.current;
+        if (live === pending) handleQuestion(pending);
+      }, 600);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -7864,7 +7880,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   }, []);
 
   function startExperiment(library) {
-    if (!isPremium) { onShowPaywall(); return; }
+    if (!isPremium) { onShowPaywall("experiment_start"); return; }
     const newExp = {
       id: `${library.id}_${Date.now()}`,
       libraryId: library.id,
@@ -8066,7 +8082,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             <button
               type="button"
               className={`week-summary-card${isSunday ? " sunday" : ""}${!isPremium ? " locked" : ""}`}
-              onClick={() => isPremium ? setWeekSheetOpen(true) : onShowPaywall()}
+              onClick={() => isPremium ? setWeekSheetOpen(true) : onShowPaywall("weekly_summary")}
             >
               <div className="ws-eyebrow">
                 <UIIcon name="Sparkle" size={11} />
@@ -8111,7 +8127,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                       window for what's likely next. Helpful for planning, travel, and naming
                       what your body's doing.
                     </p>
-                    <button type="button" className="cycle-cta" onClick={onShowPaywall}>
+                    <button type="button" className="cycle-cta" onClick={() => onShowPaywall("cycle_prediction")}>
                       <UIIcon name="Star" size={13} weight="fill" /> Unlock with Premium
                     </button>
                   </>
@@ -8160,7 +8176,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                 <button
                   type="button"
                   className="hint hint-btn"
-                  onClick={() => isPremium ? setExperimentBrowserOpen(true) : onShowPaywall()}
+                  onClick={() => isPremium ? setExperimentBrowserOpen(true) : onShowPaywall("experiment_browser")}
                   style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "var(--clay-dark)", fontWeight: 600 }}
                 >
                   + New
@@ -8294,7 +8310,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                           <button
                             type="button"
                             className={`pattern-exp-btn${!isPremium ? " locked" : ""}`}
-                            onClick={() => isPremium ? startExperiment(expMatch) : onShowPaywall()}
+                            onClick={() => isPremium ? startExperiment(expMatch) : onShowPaywall("pattern_experiment")}
                           >
                             {!isPremium && <UIIcon name="Star" size={10} weight="fill" />}
                             Try the {expMatch.duration}-day {expMatch.name.toLowerCase()}
@@ -8349,7 +8365,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                       {!isPremium ? (
                         <>
                           <div className="head" style={{ filter: "blur(4px)", userSelect: "none" }}>{a.text}</div>
-                          <button type="button" className="anomaly-unlock" onClick={onShowPaywall}>
+                          <button type="button" className="anomaly-unlock" onClick={() => onShowPaywall("anomaly")}>
                             <UIIcon name="Star" size={11} weight="fill" /> Unlock anomaly insights
                           </button>
                         </>
@@ -8402,7 +8418,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                     <button
                       type="button"
                       className={`suggest-cta${isPremium ? "" : " locked"}`}
-                      onClick={() => isPremium ? startExperiment(sug.library) : onShowPaywall()}
+                      onClick={() => isPremium ? startExperiment(sug.library) : onShowPaywall("experiment_suggestion")}
                     >
                       {isPremium ? "Start" : <><UIIcon name="Star" size={11} weight="fill" /> Unlock</>}
                       <UIIcon name="ArrowRight" size={12} />
@@ -8425,7 +8441,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             type="button"
             className="export-cta"
             onClick={() => {
-              if (!isPremium) { onShowPaywall(); return; }
+              if (!isPremium) { onShowPaywall("doctor_report"); return; }
               generateDoctorReport(logs, profile);
             }}
           >
@@ -8449,7 +8465,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
               <button
                 type="button"
                 className="exp-promo"
-                onClick={() => isPremium ? setExperimentBrowserOpen(true) : onShowPaywall()}
+                onClick={() => isPremium ? setExperimentBrowserOpen(true) : onShowPaywall("experiment_browser")}
               >
                 <div className="ico"><UIIcon name="Flask" size={18} /></div>
                 <div className="body">
@@ -8476,7 +8492,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           type="button"
           className={`ask-vela-fab${!isPremium ? " locked" : ""}${fabHidden ? " hidden" : ""}`}
           onClick={() => {
-            if (!isPremium) { onShowPaywall(); return; }
+            if (!isPremium) { onShowPaywall("ask_vela_fab"); return; }
             setAskOpen(true);
             haptic("Light");
           }}
@@ -8754,7 +8770,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "Heart",
       tone: "sage",
       title: "Apple Health sync",
-      body: "Pull sleep and HRV from your watch automatically, so you don't retype what your wrist already knows.",
+      body: "Pull sleep hours from your watch automatically, so you don't retype what your wrist already knows. (HRV joins this card in a future update.)",
     },
     {
       icon: "ChartBar",
@@ -9240,7 +9256,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   }, []);
 
   async function toggleHealthKit() {
-    if (!isPremium) { onShowPaywall(); return; }
+    if (!isPremium) { onShowPaywall("apple_health"); return; }
     if (hkStatus !== "available") return;
     setHkBusy(true);
     try {
@@ -9403,7 +9419,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           })()}
         </div>
       ) : (
-        <button className="set-premium-row" onClick={onShowPaywall}>
+        <button className="set-premium-row" onClick={() => onShowPaywall("upgrade_row")}>
           <span className="crest"><UIIcon name="Star" size={20} /></span>
           <span className="body">
             <strong>Upgrade to Vela Premium</strong>
@@ -9517,7 +9533,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="body">
             <span className="label">Apple Health</span>
             <span className="sub">
-              {!isPremium ? "Auto-fill sleep + HRV from your watch" :
+              {!isPremium ? "Auto-fill sleep hours from your watch" :
                 hkStatus === "no-native" ? "Available on iOS only" :
                 hkStatus === "no-plugin" ? "Update Vela to enable Apple Health" :
                 hkOn ? "Pulling sleep on every Today open" :
@@ -9566,7 +9582,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
         <button
           className="set-row"
           onClick={() => {
-            if (!isPremium) { onShowPaywall(); return; }
+            if (!isPremium) { onShowPaywall("doctor_report"); return; }
             generateDoctorReport(logs, profile);
           }}
         >
@@ -10172,14 +10188,14 @@ export default function App() {
       {!onboarded && (
         <OnboardingScreen onComplete={handleOnboardComplete} />
       )}
-      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} onShowPaywall={() => openPaywall("tracker")} />}
-      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={() => openPaywall("history")} onNavigate={setScreen} />}
+      {onboarded && screen === "tracker" && <TrackerScreen onLog={handleLog} logs={logs} profile={profile} isPremium={isPremium} onNavigate={setScreen} onShowPaywall={(sub) => openPaywall(sub ? `tracker_${sub}` : "tracker")} />}
+      {onboarded && screen === "history" && <HistoryScreen logs={logs} isPremium={isPremium} onShowPaywall={(sub) => openPaywall(sub ? `history_${sub}` : "history")} onNavigate={setScreen} />}
       {onboarded && screen === "insights" && (
         <InsightsScreen
           logs={logs}
           profile={profile}
           isPremium={isPremium}
-          onShowPaywall={() => openPaywall("insights")}
+          onShowPaywall={(sub) => openPaywall(sub ? `insights_${sub}` : "insights")}
         />
       )}
       {onboarded && screen === "community" && <CommunityScreen />}
@@ -10188,7 +10204,7 @@ export default function App() {
           profile={profile}
           logs={logs}
           isPremium={isPremium}
-          onShowPaywall={() => openPaywall("settings")}
+          onShowPaywall={(sub) => openPaywall(sub ? `settings_${sub}` : "settings")}
           onEditQuestion={handleEditQuestion}
           onClearData={handleClearData}
           remindersEnabled={remindersEnabled}

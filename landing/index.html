@@ -74,10 +74,14 @@
     },
     "featureList": [
       "Daily symptom tracking",
-      "Pattern detection",
-      "AI health companion",
+      "Pattern detection across triggers, sleep, mood, and cycle",
+      "Ask Vela AI companion grounded in your data",
+      "Daily brief: proactive observations each morning",
+      "Anomaly insights when this week diverges from your usual",
+      "Cycle prediction (works on irregular cycles)",
       "Doctor-ready PDF reports",
-      "CBT programs",
+      "Personalized experiments from your patterns",
+      "Apple Health sleep sync",
       "On-device privacy"
     ]
   }
@@ -91,7 +95,7 @@
     "name": "Vela Health",
     "url": "https://velahealth.health/",
     "logo": "https://velahealth.health/icon-512.png",
-    "description": "Privacy-first menopause companion app. On-device AI, doctor-ready reports, and evidence-based CBT programs.",
+    "description": "Privacy-first menopause companion app. On-device tracking, AI grounded in your data, pattern detection, and doctor-ready reports.",
     "contactPoint": {
       "@type": "ContactPoint",
       "email": "support@velahealth.health",
@@ -205,7 +209,14 @@
       padding: 32px 28px;
       border: 1px solid rgba(0,0,0,0.06);
     }
-    .feature-icon { font-size: 32px; margin-bottom: 16px; }
+    .feature-icon { font-size: 32px; margin-bottom: 16px; color: var(--clay); }
+    .feature-icon svg { display: block; }
+    .feature-glyph {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--clay-light); color: var(--clay);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
     .feature-title {
       font-family: 'DM Serif Display', serif;
       font-size: 20px;
@@ -249,7 +260,7 @@
       align-items: center;
       gap: 8px;
     }
-    .privacy-badge-icon { font-size: 28px; }
+    .privacy-badge-icon { font-size: 28px; color: rgba(250,246,241,0.85); display: inline-flex; }
     .privacy-badge-text { font-size: 13px; font-weight: 500; color: rgba(250,246,241,0.8); }
 
     /* ── HOW IT WORKS ── */
@@ -488,7 +499,7 @@
       Track perimenopause and menopause symptoms, discover your personal patterns, and walk into your doctor's office prepared.
     </p>
     <a href="#signup" class="hero-cta">Get notified when we launch</a>
-    <p class="hero-badge">Coming soon to the App Store</p>
+    <p class="hero-badge">Coming soon to the App Store. 14-day free trial.</p>
   </section>
 
   <!-- FEATURES -->
@@ -501,14 +512,18 @@
       </div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🔍</div>
+      <span class="feature-glyph" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.35-4.35"/></svg>
+      </span>
       <div class="feature-title">See patterns you'd miss alone</div>
       <div class="feature-text">
-        Automatic correlation detection between triggers and symptoms. Day-of-week analysis. Week-over-week trends. Vela connects dots you can't see on your own.
+        Automatic correlation detection between triggers and symptoms. Lag detection (your sleep tonight versus your mood tomorrow). Anomaly alerts when this week diverges from your usual. Vela connects dots you can't see on your own.
       </div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">📋</div>
+      <span class="feature-glyph" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+      </span>
       <div class="feature-title">Walk in prepared</div>
       <div class="feature-text">
         Generate a shareable doctor visit report with symptom frequency, severity trends, and structured talking points. Turn "I've been feeling bad" into real data.
@@ -518,22 +533,22 @@
 
   <!-- HOW IT WORKS -->
   <section class="how-section">
-    <h2>Your first week with Vela</h2>
+    <h2>Your first weeks with Vela</h2>
     <div class="how-steps">
       <div>
         <div class="how-step-number">1</div>
-        <div class="how-step-title">Days 1-3</div>
-        <div class="how-step-text">Build your baseline. Log how you feel each day. It takes under 30 seconds.</div>
+        <div class="how-step-title">Week 1</div>
+        <div class="how-step-text">Build your baseline. Log how you feel each day. It takes under 30 seconds. Early stats appear by day seven.</div>
       </div>
       <div>
         <div class="how-step-number">2</div>
-        <div class="how-step-title">Days 4-6</div>
-        <div class="how-step-text">Patterns start forming. Early stats appear. Vela begins connecting your symptoms to triggers.</div>
+        <div class="how-step-title">Week 2</div>
+        <div class="how-step-text">Vela starts connecting your symptoms to triggers, sleep, stress, and cycle. The daily brief shows up each morning with what's actually changing.</div>
       </div>
       <div>
         <div class="how-step-number">3</div>
-        <div class="how-step-title">Day 7</div>
-        <div class="how-step-text">Your personal insights are revealed. See what your data says about your body. Patterns you'd never spot alone.</div>
+        <div class="how-step-title">Week 3 onward</div>
+        <div class="how-step-text">Patterns become reliable. Run a 7 to 14-day experiment. See which changes actually move the needle. Walk into your next appointment with data.</div>
       </div>
     </div>
   </section>
@@ -546,19 +561,27 @@
     </p>
     <div class="privacy-badges">
       <div class="privacy-badge">
-        <div class="privacy-badge-icon">📱</div>
+        <div class="privacy-badge-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
+        </div>
         <div class="privacy-badge-text">On-device only</div>
       </div>
       <div class="privacy-badge">
-        <div class="privacy-badge-icon">🚫</div>
+        <div class="privacy-badge-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8a5 5 0 0 1-1.42-9.78A6 6 0 0 1 18 9"/><line x1="4" y1="20" x2="20" y2="4"/></svg>
+        </div>
         <div class="privacy-badge-text">No cloud uploads</div>
       </div>
       <div class="privacy-badge">
-        <div class="privacy-badge-icon">🔒</div>
+        <div class="privacy-badge-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
         <div class="privacy-badge-text">No tracking SDKs</div>
       </div>
       <div class="privacy-badge">
-        <div class="privacy-badge-icon">👤</div>
+        <div class="privacy-badge-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+        </div>
         <div class="privacy-badge-text">No account needed</div>
       </div>
     </div>
@@ -576,11 +599,14 @@
         <div class="pricing-monthly">$5.83/mo. Save 35%</div>
         <ul class="pricing-features">
           <li>Ask Vela. Real AI grounded in your data</li>
+          <li>Daily brief: a fresh observation each morning</li>
+          <li>Anomaly insights when this week diverges from your usual</li>
+          <li>Tomorrow forecast based on cycle phase and triggers</li>
           <li>Personalized experiments from your patterns</li>
           <li>Cycle prediction (even when irregular)</li>
-          <li>Doctor visit PDF reports</li>
+          <li>Doctor-ready PDF reports</li>
           <li>Weekly Sunday summary</li>
-          <li>Apple Health sync (sleep + HRV)</li>
+          <li>Apple Health sleep sync</li>
           <li>Full pattern history across months</li>
           <li>14-day free trial</li>
         </ul>
@@ -596,7 +622,7 @@
         </ul>
       </div>
     </div>
-    <p class="pricing-free"><strong>Free forever:</strong> symptom tracking, mood & energy logging, daily insights, community, and basic patterns.</p>
+    <p class="pricing-free"><strong>Free forever:</strong> symptom tracking, mood &amp; energy logging, daily check-ins, and the last 7 days of your history. Premium unlocks the AI, full pattern detection, experiments, and the doctor report.</p>
   </section>
 
   <!-- EMAIL SIGNUP -->

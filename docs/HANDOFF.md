@@ -31,10 +31,11 @@ locally + landing page live at velahealth.health.
 
 ## Where we are right now
 
-Latest commit: round-two cohesion (brief deep-links, anomaly Ask Vela, Settings recent insights, gap-aware greeting).
+Latest commit: lead-engineer audit pass (premium-gate fix, server crisis sync, paywall trigger tracking, landing page sweep).
 
 Recent commits:
-- (this commit) Round-two within-app cohesion (4 cross-screen handoffs)
+- (this commit) Lead-engineer audit: critical premium-gate fix on History day-detail, server crisis regex sync to client (5 missing patterns + false-positive guards + observability log), paywall trigger tracking on all 17 callsites, auto-submit race fix, landing page sweep (CBT removed, emoji replaced with SVG, timeline updated, premium pillars updated, free-tier copy honest, HRV claim corrected)
+- (prior) Round-two within-app cohesion (4 cross-screen handoffs)
 - `e61e2af` Within-app cohesion (History → Ask Vela, Insights pattern → experiment, Today trigger nudge)
 - `8af959a` Bumped Ask Vela monthly cap 60 → 250, richer Claude summary
 - `1e997aa` Stripped 213 em dashes from user-facing copy + cost-tracking warning logs
@@ -116,6 +117,13 @@ Round two:
 - Anomaly card on Insights → "Ask Vela why" prefilled with the actual numbers (premium tier)
 - Settings → "Patterns you've marked helpful" card pulling thumbs-up'd correlations that are still detected
 - Today greeting adapts to logging gaps (3+ days = "You haven't logged in N days", 7+ = "It's been over a week")
+
+## Known cleanup (not blocking)
+
+- **Dead code in `src/App.jsx`**: ~130 lines of legacy gamification (`EXPERIMENTS` array at ~line 3013, `CBT_PROGRAMS` at ~line 3032, `concernToCBT`/`concernToExp` maps at ~line 411). Only referenced by `computeXP` for `vela_completed_experiments`/`vela_completed_cbt` localStorage keys that no production user has (app isn't live). Has banned brand-voice words ("wellness" category) and emoji icons. Safe to delete in a follow-up.
+- **Untracked `./vela/` directory at repo root**: an old copy with its own `.git`, ~1.5 MB. Not deployed. Safe to `rm -rf` after confirming no local-only work.
+- **HRV is half-wired**: `fetchYesterdayHRV` exists in `src/healthkit.js` but the App.jsx import is commented out and no UI surface uses it. Either wire it into an Insights HRV-vs-symptom card or delete the function. Until then, paywall + Settings copy says just "sleep."
+- **Premium pillars in paywall vs reality**: paywall lists 8 pillars but Daily Brief, Anomaly insights, and Forecast (all live premium features) are not on it. Consider whether to add or leave them as in-context surprises.
 
 ## Key file map
 
