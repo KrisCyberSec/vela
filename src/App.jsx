@@ -1730,6 +1730,25 @@ function compareExperiment(experiment, logs) {
 //
 // Skips experiments that are already running or recently completed
 // (within 30 days) to avoid suggesting the same thing twice.
+// Maps a single correlation/lag insight to a matching experiment in the
+// library, if one exists. Used by the Insights pattern card to surface
+// a one-tap "Run as experiment" action right next to the finding.
+// Returns the library entry or null.
+function matchExperimentForInsight(insight) {
+  if (!insight) return null;
+  const ctx = insight.context;
+  // Direct context-to-library mapping. Same logic as suggestExperiments
+  // but on a single finding instead of the top batch.
+  if (ctx === "caffeine") return EXPERIMENT_LIBRARY.find((l) => l.id === "caffeine_cutoff");
+  if (ctx === "alcohol") return EXPERIMENT_LIBRARY.find((l) => l.id === "no_alcohol");
+  if (ctx === "sleepHours") return EXPERIMENT_LIBRARY.find((l) => l.id === "consistent_bedtime");
+  if (ctx === "exercise" || ctx === "exercise_inverse") {
+    return EXPERIMENT_LIBRARY.find((l) => l.id === "evening_walks");
+  }
+  // No direct experiment for stress, mood-only deltas, or other contexts
+  return null;
+}
+
 function suggestExperiments(logs, experiments = []) {
   if (!logs || logs.length < 7) return [];
 
@@ -3378,6 +3397,15 @@ const css = `
   .severity-strip .sev-dot.on { background: var(--clay); }
 
   /* Context cards. 2-col grid */
+  /* Cross-screen nudge on Today: surfaces when the user logs a known
+     trigger + symptom pair that already correlates in their history.
+     Soft sage so it reads as helpful, not alarmist. */
+  .trigger-nudge { background: linear-gradient(135deg, rgba(143,184,155,0.16), rgba(255,255,255,0.40)); border: 1px solid rgba(143,184,155,0.32); border-radius: 14px; padding: 14px; margin-top: 12px; }
+  .trigger-nudge-head { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sage-dark); margin-bottom: 8px; }
+  .trigger-nudge p { font-size: 13px; line-height: 1.5; color: var(--ink); margin: 0 0 12px; }
+  .trigger-nudge-cta { display: inline-flex; align-items: center; gap: 6px; background: var(--sage); color: #fff; border: none; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .trigger-nudge-cta.locked { background: linear-gradient(135deg, var(--gold), #BD8F38); }
+
   .context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .context-card {
     background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
@@ -3565,6 +3593,12 @@ const css = `
   .pattern-card .pattern-feedback .fb-btn.on { background: var(--sage-light); color: var(--sage-dark); border-color: rgba(143,184,155,0.4); }
   .pattern-card .pattern-feedback .fb-btn.on.down { background: var(--clay-light); color: var(--clay-dark); border-color: rgba(201,123,92,0.3); }
   .pattern-card .pattern-feedback .fb-thanks { font-style: italic; }
+  /* Cross-screen action: jump from a pattern straight into the matching
+     experiment. Sage = available (premium). Gold = locked (free user). */
+  .pattern-card .pattern-exp-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--sage); color: #fff; border: none; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 8px; }
+  .pattern-card .pattern-exp-btn.locked { background: linear-gradient(135deg, var(--gold), #BD8F38); }
+  .pattern-card .pattern-exp-btn:active { transform: scale(0.98); }
+  .pattern-card .pattern-exp-running { display: inline-block; margin-top: 8px; font-size: 11.5px; color: var(--ink-light); font-style: italic; }
 
   /* Anomaly cards — quieter than pattern cards (no confidence dots, no
      correlation framing). They say "I'm noticing something different
@@ -4069,6 +4103,8 @@ const css = `
   .dd-scrim { position: fixed; inset: 0; background: var(--glass-modal-scrim); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
   .dd-scrim.show { opacity: 1; pointer-events: auto; }
   .dd-sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; max-width: 420px; margin: 0 auto; border-radius: 24px; background: var(--cream); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 18px 50px rgba(140, 78, 50, 0.20); z-index: 51; padding: 18px; max-height: 78vh; display: flex; flex-direction: column; transform: translateY(40px); opacity: 0; pointer-events: none; transition: transform 260ms cubic-bezier(0.2,0.8,0.3,1), opacity 240ms ease; overflow-y: auto; }
+  .dd-ask-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--clay); color: #fff; border: none; border-radius: 12px; padding: 11px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .dd-ask-btn:active { transform: scale(0.98); }
   .dd-sheet.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
   .dd-handle { width: 36px; height: 4px; border-radius: 3px; background: rgba(140,78,50,0.2); margin: -6px auto 14px; }
   .dd-head { margin-bottom: 14px; }
@@ -6691,6 +6727,86 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         </div>
       </div>
 
+      {/* Cross-screen nudge: when the user is logging a symptom AND a
+          trigger that already correlates in their history, surface a
+          one-tap experiment offer right inline. Only fires when there's
+          a real correlation in the data — not at random. */}
+      {(() => {
+        // What did the user just log this session?
+        const activeSymList = Object.keys(activeSymptoms || {}).filter((s) => activeSymptoms[s]);
+        const activeTriggers = [
+          caffeine === true ? "caffeine" : null,
+          alcohol === true ? "alcohol" : null,
+          exercise === true ? "exercise" : null,
+        ].filter(Boolean);
+        if (activeSymList.length === 0 || activeTriggers.length === 0) return null;
+        // Need correlations to know what links to what
+        const corrs = analyzeCorrelations(logs);
+        if (!corrs || corrs.length === 0) return null;
+        // Find a correlation that matches BOTH a current symptom AND a current trigger
+        const match = corrs.find((c) =>
+          activeTriggers.includes(c.context) &&
+          activeSymList.includes(c.symptom) &&
+          c.lift >= 1.8
+        );
+        if (!match) return null;
+        // Map to an experiment in the library
+        const lib = matchExperimentForInsight(match);
+        if (!lib) return null;
+        // Skip if already running or recently completed
+        const exps = (() => { try { return JSON.parse(localStorage.getItem("vela_experiments") || "[]"); } catch { return []; } })();
+        const recentlyDealt = exps.some((e) =>
+          e.libraryId === lib.id && (
+            e.status === "active" ||
+            (e.endedAt && Date.now() - new Date(e.endedAt).getTime() < 30 * 24 * 60 * 60 * 1000)
+          )
+        );
+        if (recentlyDealt) return null;
+        const symLow = match.symptom.toLowerCase();
+        return (
+          <div className="trigger-nudge">
+            <div className="trigger-nudge-head">
+              <UIIcon name="Sparkle" size={13} />
+              <span>You logged {match.context} and {symLow}.</span>
+            </div>
+            <p>
+              {match.context} days have correlated with {symLow} {match.lift >= 99 ? "every time" : `${match.lift.toFixed(1)}x`} in your history. Want to test removing it for {lib.duration} days?
+            </p>
+            <button
+              type="button"
+              className={`trigger-nudge-cta${!isPremium ? " locked" : ""}`}
+              onClick={() => {
+                if (!isPremium) { onShowPaywall(); return; }
+                // Inline-start the experiment — same shape as the
+                // Insights startExperiment, kept here so this Today
+                // surface doesn't depend on a sibling component.
+                const newExp = {
+                  id: `${lib.id}_${Date.now()}`,
+                  libraryId: lib.id,
+                  name: lib.name,
+                  desc: lib.desc,
+                  icon: lib.icon,
+                  duration: lib.duration,
+                  targets: lib.targets,
+                  startDate: localDateStr(new Date()),
+                  status: "active",
+                };
+                try {
+                  const cur = JSON.parse(localStorage.getItem("vela_experiments") || "[]");
+                  localStorage.setItem("vela_experiments", JSON.stringify([...cur, newExp]));
+                } catch { /* private mode */ }
+                haptic("Medium");
+                track("experiment_started_from_today_nudge", { libraryId: lib.id });
+              }}
+            >
+              {!isPremium && <UIIcon name="Star" size={11} weight="fill" />}
+              Start the {lib.duration}-day experiment
+              <UIIcon name="ArrowRight" size={12} />
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Notes */}
       <div className="today-section-label">
         <span>Note to yourself</span>
@@ -7216,6 +7332,31 @@ function HistoryScreen({ logs, isPremium, onShowPaywall, onNavigate }) {
                 <div className="dd-note">"{openEntry.notes}"</div>
               </div>
             )}
+
+            {/* Cross-screen action: jump straight into Ask Vela with this
+                day pre-loaded as the question. Closes the sheet and
+                navigates to Insights. The pending-question stash gets
+                read + cleared by InsightsScreen on mount. */}
+            <div className="dd-section" style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
+              <button
+                type="button"
+                className="dd-ask-btn"
+                onClick={() => {
+                  const dateLabel = openEntry.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+                  const symList = openEntry.symptoms.length > 0
+                    ? openEntry.symptoms.map((s) => s.n).join(", ")
+                    : "no symptoms";
+                  const question = `What's going on with my ${dateLabel}? I logged ${symList}${openEntry.mood !== null ? `, mood was ${MOOD_LABEL_HX[openEntry.mood].toLowerCase()}` : ""}${openEntry.sleep != null ? `, ${openEntry.sleep}h of sleep` : ""}.`;
+                  try { localStorage.setItem("vela_pending_question", question); } catch { /* private mode */ }
+                  setOpenDay(null);
+                  if (onNavigate) onNavigate("insights");
+                  haptic("Light");
+                }}
+              >
+                <UIIcon name="ChatCircle" size={14} />
+                Ask Vela about this day
+              </button>
+            </div>
           </>
         )}
       </aside>
@@ -7240,6 +7381,27 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
   useEffect(() => {
     if (chatMessages.length > 0) localStorage.setItem("vela_chat_messages", JSON.stringify(chatMessages.slice(-20)));
   }, [chatMessages]);
+
+  // Cross-screen pickup: when another screen ("Ask Vela about this day"
+  // from History, etc.) stashes a pending question, open the sheet
+  // pre-loaded with it on mount. Stash gets cleared so it doesn't
+  // re-fire on subsequent visits.
+  useEffect(() => {
+    let pending = null;
+    try {
+      pending = localStorage.getItem("vela_pending_question");
+      if (pending) localStorage.removeItem("vela_pending_question");
+    } catch { /* private mode */ }
+    if (pending && pending.trim()) {
+      setChatInput(pending);
+      setAskOpen(true);
+      // Auto-submit after a short delay so the sheet animates in first
+      // and the user sees the typed-in question briefly before the AI
+      // starts answering. Feels more natural than instant fire.
+      setTimeout(() => { handleQuestion(pending); }, 600);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleQuestion = async (text) => {
     if (!text.trim() || isTyping) return;
@@ -7883,6 +8045,18 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   const labelText = p.label === "strong" ? "Strong signal" : p.label === "steady" ? "Steady signal" : "Early signal";
                   const fmap = getInsightFeedback();
                   const f = fmap[p.feedbackKey] || {};
+                  // Cross-screen action: if this finding maps to a known
+                  // experiment AND the user isn't already running it,
+                  // surface a one-tap "Run as experiment" button so they
+                  // can act on the insight without leaving the screen.
+                  const expMatch = matchExperimentForInsight(p.raw);
+                  const alreadyRunning = expMatch && activeExperiments.some((e) => e.libraryId === expMatch.id);
+                  const recentlyCompleted = expMatch && completedExperiments.some((e) =>
+                    e.libraryId === expMatch.id &&
+                    e.endedAt &&
+                    Date.now() - new Date(e.endedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+                  );
+                  const showExpAction = expMatch && !alreadyRunning && !recentlyCompleted;
                   return (
                     <article className="pattern-card" key={i}>
                       <div className="ico"><UIIcon name={p.icon} size={16} /></div>
@@ -7900,6 +8074,20 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                             {" · "}{p.basis}
                           </span>
                         </div>
+                        {showExpAction && (
+                          <button
+                            type="button"
+                            className={`pattern-exp-btn${!isPremium ? " locked" : ""}`}
+                            onClick={() => isPremium ? startExperiment(expMatch) : onShowPaywall()}
+                          >
+                            {!isPremium && <UIIcon name="Star" size={10} weight="fill" />}
+                            Try the {expMatch.duration}-day {expMatch.name.toLowerCase()}
+                            <UIIcon name="ArrowRight" size={11} />
+                          </button>
+                        )}
+                        {alreadyRunning && (
+                          <span className="pattern-exp-running">Already running this experiment</span>
+                        )}
                         <div className="pattern-feedback">
                           <span className="ask">Useful?</span>
                           <button
