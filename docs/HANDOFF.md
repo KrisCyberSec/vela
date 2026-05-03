@@ -31,10 +31,12 @@ locally + landing page live at velahealth.health.
 
 ## Where we are right now
 
-Latest commit: earned-moment premium surfacing (Day 7 reveal card pitches the daily brief; doctor-ready report hoists for users who picked the doctor goal in onboarding).
+Latest commit: stage-gate cycle prediction surfaces (Insights cycle card + Today forecast teaser hide for postmenopausal and surgical users).
 
 Recent commits:
-- (this commit) Earned-moment premium surfacing: (1) Day 7 + first-pattern reveal card on Today now pitches the morning brief for free users, click goes to paywall (`daily_brief_reveal` trigger). (2) Insights doctor-ready summary moves above "This week" for users whose `profile[2]` includes index 1 ("Track symptoms to show my doctor"); the bottom-of-screen CTA hides for these users to avoid duplication. New paywall trigger `doctor_report_goal` for telemetry separation. Both code paths verified in browser preview.
+- (this commit) Stage-gate cycle prediction. The Insights cycle card and the "cycle phase" mention in the Today forecast teaser now hide for users with `profile[0] >= 2` (postmenopausal or surgical) — periods are not part of their experience and the locked teaser + "log your period for 2+ cycles" baseline copy reads as wrong or insulting. `predictNextCycle` itself stays in place; it just no longer renders here. Stage 0 (regular) and stage 1 (peri) users see the feature unchanged.
+- (prior) Severity selector: whole-tile cycle. Tap cycles 0→1→2→3→0 (4th tap removes). Restored original dot styling.
+- (prior) Earned-moment premium surfacing: (1) Day 7 + first-pattern reveal card on Today now pitches the morning brief for free users, click goes to paywall (`daily_brief_reveal` trigger). (2) Insights doctor-ready summary moves above "This week" for users whose `profile[2]` includes index 1 ("Track symptoms to show my doctor"); the bottom-of-screen CTA hides for these users to avoid duplication. New paywall trigger `doctor_report_goal` for telemetry separation.
 - (prior) Lead-engineer audit: critical premium-gate fix on History day-detail, server crisis regex sync to client (5 missing patterns + false-positive guards + observability log), paywall trigger tracking on all 17 callsites, auto-submit race fix, landing page sweep (CBT removed, emoji replaced with SVG, timeline updated, premium pillars updated, free-tier copy honest, HRV claim corrected)
 - (prior) Round-two within-app cohesion (4 cross-screen handoffs)
 - `e61e2af` Within-app cohesion (History → Ask Vela, Insights pattern → experiment, Today trigger nudge)

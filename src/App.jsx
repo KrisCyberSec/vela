@@ -6709,7 +6709,9 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
               {!isPremium ? (
                 <>
                   <p className="forecast-teaser">
-                    Vela can read your cycle phase, recent triggers, and the past two days of symptoms to give you a heads-up on tomorrow.
+                    {(profile?.[0] ?? 0) < 2
+                      ? "Vela can read your cycle phase, recent triggers, and the past two days of symptoms to give you a heads-up on tomorrow."
+                      : "Vela can read your recent triggers and the past two days of symptoms to give you a heads-up on tomorrow."}
                   </p>
                   <button type="button" className="forecast-unlock" onClick={() => onShowPaywall("forecast")}>
                     <UIIcon name="Star" size={11} weight="fill" /> Unlock with Premium
@@ -8135,7 +8137,12 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
 
           {/* Cycle prediction (Premium) — only render when there's enough
               signal OR when free user, to surface the upsell */}
-          {cyclePrediction && (
+          {/* Cycle card hidden for postmenopausal (stage 2) and surgical (stage 3)
+              users — periods aren't part of their experience, and the locked teaser
+              + "log your period for 2+ cycles" baseline copy reads as wrong or
+              insulting for them. Predictor itself stays in place; it just no
+              longer renders here. */}
+          {(profile?.[0] ?? 0) < 2 && cyclePrediction && (
             <>
               <div className="today-section-label">
                 <span>Cycle</span>
