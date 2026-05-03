@@ -101,9 +101,10 @@ Full reference in [ai-companion.md](ai-companion.md). Summary:
 
 ### Doctor PDF report
 
-- `generateDoctorReport` (6130) — jsPDF export with symptom frequency, severity trends, trigger analysis, patterns
+- `generateDoctorReport` (8929) — jsPDF export with symptom frequency, severity trends, trigger analysis, patterns
 - `generateDoctorSummary` (709) — structured text summary that feeds the PDF
-- Entry point: `SettingsScreen` → "Generate doctor report" button
+- Entry points: `InsightsScreen` "For your provider" CTA, `HistoryScreen` export, and the weekly summary sheet
+- Goal-aware hoist: users who picked "Track symptoms to show my doctor" in onboarding (`profile[2]` includes index 1) see the CTA promoted to a high-visibility position above "This week" on Insights instead of the default tail position
 
 ### CBT programs
 
@@ -179,7 +180,7 @@ All state lives in the main `App` component (7376) via `useState` hooks, persist
 
 ## External integrations
 
-- **jsPDF** — doctor report generation (`generateDoctorReport`, line 6130)
+- **jsPDF** — doctor report generation (`generateDoctorReport`, line 8929)
 - **Capacitor** — iOS native shell
 - **Haptics** — medium (badge), heavy (level-up), light (nudge dismiss)
 - **Firebase** — community backend, ready to enable

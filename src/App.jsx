@@ -6550,10 +6550,13 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       return {
         eyebrow: "Yesterday's pattern",
         headline: <>{topCorr.text}</>,
-        body: "A consistent signal worth showing your provider. Tap below to see the full pattern report.",
+        body: isPremium
+          ? "A consistent signal worth showing your provider. Tap below to see the full pattern report."
+          : "A consistent signal. Premium turns patterns like this into your morning brief. What to expect, before you log.",
         chartType: "rich",
         foot: `${uniqueDays} days tracked · ${logs.length} entries`,
-        link: "Open Insights",
+        link: isPremium ? "Open Insights" : "Unlock daily brief",
+        paywallReason: isPremium ? null : "daily_brief_reveal",
       };
     }
     return {
@@ -6664,7 +6667,10 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
         /* Reveal card. Content morphs by data state */
         <section
           className="reveal-card-v2"
-          onClick={reveal.link ? () => onNavigate && onNavigate("insights") : undefined}
+          onClick={reveal.link ? () => {
+            if (reveal.paywallReason) onShowPaywall(reveal.paywallReason);
+            else onNavigate && onNavigate("insights");
+          } : undefined}
           style={reveal.link ? { cursor: "pointer" } : undefined}
         >
           <div className="reveal-eyebrow">
@@ -7748,6 +7754,12 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
     : "rich";
   const isLocked = dataState === "locked";
 
+  // Onboarding goal: index 1 of profile[2] = "Track symptoms to show my doctor".
+  // For these users, hoist the doctor-ready summary to a prominent early
+  // position instead of leaving it buried at the bottom of the screen.
+  const goalIndices = Array.isArray(profile?.[2]) ? profile[2] : (profile?.[2] != null ? [profile[2]] : []);
+  const tracksForDoctor = goalIndices.includes(1);
+
   function dismissReveal() {
     localStorage.setItem("vela_insights_revealed", "1");
     setRevealDismissed(true);
@@ -8020,6 +8032,27 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
                   <span className="callout-trend up">↑ Top</span>
                 </div>
               </section>
+            </>
+          )}
+
+          {tracksForDoctor && (
+            <>
+              <div className="today-section-label"><span>For your provider</span></div>
+              <button
+                type="button"
+                className="export-cta"
+                onClick={() => {
+                  if (!isPremium) { onShowPaywall("doctor_report_goal"); return; }
+                  generateDoctorReport(logs, profile);
+                }}
+              >
+                <div className="ico"><UIIcon name="FileText" size={20} /></div>
+                <div className="body">
+                  <h4>Doctor-ready summary</h4>
+                  <p>{uniqueDays} {uniqueDays === 1 ? "day" : "days"} of symptoms, severity, and context, formatted for your appointment.</p>
+                </div>
+                <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
+              </button>
             </>
           )}
 
@@ -8436,22 +8469,26 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             </div>
           )}
 
-          <div className="today-section-label"><span>For your provider</span></div>
-          <button
-            type="button"
-            className="export-cta"
-            onClick={() => {
-              if (!isPremium) { onShowPaywall("doctor_report"); return; }
-              generateDoctorReport(logs, profile);
-            }}
-          >
-            <div className="ico"><UIIcon name="FileText" size={20} /></div>
-            <div className="body">
-              <h4>Doctor-ready summary</h4>
-              <p>{uniqueDays} {uniqueDays === 1 ? "day" : "days"} · printable PDF · stays on your device</p>
-            </div>
-            <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
-          </button>
+          {!tracksForDoctor && (
+            <>
+              <div className="today-section-label"><span>For your provider</span></div>
+              <button
+                type="button"
+                className="export-cta"
+                onClick={() => {
+                  if (!isPremium) { onShowPaywall("doctor_report"); return; }
+                  generateDoctorReport(logs, profile);
+                }}
+              >
+                <div className="ico"><UIIcon name="FileText" size={20} /></div>
+                <div className="body">
+                  <h4>Doctor-ready summary</h4>
+                  <p>{uniqueDays} {uniqueDays === 1 ? "day" : "days"} · printable PDF · stays on your device</p>
+                </div>
+                <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
+              </button>
+            </>
+          )}
 
           {/* Experiments entry — only show "Try one" CTA if no active
               experiments and no completed history yet (otherwise the
