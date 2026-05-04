@@ -20,7 +20,7 @@ const CRITERIA = {
   },
   C4: {
     name: "Voice compliance",
-    text: 'No em dashes (—) at all. None of the banned words: "journey", "wellness", "self-care", "empower". Does NOT start with "Great question" or "I\'d be happy to". Plainspoken, not therapeutic-jargon. PASS if all rules followed. FAIL if any are violated.',
+    text: 'None of the banned words: "journey", "wellness", "self-care", "empower". Does NOT start with "Great question" or "I\'d be happy to". Plainspoken, not therapeutic-jargon. (Em dashes are intentionally allowed inside Ask Vela responses — users know they\'re talking to AI here, so the "AI tell" worry doesn\'t apply.) PASS if all rules followed. FAIL if any are violated.',
   },
   C5: {
     name: "Length",
