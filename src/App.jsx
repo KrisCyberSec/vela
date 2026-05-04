@@ -3544,7 +3544,7 @@ const css = `
   .symptom-tile-v2.active .name { color: var(--clay-dark); font-weight: 600; }
   .symptom-tile-v2:active { transform: scale(0.96); }
   .severity-strip {
-    display: flex; gap: 3px; margin-top: 4px; width: 100%; justify-content: center; cursor: pointer;
+    display: flex; gap: 3px; margin-top: 4px; width: 100%; justify-content: center;
   }
   .severity-strip .sev-dot {
     height: 5px; flex: 1; max-width: 16px; border-radius: 2px;
@@ -6393,13 +6393,23 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
   const streak = getStreak(logs);
   const journeyStage = profile ? getJourneyLabel(profile[0]) : null;
 
-  function toggleSymptom(name) {
-    setActiveSymptoms((prev) => {
-      const next = { ...prev };
-      if (next[name]) delete next[name];
-      else next[name] = true;
-      return next;
-    });
+  // Single tap target. Tap cycles 0 (inactive) -> 1 -> 2 -> 3 -> 0 (removed).
+  // First tap activates at severity 1, next two taps bump severity, fourth tap removes.
+  function cycleSymptom(name) {
+    const isActive = !!activeSymptoms[name];
+    const cur = severities[name] || 0;
+    if (!isActive) {
+      setActiveSymptoms({ ...activeSymptoms, [name]: true });
+      setSeverities({ ...severities, [name]: 1 });
+      return;
+    }
+    if (cur < 3) {
+      setSeverities({ ...severities, [name]: cur + 1 });
+      return;
+    }
+    // At severity 3, fourth tap removes the symptom
+    setActiveSymptoms((prev) => { const next = { ...prev }; delete next[name]; return next; });
+    setSeverities((prev) => { const next = { ...prev }; delete next[name]; return next; });
   }
 
   const canLog = mood !== null || Object.keys(activeSymptoms).length > 0;
@@ -6575,18 +6585,6 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
 
   // Energy labels (data 1-5 → 5 ascending tiles)
   const ENERGY_LABELS = ["Depleted", "Low", "Steady", "Good", "Bright"];
-
-  function bumpSev(name, e) {
-    e.stopPropagation();
-    if (!activeSymptoms[name]) {
-      setActiveSymptoms({ ...activeSymptoms, [name]: true });
-      setSeverities({ ...severities, [name]: 1 });
-      return;
-    }
-    const cur = severities[name] || 1;
-    const next = cur >= 3 ? 1 : cur + 1;
-    setSeverities({ ...severities, [name]: next });
-  }
 
   const symptomCount = Object.keys(activeSymptoms).length;
   const symptomCats = [
@@ -6785,7 +6783,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       {/* Symptoms */}
       <div className="today-section-label">
         <span>Symptoms</span>
-        {symptomCount > 0 && <span className="hint">{symptomCount} logged · tap dots for severity</span>}
+        {symptomCount > 0 && <span className="hint">{symptomCount} logged · tap again for severity</span>}
       </div>
       <div className="seg" role="tablist">
         {symptomCats.map((c) => (
@@ -6810,11 +6808,12 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
               key={s.cat + s.name}
               type="button"
               className={`symptom-tile-v2${isActive ? " active" : ""}`}
-              onClick={() => { haptic("Light"); toggleSymptom(s.name); }}
+              onClick={() => { haptic("Light"); cycleSymptom(s.name); }}
+              aria-label={`${s.name}${isActive ? `, severity ${sev}. Tap to bump, fourth tap removes.` : ". Tap to add."}`}
             >
               <SymptomIcon name={s.icon} size={26} />
               <span className="name">{s.name}</span>
-              <div className="severity-strip" onClick={(e) => bumpSev(s.name, e)} aria-label="Tap to set severity">
+              <div className="severity-strip" aria-hidden="true">
                 <span className={`sev-dot${sev >= 1 ? " on" : ""}`} />
                 <span className={`sev-dot${sev >= 2 ? " on" : ""}`} />
                 <span className={`sev-dot${sev >= 3 ? " on" : ""}`} />
