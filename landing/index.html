@@ -109,16 +109,19 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --clay: #C4856C;
-      --clay-light: #F5E6DE;
+      --clay: #C97B5C;
+      --clay-light: #F2E8E1;
+      --clay-dark: #8C4E32;
       --sage: #7A9E87;
-      --sage-light: #E8F0EA;
-      --sage-dark: #5A7E67;
+      --sage-light: #EAF0EC;
+      --sage-dark: #3D6B4F;
       --cream: #FAF6F1;
       --ink: #2C1F17;
       --ink-mid: #6B5347;
-      --ink-light: #9A8578;
+      --ink-light: #A89080;
       --gold: #D4A853;
+      --border: #EDE0D8;
+      --card-bg: #FFFFFF;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -142,9 +145,11 @@
     .nav-logo {
       font-family: 'DM Serif Display', serif;
       font-size: 28px;
-      color: var(--clay);
+      color: var(--clay-dark);
+      letter-spacing: -0.005em;
       text-decoration: none;
     }
+    .nav-logo em { font-style: italic; color: var(--clay); }
     .nav-links { display: flex; gap: 24px; align-items: center; }
     .nav-links a {
       font-size: 14px; color: var(--ink-mid); text-decoration: none; font-weight: 500;
@@ -177,8 +182,8 @@
     }
     .hero-cta {
       display: inline-block;
-      background: var(--ink);
-      color: var(--cream);
+      background: var(--clay);
+      color: #FFFFFF;
       padding: 16px 36px;
       border-radius: 14px;
       font-size: 16px;
@@ -484,7 +489,7 @@
 <body>
 
   <nav>
-    <a href="/" class="nav-logo">Vela</a>
+    <a href="/" class="nav-logo">Ve<em>la</em></a>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
