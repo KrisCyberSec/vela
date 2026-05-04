@@ -81,7 +81,7 @@ From `~/.claude/projects/-Users-kristopher-Vela/memory/`:
 4. Run experiments (6 prebuilt: caffeine cutoff, evening walks, no alcohol, consistent bedtime, magnesium, morning protein)
 5. Cycle prediction (works on irregular cycles)
 6. Weekly summary (Sunday brief)
-7. Apple Health sync (sleep + HRV)
+7. Apple Health sync (sleep only in-app today; HRV plugin wired iOS-side, surfacing pending)
 8. Full pattern history
 
 ### AI surfaces
