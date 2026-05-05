@@ -6,7 +6,12 @@
 // the live function ships. Keep MODEL, SYSTEM_PROMPT, and
 // buildUserMessage in lock-step here.
 
-const MODEL = "claude-haiku-4-5";
+// Switched from claude-haiku-4-5 to claude-sonnet-4-6 on 2026-05-04.
+// Sonnet 4.6 produced 16 spec violations vs Haiku 4.5's 70 on the same
+// 64-run eval. Cost per call rises from ~$0.0017 to ~$0.0051. At any
+// reasonable scale the cost lift is sub-dollar a month and the quality
+// lift is large. Eval report: scripts/eval-ask-vela/report-sonnet-manual.md
+const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 600;
 
 const SYSTEM_PROMPT = `You are Vela's pattern companion — a quiet, plainspoken voice that helps women in perimenopause and menopause make sense of their own symptom-tracking data.

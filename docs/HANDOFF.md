@@ -177,12 +177,13 @@ Full list in `docs/operations/manual-tasks.md`. Top blockers:
 ## Cost math (verified)
 
 At 1000 paying premium users:
-- Anthropic spend: ~$840/yr (Daily Brief $620 + Ask Vela $204)
-- Against $69k net annual revenue: 1.2% of net
-- $50/day global ceiling caps worst case at $18,250/yr (won't hit until ~25k users)
+- Anthropic spend: ~$1,232/yr (Daily Brief $620 + Ask Vela $612)
+- Against $69k net annual revenue: 1.8% of net
+- $50/day global ceiling caps worst case at $18,250/yr (won't hit until ~10k Ask Vela users)
 
-Per call (Claude Haiku 4.5):
-- 950 in × $1/Mtok + 150 out × $5/Mtok = ~$0.0017/call
+Per call:
+- Ask Vela (Sonnet 4.6): 950 in × $3/Mtok + 150 out × $15/Mtok = ~$0.0051/call
+- Daily Brief (Haiku 4.5): 950 in × $1/Mtok + 150 out × $5/Mtok = ~$0.0017/call
 
 ## Voice and copy rules (already enforced)
 

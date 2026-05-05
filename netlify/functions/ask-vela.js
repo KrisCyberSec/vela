@@ -30,10 +30,10 @@ const { MODEL, MAX_TOKENS, SYSTEM_PROMPT, buildUserMessage } = require("./_lib/a
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
-// Rough Haiku 4.5 pricing for the cost-ceiling math. Tune as Anthropic
+// Rough Sonnet 4.6 pricing for the cost-ceiling math. Tune as Anthropic
 // updates pricing — we round up to be conservative.
-const COST_PER_INPUT_TOKEN = 1.0 / 1_000_000;   // $1.00 / Mtok
-const COST_PER_OUTPUT_TOKEN = 5.0 / 1_000_000;  // $5.00 / Mtok
+const COST_PER_INPUT_TOKEN = 3.0 / 1_000_000;   // $3.00 / Mtok
+const COST_PER_OUTPUT_TOKEN = 15.0 / 1_000_000; // $15.00 / Mtok
 
 const PREMIUM_CACHE_TTL_MS = 5 * 60 * 1000;       // 5 min
 const RESPONSE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h

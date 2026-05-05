@@ -1,8 +1,15 @@
 # Vela AI — Ask Vela + Daily Brief
 
 Technical reference for the two AI surfaces in the app: **Ask Vela**
-(reactive Q&A) and **Daily Brief** (proactive morning observations).
-Both are powered by Anthropic Claude Haiku 4.5 via Netlify Functions.
+(reactive Q&A, powered by Claude Sonnet 4.6) and **Daily Brief**
+(proactive morning observations, powered by Claude Haiku 4.5). Both
+run via Netlify Functions.
+
+Ask Vela was switched from Haiku 4.5 to Sonnet 4.6 on 2026-05-04 after
+an offline quality eval showed Sonnet producing ~4x fewer spec
+violations on the same 64-run test. Daily Brief stays on Haiku because
+it's a short, cached, formulaic generation where quality wins matter
+less and cost compounds across every premium user every day.
 
 > **Architecture note:** an earlier rev of this doc claimed Vela was
 > rule-based and on-device. That's no longer true. The user's data still
@@ -32,7 +39,9 @@ Netlify Function (netlify/functions/{ask-vela,daily-brief}.js)
   ├─ LAYER 3: per-IP 24h limit     same
   ├─ LAYER 4: daily $ ceiling      shared budget across both functions
   ├─ LAYER 5: response cache       24h, hashed key
-  └─ POST → Anthropic API (Claude Haiku 4.5)
+  └─ POST → Anthropic API
+       Ask Vela: Claude Sonnet 4.6
+       Daily Brief: Claude Haiku 4.5
 ```
 
 ## What "anonymized" means in practice
@@ -143,18 +152,25 @@ Both prompts live in the Netlify functions. Voice rules:
 
 ## Cost math (verified)
 
-Per call (Claude Haiku 4.5):
+Per Ask Vela call (Claude Sonnet 4.6, ~$3/Mtok in / $15/Mtok out):
+- ~950 input tokens × $3/Mtok = $0.00285
+- ~150 output tokens × $15/Mtok = $0.00225
+- **Total: ~$0.0051/call**
+
+Per Daily Brief call (Claude Haiku 4.5, ~$1/Mtok in / $5/Mtok out):
 - ~950 input tokens × $1/Mtok = $0.00095
 - ~150 output tokens × $5/Mtok = $0.00075
 - **Total: ~$0.0017/call**
 
 At 1000 paying users:
 - Daily brief: 1 cached call/user/day × 1000 × 30 = $51/mo = $620/yr
-- Ask Vela: realistic ~10 calls/user/mo × 1000 = $17/mo = $204/yr
-- **Total annual: ~$840 against $69k net = 1.2% of net revenue**
+- Ask Vela: realistic ~10 calls/user/mo × 1000 × $0.0051 = $51/mo = $612/yr
+- **Total annual: ~$1,232 against $69k net = 1.8% of net revenue**
 
 The $50/day ceiling caps the worst case at $18,250/yr. Wouldn't be hit
-until roughly 25,000 active users.
+until roughly 10,000 active users on Ask Vela alone (was ~25k under
+Haiku-only pricing; Sonnet roughly halves that headroom but still
+leaves comfortable runway).
 
 ## Required env
 
