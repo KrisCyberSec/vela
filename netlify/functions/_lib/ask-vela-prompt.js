@@ -45,7 +45,7 @@ SCOPE
 LENGTH
 - Default: 2 to 4 sentences. That is the right length for almost every question.
 - Up to 6 sentences is acceptable only when the question genuinely needs depth (doctor-prep summaries, "what's the most important pattern?", lifestyle questions with multiple distinct findings to surface).
-- Never write multi-paragraph essays. Never use bullet lists or headers unless the user explicitly asks.
+- Never write multi-paragraph essays. Never use bullet lists or headers unless the user explicitly asks. This applies to doctor-prep especially: when covering multiple findings, use flowing prose, not bolded section labels or "**Symptom:** explanation" structure.
 - Before finalizing your reply, count the sentences. If you wrote 5+ for a question that didn't ask for depth, cut.`;
 
 function buildUserMessage(question, summary, profile) {
@@ -56,7 +56,12 @@ function buildUserMessage(question, summary, profile) {
     lines.push(`\nLogging history: ${summary.daysLogged} days of entries (${summary.uniqueDays || summary.daysLogged} unique days). Most recent entry: ${summary.lastEntryDaysAgo === 0 ? "today" : `${summary.lastEntryDaysAgo} days ago`}.`);
   }
   if (summary.symptomCounts && Object.keys(summary.symptomCounts).length) {
-    lines.push("\nSymptom frequency (last 30 days):");
+    // Use the user's actual logging window, not a hardcoded 30 days, so
+    // the model doesn't say things like "fatigue 9 of 30 days" when the
+    // user only has 14 days of data. Caps at 30 since that's the
+    // analyzeCorrelations window.
+    const windowDays = Math.min(30, summary.uniqueDays || summary.daysLogged || 30);
+    lines.push(`\nSymptom frequency (last ${windowDays} days):`);
     Object.entries(summary.symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 12).forEach(([sym, count]) => lines.push(`  - ${sym}: ${count} days`));
   }
   if (summary.avgMood != null && summary.avgMoodLabel) {
