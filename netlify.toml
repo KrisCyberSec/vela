@@ -1,9 +1,21 @@
-# Netlify config for the main Vela web build (ePWA + Capacitor host).
-# The landing page lives in /landing with its own netlify.toml.
+# Netlify config for velahealth.health — the public marketing site
+# plus the API functions used by the iOS app.
+#
+# The React app (src/, build/) is NOT served from this domain.
+# It's bundled into the iOS Capacitor app — `webDir: 'build'` in
+# capacitor.config.ts — and never deployed to the web.
+#
+# This config covers:
+#   - publish = "landing"           the marketing site (velahealth.health)
+#   - functions in netlify/functions/
+#       - waitlist, waitlist-export   used by landing/admin.html
+#       - ask-vela, daily-brief       called by the iOS app over HTTPS
+#
+# Deploy: `netlify deploy --prod` from the repo root. No flags needed —
+# this file is the single source of truth for what gets shipped.
 
 [build]
-  publish = "build"
-  command = "npm run build"
+  publish = "landing"
 
 [functions]
   directory = "netlify/functions"
@@ -16,3 +28,9 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.html]
+  pretty_urls = true

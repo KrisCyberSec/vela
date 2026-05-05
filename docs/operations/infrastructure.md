@@ -39,17 +39,19 @@ SSL is provisioned by Netlify via Let's Encrypt, auto-renews.
 - **Site ID:** `e0a6111f-d0ad-469a-bb29-66844eb342fe`
 - **Production URL:** [velahealth.health](https://velahealth.health)
 - **Netlify subdomain:** `velahealth-app.netlify.app`
-- **Deploy source:** Manual CLI (`netlify deploy --prod`) from `/landing/`
+- **Deploy source:** Manual CLI (`netlify deploy --prod`) from repo root. Single [netlify.toml](../../netlify.toml) drives the deploy (publishes `landing/`, ships all four functions in `netlify/functions/`).
 - **Plan:** Free (Starter / `nf_team_dev`)
 
 ### Functions
 
-Located at `/Users/kristopher/Vela/landing/netlify/functions/`:
+Located at `/Users/kristopher/Vela/netlify/functions/`:
 
 | Function | Endpoint | Purpose |
 |----------|----------|---------|
 | `waitlist.js` | `/.netlify/functions/waitlist` | Accepts POST with `{email}`, stores to Blobs |
 | `waitlist-export.js` | `/.netlify/functions/waitlist-export` (requires `Authorization: Bearer $ADMIN_TOKEN`) | Returns all waitlist entries as JSON or CSV |
+| `ask-vela.js` | `/api/ask-vela` (rewritten via toml) | Anthropic API proxy for the iOS Ask Vela feature |
+| `daily-brief.js` | `/api/daily-brief` (rewritten via toml) | Anthropic API proxy for the iOS daily brief |
 
 ### Netlify Blobs
 

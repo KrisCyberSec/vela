@@ -14,7 +14,7 @@ A pre-beta sanity check on what's exposed, what's secret, and where the docs lie
 | `.env*` files tracked in git | `git ls-files \| grep env` | Only `.env.example` (intentional, empty placeholders) |
 | `ADMIN.md` (real admin token) tracked? | `git log -- ADMIN.md` + `git ls-files ADMIN.md` | Not tracked, never committed; gitignored at line 23 |
 | GitHub repo visibility | `curl -o /dev/null -w '%{http_code}' https://github.com/KrisCyberSec/vela` | HTTP 404 to anonymous → repo is **private** (or non-existent to logged-out users) |
-| Admin auth flow (waitlist export) | Code read of `landing/netlify/functions/waitlist-export.js` and `landing/admin.html` | Production uses `Authorization: Bearer <token>` header. Tokens are NOT accepted as URL query params — `?token=` would 401 |
+| Admin auth flow (waitlist export) | Code read of `netlify/functions/waitlist-export.js` and `landing/admin.html` | Production uses `Authorization: Bearer <token>` header. Tokens are NOT accepted as URL query params — `?token=` would 401 |
 
 ## Issues found
 
