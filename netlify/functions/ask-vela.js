@@ -282,13 +282,19 @@ exports.handler = async (event) => {
 // ─── Helpers ──────────────────────────────────────────────────────────
 
 function openStores() {
-  const opts = { siteID: SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN };
+  // In deployed production, NETLIFY_BLOBS_CONTEXT isn't auto-injected on this
+  // site, so we pass siteID + a long-lived token explicitly. In `netlify dev`
+  // the runtime DOES inject context (local Blobs sandbox), so we use the
+  // string form there to avoid clobbering it with an undefined token.
+  const make = process.env.NETLIFY_BLOBS_TOKEN
+    ? (name) => getStore({ name, siteID: SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN })
+    : (name) => getStore(name);
   return {
-    premium: getStore({ name: "ask-vela-premium", ...opts }),
-    userRl: getStore({ name: "ask-vela-user-rl", ...opts }),
-    ipRl: getStore({ name: "ask-vela-ip-rl", ...opts }),
-    cost: getStore({ name: "ask-vela-cost", ...opts }),
-    cache: getStore({ name: "ask-vela-cache", ...opts }),
+    premium: make("ask-vela-premium"),
+    userRl: make("ask-vela-user-rl"),
+    ipRl: make("ask-vela-ip-rl"),
+    cost: make("ask-vela-cost"),
+    cache: make("ask-vela-cache"),
   };
 }
 

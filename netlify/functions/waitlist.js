@@ -46,11 +46,11 @@ exports.handler = async (event) => {
   }
 
   try {
-    const store = getStore({
-      name: "waitlist",
-      siteID: SITE_ID,
-      token: process.env.NETLIFY_BLOBS_TOKEN,
-    });
+    // Production: explicit creds (no auto-context on this site).
+    // Local dev (netlify dev): no NETLIFY_BLOBS_TOKEN → use local sandbox.
+    const store = process.env.NETLIFY_BLOBS_TOKEN
+      ? getStore({ name: "waitlist", siteID: SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN })
+      : getStore("waitlist");
     // Key: "<email>" makes duplicates idempotent (latest submission wins).
     const record = {
       email,

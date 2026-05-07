@@ -191,13 +191,16 @@ exports.handler = async (event) => {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function openStores() {
-  const opts = { siteID: SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN };
+  // See ask-vela.js openStores() for why this two-mode shape exists.
+  const make = process.env.NETLIFY_BLOBS_TOKEN
+    ? (name) => getStore({ name, siteID: SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN })
+    : (name) => getStore(name);
   return {
-    premium: getStore({ name: "ask-vela-premium", ...opts }),
-    userRl: getStore({ name: "daily-brief-user-rl", ...opts }),
-    ipRl: getStore({ name: "daily-brief-ip-rl", ...opts }),
-    cost: getStore({ name: "ask-vela-cost", ...opts }), // shared budget
-    cache: getStore({ name: "daily-brief-cache", ...opts }),
+    premium: make("ask-vela-premium"),
+    userRl: make("daily-brief-user-rl"),
+    ipRl: make("daily-brief-ip-rl"),
+    cost: make("ask-vela-cost"), // shared budget
+    cache: make("daily-brief-cache"),
   };
 }
 

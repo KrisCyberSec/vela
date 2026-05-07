@@ -24,14 +24,11 @@ exports.handler = async (event) => {
   }
 
   try {
-    // We pass siteID + token explicitly because NETLIFY_BLOBS_CONTEXT isn't
-    // auto-injected in this site's runtime. NETLIFY_BLOBS_TOKEN must be a
-    // valid Netlify PAT set in the site's env vars.
-    const store = getStore({
-      name: "waitlist",
-      siteID: SITE_ID,
-      token: process.env.NETLIFY_BLOBS_TOKEN,
-    });
+    // Production: explicit creds (no auto-context on this site's runtime).
+    // Local dev (netlify dev): no NETLIFY_BLOBS_TOKEN → local sandbox.
+    const store = process.env.NETLIFY_BLOBS_TOKEN
+      ? getStore({ name: "waitlist", siteID: SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN })
+      : getStore("waitlist");
 
     const { blobs } = await store.list();
     const entries = await Promise.all(
