@@ -104,12 +104,15 @@ The token is also in `ADMIN.md` at the project root, which is **gitignored**.
 If the token leaks (posted in a screenshot, sent to the wrong person, etc.):
 
 ```bash
-cd /Users/kristopher/Vela/landing
-NEW_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(24))")
+cd /Users/kristopher/Vela
+NEW_TOKEN=$(openssl rand -hex 32)
 netlify env:set ADMIN_TOKEN "$NEW_TOKEN"
-netlify deploy --dir=. --functions=./netlify/functions --prod
+netlify deploy --prod
 echo "New admin token: $NEW_TOKEN"
 ```
+
+(Run from the repo root, not `landing/`. `netlify.toml` at the root is the
+single source of truth for `publish` and `functions` paths, so no flags needed.)
 
 Then update `ADMIN.md` with the new value. Any cached tokens in browsers will now fail login and prompt for the new one.
 

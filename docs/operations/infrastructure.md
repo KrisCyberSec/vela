@@ -63,17 +63,19 @@ Located at `/Users/kristopher/Vela/netlify/functions/`:
 
 | Name | Scope | Purpose |
 |------|-------|---------|
-| `NETLIFY_BLOBS_TOKEN` | all contexts | Auth for Blobs writes (Netlify PAT) |
+| `NETLIFY_BLOBS_TOKEN` | all contexts | Auth for Blobs reads and writes (Netlify PAT). Required because this site's runtime doesn't auto-inject `NETLIFY_BLOBS_CONTEXT`. If rotated, also rotate it here. |
 | `ADMIN_TOKEN` | all contexts | Protects `/admin.html` and export endpoint |
 
 **Rotate admin token:**
 ```bash
-cd /Users/kristopher/Vela/landing
-netlify env:set ADMIN_TOKEN "$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
-netlify deploy --dir=. --functions=./netlify/functions --prod
+cd /Users/kristopher/Vela
+NEW=$(openssl rand -hex 32)
+netlify env:set ADMIN_TOKEN "$NEW"
+netlify deploy --prod
+echo "$NEW"  # paste into ADMIN.md (gitignored)
 ```
 
-Update the new token value in [../operations/waitlist.md](waitlist.md) and `ADMIN.md`.
+Then overwrite `ADMIN.md` with the new value. Don't put the token in `waitlist.md` or any other tracked file.
 
 ## App repo (main React app)
 
