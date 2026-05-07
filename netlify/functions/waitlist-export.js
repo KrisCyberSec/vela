@@ -24,6 +24,9 @@ exports.handler = async (event) => {
   }
 
   try {
+    // We pass siteID + token explicitly because NETLIFY_BLOBS_CONTEXT isn't
+    // auto-injected in this site's runtime. NETLIFY_BLOBS_TOKEN must be a
+    // valid Netlify PAT set in the site's env vars.
     const store = getStore({
       name: "waitlist",
       siteID: SITE_ID,
