@@ -70,16 +70,19 @@ From `~/.claude/projects/-Users-kristopher-Vela/memory/`:
 4. **Community (Circle)** — anonymous daily prompt + answers. Sample data; backend Firebase (LIVE_COMMUNITY flag, currently false).
 5. **Settings** — profile, subscription, reminders, theme (light/system/dark), Apple Health, privacy, export.
 
-### Premium product (7 pillars in this order on paywall)
+### Premium product (11 pillars in this order on paywall)
 
 1. Ask Vela (real Anthropic Claude)
-2. Personalized suggestions (experiments mapped to detected patterns)
-3. Doctor-ready PDF report
-4. Run experiments (6 prebuilt: caffeine cutoff, evening walks, no alcohol, consistent bedtime, magnesium, morning protein)
-5. Cycle prediction (works on irregular cycles)
-6. Weekly summary (Sunday brief)
-7. Apple Health sync (sleep + HRV)
-8. Full pattern history
+2. Daily brief (proactive 2-3 sentence morning observation)
+3. Personalized suggestions (experiments mapped to detected patterns)
+4. Doctor-ready PDF report
+5. Run experiments (6 prebuilt: caffeine cutoff, evening walks, no alcohol, consistent bedtime, magnesium, morning protein)
+6. Cycle prediction (works on irregular cycles)
+7. Tomorrow forecast (cycle phase + recent triggers + recency-weighted)
+8. Anomaly insights (z-score deviations from personal 30-day baseline)
+9. Weekly summary (Sunday brief)
+10. Apple Health sync (sleep)
+11. Full pattern history
 
 ### AI surfaces
 
@@ -120,10 +123,9 @@ Round two:
 
 ## Known cleanup (not blocking)
 
-- **Dead code in `src/App.jsx`**: ~130 lines of legacy gamification (`EXPERIMENTS` array at ~line 3013, `CBT_PROGRAMS` at ~line 3032, `concernToCBT`/`concernToExp` maps at ~line 411). Only referenced by `computeXP` for `vela_completed_experiments`/`vela_completed_cbt` localStorage keys that no production user has (app isn't live). Has banned brand-voice words ("wellness" category) and emoji icons. Safe to delete in a follow-up.
-- **Untracked `./vela/` directory at repo root**: an old copy with its own `.git`, ~1.5 MB. Not deployed. Safe to `rm -rf` after confirming no local-only work.
-- **HRV is half-wired**: `fetchYesterdayHRV` exists in `src/healthkit.js` but the App.jsx import is commented out and no UI surface uses it. Either wire it into an Insights HRV-vs-symptom card or delete the function. Until then, paywall + Settings copy says just "sleep."
-- **Premium pillars in paywall vs reality**: paywall lists 8 pillars but Daily Brief, Anomaly insights, and Forecast (all live premium features) are not on it. Consider whether to add or leave them as in-context surprises.
+(Nothing pending right now. Earlier items — dead gamification code,
+untracked `./vela/`, half-wired HRV, paywall-vs-reality gap — are all
+resolved as of May 2026. Add new items here when they appear.)
 
 ## Key file map
 
@@ -167,7 +169,7 @@ Full list in `docs/operations/manual-tasks.md`. Top blockers:
 4. **Netlify env vars** (3 required):
    - `ANTHROPIC_API_KEY` — powers both AI functions
    - `REVENUECAT_REST_KEY` — premium verification (starts `sk_`)
-   - `NETLIFY_BLOBS_TOKEN` — already used by waitlist function
+   - `NETLIFY_BLOBS_TOKEN` — required by ALL four functions (waitlist + waitlist-export + ask-vela + daily-brief). Site runtime doesn't auto-inject `NETLIFY_BLOBS_CONTEXT`, so this PAT is the only path.
 5. **RevenueCat dashboard** wiring after IAPs exist
 6. **PostHog + Sentry** account creation (code-side wiring done, just need keys)
 

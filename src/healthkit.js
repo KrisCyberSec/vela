@@ -1,7 +1,7 @@
 // HealthKit wrapper — Apple Health integration for Vela Premium.
 //
-// Reads sleep hours and HRV (heart-rate variability) from Apple Health
-// so users don't have to retype data their watch already captured.
+// Reads sleep hours from Apple Health so users don't have to retype
+// data their watch already captured.
 //
 // IMPLEMENTATION STATUS
 // ─────────────────────
@@ -118,26 +118,3 @@ export async function fetchYesterdaySleep() {
   }
 }
 
-// Yesterday's average HRV (ms). Returns null on any failure.
-export async function fetchYesterdayHRV() {
-  if (!isHealthKitEnabled() || !pluginAvailable()) return null;
-  try {
-    const now = new Date();
-    const yEnd = new Date(now); yEnd.setHours(0, 0, 0, 0);
-    const yStart = new Date(yEnd); yStart.setDate(yStart.getDate() - 1);
-    const result = await HealthPlugin.queryHKitSampleType({
-      sampleName: "heartRateVariability",
-      startDate: yStart.toISOString(),
-      endDate: yEnd.toISOString(),
-      limit: 200,
-    });
-    const samples = result?.resultData || result?.data || [];
-    if (!Array.isArray(samples) || samples.length === 0) return null;
-    const values = samples.map((s) => Number(s.value)).filter((v) => !isNaN(v) && v > 0);
-    if (values.length === 0) return null;
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-  } catch (err) {
-    console.warn("HealthKit HRV fetch failed:", err);
-    return null;
-  }
-}

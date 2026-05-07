@@ -12,8 +12,6 @@ import {
   enableHealthKit,
   disableHealthKit,
   fetchYesterdaySleep,
-  // fetchYesterdayHRV — wired in the module, will surface in a future
-  // Insights HRV-vs-symptom card. Skipped at the import site for now.
   getHealthKitStatus,
 } from "./healthkit";
 import {
@@ -8626,7 +8624,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "Heart",
       tone: "sage",
       title: "Apple Health sync",
-      body: "Pull sleep hours from your watch automatically, so you don't retype what your wrist already knows. (HRV joins this card in a future update.)",
+      body: "Pull sleep hours from your watch automatically, so you don't retype what your wrist already knows.",
     },
     {
       icon: "ChartBar",
