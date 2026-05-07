@@ -7529,9 +7529,16 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       const appUserId = await getAppUserId();
       // Try the real API first; fall back to the canned response engine
       // if the function returns 5xx (key missing, model unreachable, etc.)
+      const headers = { "Content-Type": "application/json" };
+      // Local dev only: send the dev-bypass header so the function skips
+      // RevenueCat verification (no Apple receipts on web). The token must
+      // match ASK_VELA_DEV_TOKEN in .env.local — both default to "dev".
+      if (process.env.NODE_ENV === "development" && process.env.REACT_APP_ASK_VELA_DEV_TOKEN) {
+        headers["x-dev-token"] = process.env.REACT_APP_ASK_VELA_DEV_TOKEN;
+      }
       const r = await fetch("/api/ask-vela", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ question: text.trim(), summary, profile: profilePayload, appUserId }),
       });
       let answer;
@@ -9722,6 +9729,67 @@ export default function App() {
     tag.textContent = css;
     document.head.appendChild(tag);
     return () => document.head.removeChild(tag);
+  }, []);
+
+  // Dev-only URL trigger: visiting /?seed=demo seeds 30 days of synthetic
+  // data + skips onboarding + unlocks premium for the session, then strips
+  // the query param so a refresh doesn't re-seed. Same data shape as the
+  // hidden "Seed Demo Data" button in Settings → debug, but URL-driven so
+  // you don't need DevTools or the debug screen. Compiled out in prod
+  // (process.env.NODE_ENV === "production" tree-shakes the whole block).
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("seed") !== "demo") return;
+    const pad = (n) => String(n).padStart(2, "0");
+    const localISO = (d) => {
+      const tz = -d.getTimezoneOffset(), sign = tz >= 0 ? "+" : "-", tzA = Math.abs(tz);
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${pad(Math.floor(tzA/60))}:${pad(tzA%60)}`;
+    };
+    const demoLogs = [];
+    for (let day = 30; day >= 0; day--) {
+      const d = new Date();
+      d.setDate(d.getDate() - day);
+      d.setHours(9 + (day % 3), 15, 0, 0);
+      const caf = day % 2 === 0;
+      const sleepHours = caf ? 5 + Math.random() * 0.8 : 7 + Math.random() * 0.8;
+      const symptoms = {}, severities = {};
+      symptoms["Brain fog"] = true; severities["Brain fog"] = caf ? 2 : 1;
+      if (caf) {
+        symptoms["Hot flash"] = true; severities["Hot flash"] = 2 + (day % 2);
+        symptoms["Night sweats"] = true; severities["Night sweats"] = 2;
+        symptoms["Poor sleep"] = true; severities["Poor sleep"] = 3;
+        symptoms["Irritability"] = true; severities["Irritability"] = 2;
+      } else {
+        symptoms["Fatigue"] = true; severities["Fatigue"] = 1;
+      }
+      if (day % 7 === 0) { symptoms["Joint stiffness"] = true; severities["Joint stiffness"] = 1; }
+      const notes = day === 5
+        ? "Bad night. Woke up drenched around 3am after the late espresso."
+        : (day === 12 ? "Felt great today. Slept 8 hours and walked 5k." : "");
+      demoLogs.unshift({
+        date: localISO(d),
+        mood: caf ? 1 : 3,
+        energy: caf ? 1 : 3,
+        symptoms, severities, notes,
+        context: {
+          sleepHours: parseFloat(sleepHours.toFixed(1)),
+          stress: caf ? 4 : 2,
+          caffeine: caf, alcohol: false, exercise: !caf,
+          period: null, periodFlow: null,
+        },
+      });
+    }
+    try {
+      localStorage.setItem("vela_logs", JSON.stringify(demoLogs));
+      localStorage.setItem("vela_profile", JSON.stringify([1, [0, 1, 2], 4, "sometimes"]));
+      localStorage.setItem("vela_onboarded", "true");
+    } catch { /* private mode */ }
+    setLogs(demoLogs);
+    setProfile([1, [0, 1, 2], 4, "sometimes"]);
+    setOnboarded(true);
+    setIsPremium(true); // dev shortcut so you don't have to click through paywall
+    window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
   // Initialize analytics + RevenueCat, then sync subscription status on launch
