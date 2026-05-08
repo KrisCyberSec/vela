@@ -85,16 +85,10 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ## Blocking analytics wire-up
 
-### [ ] Create PostHog account + paste public key
-- [posthog.com](https://posthog.com) → free tier is plenty for early launch
-- Get the project public API key (starts with `phc_`)
-- Set in Netlify env:
-  ```
-  REACT_APP_POSTHOG_KEY=phc_xxxxxxxxxxxxxxxxxxxx
-  REACT_APP_POSTHOG_HOST=https://us.i.posthog.com
-  ```
-- Code-side wiring is done in `src/analytics.js` — track() calls already
-  fire throughout the app, they just no-op until the key lands
+### [x] ~~Create PostHog account + paste public key~~ (done 2026-05-08)
+- US Cloud project. Key (`phc_...`) set in `.env.local` AND Netlify env vars.
+- `REACT_APP_POSTHOG_HOST` not set — code defaults to `https://us.i.posthog.com` which matches the project, so no override needed.
+- Verification still pending: run `netlify dev`, fire a tracked event (e.g. open the daily log → `log_started`, or hit the paywall → `paywall_shown`), then check the PostHog "Live events" view.
 
 ### [ ] Create Sentry account + paste DSN
 - [sentry.io](https://sentry.io) → free tier covers ~5k errors/mo
