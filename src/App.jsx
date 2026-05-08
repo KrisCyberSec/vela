@@ -240,6 +240,12 @@ const SYMPTOMS = [
   { icon: "Bug", name: "Crawling skin", cat: "other" },
 ];
 
+// Set of canonical symptom names. Used by buildAskVelaSummary and
+// buildDailyBriefSummary to scrub user-defined custom symptom names
+// before they leave the device — see the "What Ask Vela sends" row
+// in Settings, which promises no custom-symptom names go off-device.
+const CANONICAL_SYMPTOM_NAMES = new Set(SYMPTOMS.map((s) => s.name));
+
 // Each option has: label (canonical, persisted by index), icon (Phosphor),
 // hint (shown beneath label in onboarding). Indices are stable for backwards
 // compat with stored vela_profile arrays.
@@ -714,9 +720,10 @@ function bumpMonthlyCapTo(target) {
 }
 
 // ─── Anonymized summary for Ask Vela API ────────────────────────────────
-// Strips notes (free-text), exact dates, custom symptom names, location.
-// Returns an aggregated, sliced view that the model can reason about
-// without seeing anything personally identifying.
+// Strips notes (free-text), exact dates, and custom symptom names. Custom
+// symptom toggles are collapsed into a single "Custom symptom" bucket so
+// the model still sees the count without learning the user-chosen label.
+// Returns aggregated 30-day stats + a per-day-of-week 7-day window.
 // ─── Anonymized summary for Daily Brief API ─────────────────────────────
 // Tighter than the Ask Vela summary — fewer fields, focused on what
 // matters for "what's happening THIS week." Includes anomalies + cycle
@@ -732,9 +739,13 @@ function buildDailyBriefSummary(logs) {
   const lastEntry = logs.length > 0 ? new Date(logs[logs.length - 1].date) : null;
   const lastEntryDaysAgo = lastEntry ? Math.floor((now - lastEntry) / (86400000)) : null;
 
-  // Top symptom this week
+  // Top symptom this week. Custom-symptom names are bucketed so the
+  // user-chosen label never leaves the device.
   const wCounts = {};
-  week.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => { wCounts[s] = (wCounts[s] || 0) + 1; }));
+  week.forEach((l) => Object.keys(l.symptoms || {}).forEach((s) => {
+    const key = CANONICAL_SYMPTOM_NAMES.has(s) ? s : "Custom symptom";
+    wCounts[key] = (wCounts[key] || 0) + 1;
+  }));
   const topPair = Object.entries(wCounts).sort((a, b) => b[1] - a[1])[0];
   const weekTopSymptom = topPair ? { name: topPair[0], count: topPair[1] } : null;
 
@@ -799,15 +810,14 @@ function buildAskVelaSummary(logs) {
   const lastEntry = logs.length > 0 ? new Date(logs[logs.length - 1].date) : null;
   const lastEntryDaysAgo = lastEntry ? Math.floor((now - lastEntry) / (1000 * 60 * 60 * 24)) : null;
 
-  // Symptom counts (last 30 days)
+  // Symptom counts (last 30 days). Custom user symptoms are collapsed
+  // into a single "Custom symptom" bucket so we don't ship the user-chosen
+  // label off-device — see the disclosure in Settings.
   const symptomCounts = {};
   recent.forEach((l) => {
     Object.keys(l.symptoms || {}).forEach((s) => {
-      // Skip custom user symptoms (stored as raw glyph) to avoid
-      // leaking anything personal
-      if (typeof s === "string" && s.length < 40) {
-        symptomCounts[s] = (symptomCounts[s] || 0) + 1;
-      }
+      const key = CANONICAL_SYMPTOM_NAMES.has(s) ? s : "Custom symptom";
+      symptomCounts[key] = (symptomCounts[key] || 0) + 1;
     });
   });
 
@@ -863,7 +873,9 @@ function buildAskVelaSummary(logs) {
     let moodSum = 0, moodCount = 0, sleep = null, stress = null;
     let period = false;
     dayLogs.forEach((l) => {
-      Object.keys(l.symptoms || {}).forEach((s) => { if (typeof s === "string" && s.length < 40) symSet.add(s); });
+      Object.keys(l.symptoms || {}).forEach((s) => {
+        symSet.add(CANONICAL_SYMPTOM_NAMES.has(s) ? s : "Custom symptom");
+      });
       if (l.mood !== null && l.mood !== undefined) { moodSum += l.mood; moodCount++; }
       if (l.context?.sleepHours != null) sleep = l.context.sleepHours;
       if (l.context?.stress != null) stress = l.context.stress;
@@ -9417,7 +9429,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="glyph"><UIIcon name="DeviceMobile" size={16} /></span>
           <span className="body">
             <span className="label">Data storage</span>
-            <span className="sub">Encrypted, on this device only</span>
+            <span className="sub">Stored on this device only. Never synced.</span>
           </span>
           <span className="value">On-device</span>
         </div>
@@ -9425,7 +9437,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="glyph"><UIIcon name="ChatCircle" size={16} /></span>
           <span className="body">
             <span className="label">What Ask Vela sends</span>
-            <span className="sub">Aggregated counts + averages only. Never your notes, custom symptoms, or exact dates.</span>
+            <span className="sub">30-day counts and averages, plus a per-day breakdown of the last week. Never your notes, custom-symptom names, or exact dates.</span>
           </span>
         </div>
       </div>

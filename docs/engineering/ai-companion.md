@@ -59,9 +59,15 @@ It **does** contain (verified in `buildAskVelaSummary`):
 - Active experiments (library name + day count)
 - Profile stage label + goal label
 
+Custom user-defined symptom names are scrubbed before the payload leaves
+the device — names not in the canonical `SYMPTOMS` list are bucketed as
+`"Custom symptom"` so the model still sees the count without the
+user-chosen label. See `CANONICAL_SYMPTOM_NAMES` in `src/App.jsx`.
+
 A transparent disclosure of this lives on Settings → Privacy & Data:
-"What Ask Vela sends. Aggregated counts and averages only. Never your
-notes, custom symptoms, or exact dates."
+"What Ask Vela sends. 30-day counts and averages, plus a per-day
+breakdown of the last week. Never your notes, custom-symptom names, or
+exact dates."
 
 ## Defense in depth
 
