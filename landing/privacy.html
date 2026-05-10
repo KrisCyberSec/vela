@@ -25,10 +25,10 @@
   <p><a href="/" class="back">← Back to velahealth.health</a></p>
 
   <h1>Privacy Policy</h1>
-  <p class="date">Effective date: April 17, 2026</p>
+  <p class="date">Effective date: May 10, 2026</p>
 
   <div class="intro">
-    <strong>Plain English summary:</strong> Your health data stays on your phone. We never see it. We don't use analytics or ad trackers. If you sign up for our waitlist on this website, we only collect your email address (nothing else). That's it.
+    <strong>Plain English summary:</strong> Your health log stays on your phone. We never see it. The one thing that leaves your device — only when you tap Ask Vela — is an anonymized summary (counts and averages, no notes, no custom-symptom names, no exact dates) so the AI can answer about your patterns. We use a privacy-focused product analytics tool (PostHog) on this website only, with no advertising and no session recording. We do not run ad trackers anywhere. If you join the waitlist, we collect your email and nothing else.
   </div>
 
   <p>Vela ("we", "our", "us", or "the app") is a perimenopause and menopause symptom tracking companion operated by Vela Health ("Vela Health"). This policy covers both the Vela iOS app and this website, <a href="https://velahealth.health">velahealth.health</a>.</p>
@@ -44,7 +44,9 @@
     <li>Ask Vela conversation history</li>
     <li>Thumbs-up / thumbs-down feedback on patterns Vela detects</li>
   </ul>
-  <p><strong>All of this is stored locally on your device only</strong>, in the app's sandboxed storage. It never leaves your device. We have no ability to read, access, copy, or recover it.</p>
+  <p><strong>All of this is stored locally on your device only</strong>, in the app's sandboxed storage. We have no ability to read, access, copy, or recover it.</p>
+
+  <p><strong>The one exception, by your action:</strong> when you tap Ask Vela, the app sends an anonymized summary to our AI (Anthropic's Claude API via our own server) to answer your question. The summary contains aggregated counts and averages over the last 30 days, plus a per-day breakdown of the last week. It does <em>not</em> contain your free-text notes, the names of any custom symptoms you created, your exact dates, your name, or any device identifier. The same kind of summary powers the optional "Daily brief" if you turn it on. You can review the exact disclosure in the app at Settings → Privacy &amp; Data → "What Ask Vela sends."</p>
 
   <h3>On this website</h3>
   <p>If you submit your email on the waitlist form at velahealth.health, we collect:</p>
@@ -68,18 +70,24 @@
   <h2>2. Data We Do NOT Collect</h2>
   <ul>
     <li>We do not collect your real name, phone number, address, or government ID</li>
-    <li>We do not use analytics SDKs (Google Analytics, Mixpanel, Amplitude, etc.)</li>
-    <li>We do not use advertising networks or tracking pixels</li>
-    <li>We do not collect device identifiers, advertising IDs, or fingerprints</li>
+    <li>We do not use advertising networks or ad-tracking pixels (no Google Ads, Meta Pixel, etc.)</li>
+    <li>We do not collect advertising IDs (IDFA) or device fingerprints</li>
     <li>We do not access your contacts, photos, location, calendar, or other device data</li>
     <li>We do not sell data to anyone, ever</li>
   </ul>
+  <p>For the analytics we <em>do</em> use on this website (and only on this website), see Section 4 below.</p>
 
   <h2>3. In-App Purchases</h2>
   <p>Subscription purchases in the iOS app are processed entirely by Apple through the App Store. We use <a href="https://www.revenuecat.com/privacy">RevenueCat</a> to manage subscription status. RevenueCat receives an anonymous app user ID and your Apple purchase receipt. No personal health data is shared.</p>
 
-  <h2>4. Cookies and Tracking on This Website</h2>
-  <p>The velahealth.health website uses Google Fonts (fonts.googleapis.com) which may set cookies per Google's policy. We do not set any other cookies. If you use the admin dashboard at /admin.html, your authentication token is stored in your browser's sessionStorage (cleared when you close the tab) and never sent to us.</p>
+  <h2>4. Cookies and Analytics on This Website</h2>
+  <p>The velahealth.health website uses two third-party services:</p>
+  <ul>
+    <li><strong>Google Fonts</strong> (fonts.googleapis.com) for the typography. May set cookies per Google's policy.</li>
+    <li><strong>PostHog</strong> for product analytics, so we can see how many people visit, what they click, and where they come from. We have configured PostHog with: no autocapture, no session recording, identified-only profiles, and pageview/pageleave events only. PostHog sets a first-party cookie to count repeat visits. We do not link any analytics to your waitlist email.</li>
+  </ul>
+  <p>The iOS app uses the same PostHog SDK (with autocapture and session recording disabled) and is wired to capture five product events: when you start a daily log, when you save one, when you ask Vela a question, when the paywall appears, and when a purchase completes. The only metadata sent with these events is counts (e.g. unique days logged) and the trigger that surfaced the paywall. <strong>No symptom names, no log contents, no Ask Vela questions or answers, and no notes are ever sent to PostHog.</strong> If you would prefer the app not capture these product events at all, let us know at <a href="mailto:support@velahealth.health">support@velahealth.health</a> and we will add an opt-out toggle in Settings.</p>
+  <p>If you use the admin dashboard at /admin.html, your authentication token is stored in your browser's sessionStorage (cleared when you close the tab) and never sent to us.</p>
 
   <h2>5. Children's Privacy</h2>
   <p>Vela is not intended for children under 13. In accordance with the Children's Online Privacy Protection Act (COPPA), we do not knowingly collect personal information from children under 13. If you believe a child has provided us information, please contact us and we will delete it.</p>

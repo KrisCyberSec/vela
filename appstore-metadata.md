@@ -10,7 +10,7 @@ Track symptoms. See patterns.
 Health & Fitness
 
 ## Price
-Free (with in-app subscription: $14.99/month)
+Free (with in-app subscription: $8.99/month or $69.99/year, 14-day free trial)
 
 ---
 
@@ -18,32 +18,34 @@ Free (with in-app subscription: $14.99/month)
 
 Your body is changing. Vela helps you understand it.
 
-Vela is a private, on-device symptom tracker built for women navigating perimenopause and menopause. Log your daily symptoms, mood, and notes in seconds — then let Vela surface the patterns your doctor needs to see.
+Vela is a private symptom companion built for women navigating perimenopause and menopause. Log your daily symptoms, mood, and notes in seconds — then let Vela surface the patterns your doctor needs to see.
 
 TRACK WHAT MATTERS
-- Log 18 symptoms including hot flashes, night sweats, brain fog, anxiety, joint pain, and more
-- Rate severity on a simple 3-point scale
-- Track mood daily with one tap
-- Add free-text notes for context
+- 44 menopause-specific symptoms across hot flashes, sleep, mood, cognitive, physical, intimate, and digestive categories
+- 3-point severity scale, one tap per symptom
+- Daily mood and energy check-in
+- Optional free-text notes for context
 
 SEE YOUR PATTERNS
-- Weekly summary with symptom counts and streaks
-- Top symptom identification
-- 7-day mood trend visualization
+- Pattern detection across triggers, sleep, mood, and cycle
+- Weekly summary with top symptoms and what shifted
+- Tomorrow forecast based on your cycle phase and recent days
 
 PREMIUM: UNLOCK THE FULL PICTURE
-- Personalized pattern detection ("Brain fog peaks after poor sleep days")
-- Symptom predictions based on your weekly rhythms
-- Month-over-month comparison reports
-- Doctor visit prep with auto-generated talking points and suggested questions
-- PDF symptom reports designed for your provider
-- Unlimited history (free tier: 7 days)
+- Ask Vela: an AI companion grounded in your own anonymized data, not generic web advice
+- Daily brief: a 2-3 sentence morning read on your last week
+- Doctor-ready PDF report covering the last 30 days
+- Personalized experiments tied to the patterns Vela actually finds
+- Cycle prediction, including for irregular cycles
+- Apple Health sleep auto-fill
+- Unlimited history (free tier: last 7 days)
 - CSV data export
 
 BUILT FOR PRIVACY
-- All data stays on your device. Always.
-- No accounts, no sign-ups, no tracking
-- No data ever leaves your phone
+- Your symptom log is stored on your device only — we never see, upload, or share it
+- The one exception, by your tap: Ask Vela sends an anonymized summary (counts and averages, no notes, no custom-symptom names, no exact dates) to answer your question
+- No account, no sign-up
+- No advertising trackers
 
 Vela is not medical advice. Always consult your healthcare provider.
 
@@ -53,7 +55,7 @@ Vela is not medical advice. Always consult your healthcare provider.
 perimenopause,menopause,symptom tracker,hot flashes,hormones,mood,health,women,cycle,night sweats
 
 ## Promotional Text (170 chars max)
-Track perimenopause & menopause symptoms privately. Discover patterns, get predictions, and prep for doctor visits — all on-device.
+Track perimenopause & menopause symptoms privately. Spot patterns, ask AI grounded in your own data, and walk into your next appointment prepared.
 
 ## What's New (for v1.0)
 Welcome to Vela! Your menopause companion is here. Track symptoms, discover patterns, and take control of your hormonal health journey.

@@ -58,7 +58,7 @@ const cardShadow = () => ({ type: "outer", blur: 8, offset: 3, angle: 135, color
 
   // Bottom bar
   s.addShape(pres.shapes.RECTANGLE, { x: 0, y: 5.1, w: 10, h: 0.525, fill: { color: C.sage, transparency: 70 } });
-  s.addText("iOS App  •  Privacy-First  •  On-Device AI", {
+  s.addText("iOS App  •  Privacy-First  •  AI Grounded in Your Data", {
     x: 0.8, y: 5.15, w: 8.4, h: 0.45,
     fontFace: "Calibri", fontSize: 12, color: C.cream, margin: 0,
   });
@@ -124,7 +124,7 @@ const cardShadow = () => ({ type: "outer", blur: 8, offset: 3, angle: 135, color
     { icon: "⏱", title: "30-Second Daily Log", desc: "Tap to track mood, energy, and 44 menopause-specific symptoms. Faster than opening Notes.", x: 0.8, y: 2.3 },
     { icon: "🔍", title: "Pattern Detection", desc: "Automatic correlation analysis finds connections between triggers and symptoms you'd never spot alone.", x: 5.2, y: 2.3 },
     { icon: "📋", title: "Doctor-Ready Reports", desc: "Generate PDF reports with structured talking points. Turn 'I feel bad' into clinical data.", x: 0.8, y: 3.7 },
-    { icon: "🤖", title: "AI Health Companion", desc: "Ask Vela about your patterns. On-device AI provides personalized, research-backed insights.", x: 5.2, y: 3.7 },
+    { icon: "🤖", title: "AI Health Companion", desc: "Ask Vela about your patterns. AI grounded in your own anonymized data, not generic web advice.", x: 5.2, y: 3.7 },
   ];
 
   features.forEach(({ icon, title, desc, x, y }) => {
@@ -136,7 +136,7 @@ const cardShadow = () => ({ type: "outer", blur: 8, offset: 3, angle: 135, color
     s.addText(desc, { x: x + 0.7, y: y + 0.45, w: 3.1, h: 0.6, fontFace: "Calibri", fontSize: 10.5, color: C.muted, margin: 0 });
   });
 
-  s.addText("All data stored on-device. No cloud. No account required. Privacy is the default.", {
+  s.addText("Symptom log stored on-device. No account required. Privacy is the default.", {
     x: 0.8, y: 5.05, w: 8.4, h: 0.4,
     fontFace: "Calibri", fontSize: 12, color: C.sage, margin: 0,
   });
@@ -200,7 +200,7 @@ const cardShadow = () => ({ type: "outer", blur: 8, offset: 3, angle: 135, color
     fontFace: "Calibri", fontSize: 12, color: C.clay, bold: true, charSpacing: 3, margin: 0,
   });
 
-  s.addText("The only menopause app with on-device AI\nand doctor-ready reports.", {
+  s.addText("The only menopause app with on-device pattern detection\nand doctor-ready reports.", {
     x: 0.8, y: 0.9, w: 8.4, h: 1, fontFace: "Georgia", fontSize: 26, color: C.cream, margin: 0,
   });
 
@@ -226,14 +226,14 @@ const cardShadow = () => ({ type: "outer", blur: 8, offset: 3, angle: 135, color
   const labelOpt = (txt) => ({ text: txt, options: { color: C.cream, fill: { color: C.cardBg }, fontFace: "Calibri", fontSize: 10.5, align: "left" } });
 
   const rows = [
-    [labelOpt("On-Device AI"), cellOpt("✓", true), cellOpt("✗"), cellOpt("✗"), cellOpt("✗"), cellOpt("✗")],
+    [labelOpt("On-Device Patterns"), cellOpt("✓", true), cellOpt("✗"), cellOpt("✗"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("Doctor PDF Reports"), cellOpt("✓", true), cellOpt("✗"), cellOpt("✗"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("No Account Required"), cellOpt("✓", true), cellOpt("✗"), cellOpt("✗"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("Menopause-Specific"), cellOpt("✓", true), cellOpt("✓"), cellOpt("✓"), cellOpt("✓"), cellOpt("✗")],
     [labelOpt("CBT Programs"), cellOpt("✓", true), cellOpt("✓"), cellOpt("~"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("Pattern Detection"), cellOpt("✓", true), cellOpt("~"), cellOpt("~"), cellOpt("✗"), cellOpt("✗")],
     [labelOpt("Community"), cellOpt("✓", true), cellOpt("✓"), cellOpt("✓"), cellOpt("✗"), cellOpt("✓")],
-    [labelOpt("Price/Year"), cellOpt("$49.99", true), cellOpt("B2B"), cellOpt("$49.99"), cellOpt("$49.99"), cellOpt("$49.99")],
+    [labelOpt("Price/Year"), cellOpt("$69.99", true), cellOpt("B2B"), cellOpt("$49.99"), cellOpt("$49.99"), cellOpt("$49.99")],
   ];
 
   s.addTable([headers, ...rows], {

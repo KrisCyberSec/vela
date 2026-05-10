@@ -8600,7 +8600,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "FileText",
       tone: "clay",
       title: "Doctor-ready report",
-      body: "A printable PDF your provider will actually read. Charts, dates, what's been working. Built from months of your real entries.",
+      body: "A printable PDF your provider will actually read. Last 30 days, top symptoms, mood and sleep averages, and questions to bring.",
     },
     {
       icon: "Flask",
@@ -8630,7 +8630,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "Sparkle",
       tone: "clay",
       title: "Weekly summary",
-      body: "Every Sunday: a quiet read on your week. Top symptoms, sleep, mood, what shifted. One scroll, no work.",
+      body: "A quiet read on your week, ready whenever you open Insights. Top symptoms, sleep, mood, what shifted. One scroll, no work.",
     },
     {
       icon: "Heart",
@@ -8642,7 +8642,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "ChartBar",
       tone: "gold",
       title: "Full pattern history",
-      body: "Look back across months. See how this autumn compares to last spring. Free shows the last 7 days.",
+      body: "Scroll back to any day you've logged. Free shows the last 7 days.",
     },
   ];
 
@@ -8671,7 +8671,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
             <span className="badge"><UIIcon name="FileText" size={18} /></span>
             <div className="title">
               Your <em>doctor report</em>
-              <small>Last 12 weeks · printable PDF</small>
+              <small>Last 30 days · printable PDF</small>
             </div>
           </div>
           <div className="pw-pdf">
@@ -8687,7 +8687,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
                 <span key={i} style={{ height: `${h * 100}%` }} />
               ))}
             </div>
-            <div className="pdf-foot">Hot flashes per week · trending down</div>
+            <div className="pdf-foot">30-day summary · top symptoms · questions to ask</div>
           </div>
         </div>
 
@@ -9507,6 +9507,14 @@ function CommunityScreen() {
   // Real backend integration is still gated by LIVE_COMMUNITY (community.js);
   // this is the visual shell that lights up once we flip the flag.
 
+  // Preview mode: backend isn't live yet, so we hide everything that would
+  // be a lie if the user took it at face value (answer counts, "12 reading
+  // now" pulse, the sample replies feed, past prompts, the share-as-no-op
+  // button). The prompt-of-the-day text and the privacy footer stay —
+  // those are honest. Flip to false in the same commit that wires
+  // community.js to the backend.
+  const COMMUNITY_PREVIEW = true;
+
   const [reactions, setReactions] = useState({ 0: true });
   const [saved, setSaved] = useState({});
   const [composeOpen, setComposeOpen] = useState(false);
@@ -9575,7 +9583,9 @@ function CommunityScreen() {
         <section className="cir-first-welcome">
           <div className="cir-first-eye"><UIIcon name="Sparkle" size={12} /> First time here</div>
           <h3>You don't have to <em>say anything yet.</em></h3>
-          <p>Most people read for a week before they answer. That's fine. The prompt below is today's. There will be a new one tomorrow.</p>
+          <p>{COMMUNITY_PREVIEW
+            ? "The circle opens later this season. Until then, the prompt below is real — sit with it. Sharing and replies will turn on when we flip the switch."
+            : "Most people read for a week before they answer. That's fine. The prompt below is today's. There will be a new one tomorrow."}</p>
           <div className="cir-first-rules">
             <span><UIIcon name="Eye" size={12} /> Anonymous by default</span>
             <span><UIIcon name="Lock" size={12} /> No replies, no DMs</span>
@@ -9595,27 +9605,46 @@ function CommunityScreen() {
       <section className="cir-prompt" aria-label="Today's prompt">
         <span className="eye"><span className="dot" /> Today's prompt · {promptToday.date}</span>
         <h2>{promptToday.text}</h2>
-        <div className="cir-prompt-meta">
-          <span><strong style={{ color: "var(--ink)", fontWeight: 600 }}>{promptToday.answered}</strong> have answered</span>
-          <span className="dot">·</span>
-          <span className="live"><span className="pulse" /> {promptToday.reading} reading now</span>
-        </div>
-        <button type="button" className="cir-share-btn" onClick={() => setComposeOpen(true)}>
-          <UIIcon name="Sparkle" size={14} />
-          Share your answer
-          <span className="anon">· anonymous</span>
-        </button>
+        {!COMMUNITY_PREVIEW && (
+          <div className="cir-prompt-meta">
+            <span><strong style={{ color: "var(--ink)", fontWeight: 600 }}>{promptToday.answered}</strong> have answered</span>
+            <span className="dot">·</span>
+            <span className="live"><span className="pulse" /> {promptToday.reading} reading now</span>
+          </div>
+        )}
+        {COMMUNITY_PREVIEW ? (
+          <button
+            type="button"
+            className="cir-share-btn"
+            disabled
+            style={{ opacity: 0.5, cursor: "not-allowed" }}
+            aria-disabled="true"
+          >
+            <UIIcon name="Lock" size={14} />
+            Sharing opens when the circle launches
+          </button>
+        ) : (
+          <button type="button" className="cir-share-btn" onClick={() => setComposeOpen(true)}>
+            <UIIcon name="Sparkle" size={14} />
+            Share your answer
+            <span className="anon">· anonymous</span>
+          </button>
+        )}
       </section>
 
-      {/* Replies */}
-      <div className="cir-section-label">
-        <span>Answers</span>
-        <span className="filter-chip">
-          <UIIcon name="ArrowUp" size={11} /> Most echoed
-        </span>
-      </div>
+      {/* Replies — hidden in preview because the sample replies aren't
+          real users. Once LIVE_COMMUNITY ships, this renders the real
+          feed from community.js. */}
+      {!COMMUNITY_PREVIEW && (
+        <>
+          <div className="cir-section-label">
+            <span>Answers</span>
+            <span className="filter-chip">
+              <UIIcon name="ArrowUp" size={11} /> Most echoed
+            </span>
+          </div>
 
-      {replies.map((r, i) => (
+          {replies.map((r, i) => (
         <article key={i} className={`cir-reply${r.featured ? " featured" : ""}`}>
           <div className="cir-reply-head">
             <span className={`cir-avatar ${r.tone}`}>{r.avatar}</span>
@@ -9647,25 +9676,28 @@ function CommunityScreen() {
             </button>
           </div>
         </article>
-      ))}
+          ))}
 
-      {/* Past prompts */}
-      <div className="cir-section-label"><span>Past prompts</span></div>
-      <div className="cir-past">
-        {past.map((p) => (
-          <button key={p.d} type="button" className="cir-past-row">
-            <div className="day">
-              <div className="num">{p.d}</div>
-              <div className="mo">{p.m}</div>
-            </div>
-            <div className="body">
-              <div className="q">{p.q}</div>
-              <div className="stats">{p.replies} answers</div>
-            </div>
-            <span className="arrow">›</span>
-          </button>
-        ))}
-      </div>
+          {/* Past prompts — also gated; the dates and answer counts here
+              are sample data, not historical posts. */}
+          <div className="cir-section-label"><span>Past prompts</span></div>
+          <div className="cir-past">
+            {past.map((p) => (
+              <button key={p.d} type="button" className="cir-past-row">
+                <div className="day">
+                  <div className="num">{p.d}</div>
+                  <div className="mo">{p.m}</div>
+                </div>
+                <div className="body">
+                  <div className="q">{p.q}</div>
+                  <div className="stats">{p.replies} answers</div>
+                </div>
+                <span className="arrow">›</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Privacy footer */}
       <div className="cir-privacy">
@@ -9932,34 +9964,54 @@ export default function App() {
 
   function handleClearData() {
     if (window.confirm("This will delete all your logs and profile data. This cannot be undone.")) {
-      localStorage.removeItem("vela_logs");
-      localStorage.removeItem("vela_profile");
-      localStorage.removeItem("vela_onboarded");
-      localStorage.removeItem("vela_reminders_enabled");
-      localStorage.removeItem("vela_reminder_times");
-      localStorage.removeItem("vela_community_votes");
-      localStorage.removeItem("vela_community_likes");
-      localStorage.removeItem("vela_community_bookmarks");
-      localStorage.removeItem("vela_community_reactions");
-      localStorage.removeItem("vela_community_posts");
-      localStorage.removeItem("vela_community_guidelines_seen");
-      localStorage.removeItem("vela_community_user_topics");
-      localStorage.removeItem("vela_community_replies");
-      localStorage.removeItem("vela_chat_messages");
-      localStorage.removeItem("vela_last_digest_date");
-      localStorage.removeItem("vela_custom_symptoms");
-      localStorage.removeItem("vela_completed_lessons");
-      localStorage.removeItem("vela_active_experiment");
-      localStorage.removeItem("vela_completed_experiments");
-      localStorage.removeItem("vela_streak_freezes");
-      localStorage.removeItem("vela_streak_freeze_count");
-      localStorage.removeItem("vela_active_cbt");
-      localStorage.removeItem("vela_completed_cbt");
-      localStorage.removeItem("vela_insights_nudge_dismissed");
-      localStorage.removeItem("vela_doctor_nudge_dismissed");
-      localStorage.removeItem("vela_community_nudge_dismissed");
-      localStorage.removeItem("vela_relief_nudge_dismissed");
-      localStorage.removeItem("vela_insights_revealed");
+      // Belt-and-suspenders: enumerate the known keys so theme/system
+      // localStorage isn't touched, then sweep anything starting with
+      // "vela_" to catch keys added since this list was last updated.
+      // If you add a new vela_* key, also add it here so reviewers can
+      // see at a glance that "Reset all data" still means all data.
+      const knownKeys = [
+        // Core
+        "vela_logs", "vela_profile", "vela_onboarded",
+        "vela_onboarding_progress", "vela_custom_symptoms",
+        // Reminders
+        "vela_reminders_enabled", "vela_reminder_times",
+        // Streaks
+        "vela_streak_freezes", "vela_streak_freeze_count",
+        // Ask Vela / chat
+        "vela_chat_messages", "vela_pending_question",
+        "vela_ask_monthly_count",
+        // Daily brief
+        "vela_daily_brief", "vela_last_brief_date",
+        "vela_last_digest_date",
+        // Insights / experiments
+        "vela_experiments", "vela_focus_experiment",
+        "vela_insight_feedback", "vela_insights_revealed",
+        // Lessons / CBT
+        "vela_completed_lessons", "vela_active_cbt", "vela_completed_cbt",
+        // Community (gated until LIVE_COMMUNITY ships)
+        "vela_circle_first_visit", "vela_community_votes",
+        "vela_community_likes", "vela_community_bookmarks",
+        "vela_community_reactions", "vela_community_posts",
+        "vela_community_guidelines_seen", "vela_community_user_topics",
+        "vela_community_replies",
+        // Connected health
+        "vela_healthkit_enabled",
+        // Nudges (per-row dismissals)
+        "vela_insights_nudge_dismissed", "vela_doctor_nudge_dismissed",
+        "vela_community_nudge_dismissed", "vela_relief_nudge_dismissed",
+        // Aesthetic — debatable, but Reset means reset
+        "vela_theme_pref",
+      ];
+      knownKeys.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+      // Sweep any vela_* keys not in the list above.
+      try {
+        const stragglers = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("vela_")) stragglers.push(k);
+        }
+        stragglers.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+      } catch {}
       cancelAllReminders();
       setLogs([]);
       setProfile(null);

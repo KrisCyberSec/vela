@@ -113,6 +113,44 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ---
 
+## Promised in copy, not yet built
+
+These came out of the 2026-05-10 "writing checks the code can't cash"
+sweep. The product copy was tightened to match what the code does today,
+but each item below is a feature the user-facing surface was implying
+and we may want to actually build before launch.
+
+### [ ] Real 12-week, chart-rich doctor-report PDF
+- Today: `generateDoctorReport` covers last 30 days, text only.
+- Paywall mock + earlier copy implied multi-page, multi-symptom charts.
+- Decision needed: extend the PDF, or live with the trimmed claim.
+- Touchpoint: `src/App.jsx` `generateDoctorReport`, paywall hero copy.
+
+### [ ] Wire LIVE_COMMUNITY backend, then flip COMMUNITY_PREVIEW to false
+- `community.js` has the Firebase shape; the iOS UI is gated behind a
+  `COMMUNITY_PREVIEW` flag at the top of `CommunityScreen` so the fake
+  reply counts and "12 reading now" no longer ship.
+- When the backend is live, set the flag to false and ensure the prompt
+  of the day comes from the backend (not the hardcoded one).
+
+### [ ] Settings opt-out for PostHog product events (iOS)
+- Privacy policy now promises "let us know and we'll add an opt-out."
+- Build the toggle so we can keep that promise without a code release.
+- Five events live in `src/analytics.js`.
+
+### [ ] Onboarding selections that actually shape the experience
+- Q1 (concerns) and Q2 (goals) are mostly stored-then-ignored.
+- Either wire them into Today/Insights ordering, doctor-report sections,
+  and Ask Vela system prompt — or trim the copy further.
+
+### [ ] Trim HealthKit read scope to only what we use
+- Permission prompt currently asks for sleep + HRV + step count.
+- We only consume sleep. Asking for unused scopes inflates the prompt
+  the user sees, and is a soft Apple-review risk.
+- Touchpoint: `src/healthkit.js`.
+
+---
+
 ## How this list is maintained
 
 - Claude adds an item here every time it builds something that has a
