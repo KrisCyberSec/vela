@@ -302,7 +302,7 @@ const QUESTIONS = [
       { label: "Daily check-ins & reminders", hint: "A morning and evening nudge", icon: "Sun" },
       { label: "Weekly summaries", hint: "Sundays only. No pressure", icon: "Calendar" },
       { label: "Only when I ask", hint: "I'll come to the app", icon: "Hand" },
-      { label: "Let the app decide", hint: "Adapt to how I'm using it", icon: "Sparkle" },
+      { label: "Let the app decide", hint: "One evening nudge", icon: "Sparkle" },
     ],
   },
 ];
@@ -8348,7 +8348,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
           <span className="av">V</span>
           <span className="lbl">
             Ask Vela
-            <span className="sub">{!isPremium ? "Premium · 7 questions" : "Try a question"}</span>
+            <span className="sub">{!isPremium ? "Premium" : "Try a question"}</span>
           </span>
         </button>
       )}
@@ -8364,7 +8364,7 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
             <div className="av-sub">
               <UIIcon name="Lock" size={10} /> Anonymized · grounded in your data
               {monthlyAsked > 0 && (
-                <> · <strong>{Math.max(0, ASK_VELA_MONTHLY_CAP - monthlyAsked)}</strong> of {ASK_VELA_MONTHLY_CAP} left this month</>
+                <> · <strong>{Math.max(0, ASK_VELA_MONTHLY_CAP - monthlyAsked)}</strong> of {ASK_VELA_MONTHLY_CAP} this month, or 30/day</>
               )}
               {remainingToday != null && remainingToday <= 5 && (
                 <> · {remainingToday} left today</>
@@ -9167,7 +9167,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   // Empty-state copy avoids "journey" (banned brand-voice word).
   const correlations = analyzeCorrelations(logs);
   const journeyQuote = correlations[0]?.text
-    || (days > 0 ? `${days} days in. Vela is still listening for the patterns that matter.` : "Your record starts the day you log your first entry.");
+    || (days > 0 ? `${days} ${days === 1 ? "day" : "days"} in. Vela is still listening for the patterns that matter.` : "Your record starts the day you log your first entry.");
 
   return (
     <div className="screen active">
