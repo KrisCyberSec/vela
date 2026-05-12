@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 // import * as communityMod from "./community"; // Re-enable when LIVE_COMMUNITY=true
-import { initAnalytics, track } from "./analytics";
+import { initAnalytics, track, isAnalyticsOptedOut, setAnalyticsOptedOut } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases, getAppUserId } from "./subscription";
 import { readJSON as safeReadJSON } from "./safeStorage";
 import { getThemePref, setTheme } from "./theme";
@@ -245,6 +245,40 @@ const SYMPTOMS = [
 // before they leave the device — see the "What Ask Vela sends" row
 // in Settings, which promises no custom-symptom names go off-device.
 const CANONICAL_SYMPTOM_NAMES = new Set(SYMPTOMS.map((s) => s.name));
+
+// Maps an onboarding concern index (Q1) to the canonical symptom names
+// that concern is mostly about. Used to bubble the user's flagged
+// symptoms to the front of each category's tile list and to give Ask
+// Vela / Daily Brief richer profile context.
+//
+// Keep this aligned with QUESTIONS[1].opts. Order within each array
+// puts the most-likely-meant symptom first.
+const CONCERN_TO_SYMPTOM_NAMES = {
+  0: ["Hot flash", "Night sweats"],                              // hot flashes & night sweats
+  1: ["Poor sleep"],                                              // sleep problems
+  2: ["Mood shifts", "Anxiety", "Mood swings", "Depression"],     // mood & anxiety
+  3: ["Brain fog", "Fatigue", "Difficulty concentrating"],        // brain fog & fatigue
+  4: ["Joint pain", "Muscle aches", "Back pain"],                 // joint pain & body aches
+  5: ["Weight change", "Bloating"],                               // weight & bloating
+  6: ["Low libido", "Vaginal dryness", "Vaginal irritation"],     // libido & dryness
+  7: ["Palpitations"],                                            // heart palpitations
+};
+
+// Returns the symptom list for a given category, with the user's
+// onboarding-flagged concerns sorted to the top while preserving the
+// canonical order within each bucket.
+function prioritizedSymptomsForCat(allSymptoms, cat, concerns) {
+  const inCat = allSymptoms.filter((s) => s.cat === cat);
+  if (!concerns || concerns.length === 0) return inCat;
+  const flagged = new Set(
+    concerns.flatMap((c) => CONCERN_TO_SYMPTOM_NAMES[c] || [])
+  );
+  // Stable partition: flagged-in-cat first (preserving SYMPTOMS order),
+  // then the rest (also preserving SYMPTOMS order).
+  const matched = inCat.filter((s) => flagged.has(s.name));
+  const others = inCat.filter((s) => !flagged.has(s.name));
+  return [...matched, ...others];
+}
 
 // Each option has: label (canonical, persisted by index), icon (Phosphor),
 // hint (shown beneath label in onboarding). Indices are stable for backwards
@@ -6186,11 +6220,16 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       try {
         const summary = buildDailyBriefSummary(logs);
         const stageIdx = profile?.[0];
+        const concernAns = profile?.[1];
         const goalAns = profile?.[2];
-        const goalIdx = Array.isArray(goalAns) ? goalAns[0] : goalAns;
+        const concernIdxs = Array.isArray(concernAns) ? concernAns : (concernAns != null ? [concernAns] : []);
+        const goalIdxs = Array.isArray(goalAns) ? goalAns : (goalAns != null ? [goalAns] : []);
         const profilePayload = {
           stage: stageIdx != null ? QUESTIONS[0].opts[stageIdx]?.label : null,
-          goal: goalIdx != null ? QUESTIONS[2].opts[goalIdx]?.label : null,
+          concerns: concernIdxs.map((i) => QUESTIONS[1].opts[i]?.label).filter(Boolean),
+          goals: goalIdxs.map((i) => QUESTIONS[2].opts[i]?.label).filter(Boolean),
+          // Legacy single-goal field; daily-brief.js still reads this.
+          goal: goalIdxs.length ? QUESTIONS[2].opts[goalIdxs[0]]?.label : null,
         };
         const appUserId = await getAppUserId();
         const r = await fetch("/api/daily-brief", {
@@ -6435,7 +6474,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
     { key: "digestive", label: "Digestive" },
     { key: "other", label: "Other" },
   ];
-  const symptomsForCat = allSymptoms.filter((s) => s.cat === symptomCat);
+  const symptomsForCat = prioritizedSymptomsForCat(allSymptoms, symptomCat, personalization?.concerns);
 
   const summary = (() => {
     const parts = [];
@@ -7530,11 +7569,16 @@ function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
       const summary = buildAskVelaSummary(logs);
       // profile is the raw onboarding answers object: { 0: stageIdx, 1: [concernIdxs], 2: goalIdx-or-array, 3: guidanceIdx }
       const stageIdx = profile?.[0];
+      const concernAns = profile?.[1];
       const goalAns = profile?.[2];
-      const goalIdx = Array.isArray(goalAns) ? goalAns[0] : goalAns;
+      const concernIdxs = Array.isArray(concernAns) ? concernAns : (concernAns != null ? [concernAns] : []);
+      const goalIdxs = Array.isArray(goalAns) ? goalAns : (goalAns != null ? [goalAns] : []);
       const profilePayload = {
         stage: stageIdx != null ? QUESTIONS[0].opts[stageIdx]?.label : null,
-        goal: goalIdx != null ? QUESTIONS[2].opts[goalIdx]?.label : null,
+        concerns: concernIdxs.map((i) => QUESTIONS[1].opts[i]?.label).filter(Boolean),
+        goals: goalIdxs.map((i) => QUESTIONS[2].opts[i]?.label).filter(Boolean),
+        // Legacy single-goal field; ask-vela.js still reads this.
+        goal: goalIdxs.length ? QUESTIONS[2].opts[goalIdxs[0]]?.label : null,
       };
       const appUserId = await getAppUserId();
       // Try the real API first; fall back to the canned response engine
@@ -8600,7 +8644,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "FileText",
       tone: "clay",
       title: "Doctor-ready report",
-      body: "A printable PDF your provider will actually read. Last 30 days, top symptoms, mood and sleep averages, and questions to bring.",
+      body: "A printable PDF your provider will actually read. 12 weeks of trends, top-symptom charts, mood and sleep by week, and detected correlations.",
     },
     {
       icon: "Flask",
@@ -8671,7 +8715,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
             <span className="badge"><UIIcon name="FileText" size={18} /></span>
             <div className="title">
               Your <em>doctor report</em>
-              <small>Last 30 days · printable PDF</small>
+              <small>12 weeks · charts · printable PDF</small>
             </div>
           </div>
           <div className="pw-pdf">
@@ -8687,7 +8731,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
                 <span key={i} style={{ height: `${h * 100}%` }} />
               ))}
             </div>
-            <div className="pdf-foot">30-day summary · top symptoms · questions to ask</div>
+            <div className="pdf-foot">Top symptom · last 12 weeks</div>
           </div>
         </div>
 
@@ -8756,38 +8800,82 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
 // ─── PDF Report Generator ────────────────────────────────────────────────────
 
 function generateDoctorReport(logs, profile) {
+  // 12-week, chart-rich PDF intended as a 15-second appointment-prep read.
+  // Sections: header, profile, 12-week summary stats, top-3 symptom weekly
+  // frequency charts, mood and sleep weekly charts, lifestyle + detected
+  // patterns, last-4-weeks daily detail, footer.
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
   let y = 20;
 
-  function addPage() {
-    doc.addPage();
-    y = 20;
-  }
+  // Brand palette (RGB)
+  const CLAY = [196, 133, 108];
+  const CLAY_DARK = [140, 78, 50];
+  const SAGE = [122, 158, 135];
+  const INK = [44, 31, 23];
+  const INK_MID = [107, 83, 71];
 
-  function checkPage(needed) {
-    if (y + needed > 270) addPage();
+  function addPage() { doc.addPage(); y = 20; }
+  function checkPage(needed) { if (y + needed > 270) addPage(); }
+
+  // Bar chart primitive. Renders a title + 12 bars + baseline + y-axis
+  // max/zero labels + x labels. Used three times: symptom frequency,
+  // mood by week, sleep by week.
+  function drawBarChart({ title, labels, values, max, color, valueFormat, height = 38 }) {
+    checkPage(height + 18);
+    doc.setFontSize(10);
+    doc.setTextColor(...INK);
+    doc.text(title, margin, y);
+    y += 6;
+    const chartWidth = contentWidth;
+    const barCount = labels.length;
+    const barGap = 2;
+    const barW = (chartWidth - barGap * (barCount - 1)) / barCount;
+    const baseY = y + height;
+    const safeMax = max > 0 ? max : 1;
+    doc.setFillColor(...color);
+    for (let i = 0; i < barCount; i++) {
+      const raw = values[i];
+      const v = raw == null || isNaN(raw) ? 0 : Math.max(0, raw);
+      const h = (v / safeMax) * height;
+      const bx = margin + i * (barW + barGap);
+      const by = baseY - h;
+      if (h > 0) doc.rect(bx, by, barW, h, "F");
+    }
+    doc.setDrawColor(180);
+    doc.line(margin, baseY, margin + chartWidth, baseY);
+    doc.setFontSize(7);
+    doc.setTextColor(140);
+    const maxLabel = valueFormat ? valueFormat(safeMax) : `${safeMax}`;
+    doc.text(maxLabel, margin - 1, y + 2, { align: "right" });
+    doc.text("0", margin - 1, baseY, { align: "right" });
+    doc.setTextColor(120);
+    for (let i = 0; i < barCount; i++) {
+      const cx = margin + i * (barW + barGap) + barW / 2;
+      doc.text(labels[i], cx, baseY + 4, { align: "center" });
+    }
+    y = baseY + 10;
   }
 
   // Header
   doc.setFontSize(22);
-  doc.setTextColor(140, 78, 50); // clay-dark
+  doc.setTextColor(...CLAY_DARK);
   doc.text("Vela Symptom Report", margin, y);
   y += 10;
 
   doc.setFontSize(10);
   doc.setTextColor(100);
   const now = new Date();
-  const thirtyAgo = new Date(now);
-  thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  const twelveWeeksAgo = new Date(now);
+  twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
   doc.text(
-    `Report period: ${thirtyAgo.toLocaleDateString()} – ${now.toLocaleDateString()}`,
+    `Report period: ${twelveWeeksAgo.toLocaleDateString()} – ${now.toLocaleDateString()} (12 weeks)`,
     margin, y
   );
   y += 5;
-  doc.text("Generated by Vela. Velahealth.health", margin, y);
+  doc.text("Generated by Vela · velahealth.health", margin, y);
   y += 10;
 
   // Line
@@ -8813,21 +8901,29 @@ function generateDoctorReport(logs, profile) {
     y += 12;
   }
 
-  // Filter to last 30 days
-  const recentLogs = logs.filter((l) => new Date(l.date) >= thirtyAgo);
+  // Filter to last 12 weeks
+  const recentLogs = logs.filter((l) => new Date(l.date) >= twelveWeeksAgo);
 
   if (recentLogs.length === 0) {
     doc.setFontSize(12);
     doc.setTextColor(100);
-    doc.text("No entries logged in the last 30 days.", margin, y);
+    doc.text("No entries logged in the last 12 weeks.", margin, y);
     doc.save("Vela-Symptom-Report.pdf");
     return;
   }
 
+  // Build 12 weekly buckets (oldest → newest) for the charts below.
+  const weekBuckets = [];
+  for (let w = 11; w >= 0; w--) {
+    const start = new Date(now); start.setDate(start.getDate() - (w + 1) * 7); start.setHours(0, 0, 0, 0);
+    const end = new Date(now); end.setDate(end.getDate() - w * 7); end.setHours(0, 0, 0, 0);
+    weekBuckets.push({ start, end, label: `W${12 - w}` });
+  }
+
   // Summary stats
   doc.setFontSize(14);
-  doc.setTextColor(44, 31, 23);
-  doc.text("30-Day Summary", margin, y);
+  doc.setTextColor(...INK);
+  doc.text("12-Week Summary", margin, y);
   y += 8;
 
   doc.setFontSize(10);
@@ -8845,9 +8941,9 @@ function generateDoctorReport(logs, profile) {
   const sortedSymptoms = Object.entries(symptomCount).sort((a, b) => b[1] - a[1]);
 
   if (sortedSymptoms.length > 0) {
-    doc.text("Symptom frequency (days reported):", margin, y);
+    doc.text("Symptom frequency (top 8, days reported):", margin, y);
     y += 6;
-    sortedSymptoms.forEach(([name, count]) => {
+    sortedSymptoms.slice(0, 8).forEach(([name, count]) => {
       checkPage(6);
       doc.text(`  • ${name}: ${count} of ${recentLogs.length} entries`, margin, y);
       y += 5;
@@ -8871,11 +8967,11 @@ function generateDoctorReport(logs, profile) {
   })).sort((a, b) => b.avg - a.avg);
 
   if (sevAvgs.length > 0) {
-    checkPage(10 + sevAvgs.length * 5);
+    checkPage(10 + Math.min(sevAvgs.length, 6) * 5);
     doc.setFontSize(10);
-    doc.text("Average severity (1-3 scale):", margin, y);
+    doc.text("Average severity (top 6, 1-3 scale):", margin, y);
     y += 6;
-    sevAvgs.forEach(({ name, avg }) => {
+    sevAvgs.slice(0, 6).forEach(({ name, avg }) => {
       doc.text(`  • ${name}: ${avg}/3`, margin, y);
       y += 5;
     });
@@ -8891,6 +8987,91 @@ function generateDoctorReport(logs, profile) {
     const moodLabel = moodLabels[Math.round(avgMood)] || "Neutral";
     doc.text(`Average mood: ${avgMood}/4 (${moodLabel})`, margin, y);
     y += 10;
+  }
+
+  // ── Top-3 symptom weekly-frequency charts
+  const top3Symptoms = sortedSymptoms.slice(0, 3).map(([name]) => name);
+  if (top3Symptoms.length > 0) {
+    checkPage(20);
+    doc.setFontSize(14);
+    doc.setTextColor(...INK);
+    doc.text("Top symptoms by week", margin, y);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(...INK_MID);
+    doc.text("Days each week the symptom was logged. Higher = more frequent.", margin, y);
+    y += 6;
+    top3Symptoms.forEach((symptomName) => {
+      const counts = weekBuckets.map((b) =>
+        recentLogs.filter((l) => {
+          const ld = new Date(l.date);
+          return ld >= b.start && ld < b.end && l.symptoms?.[symptomName];
+        }).length
+      );
+      drawBarChart({
+        title: symptomName,
+        labels: weekBuckets.map((b) => b.label),
+        values: counts,
+        max: 7,
+        color: CLAY,
+      });
+    });
+  }
+
+  // ── Mood by week
+  const moodByWeek = weekBuckets.map((b) => {
+    const samples = recentLogs.filter((l) => {
+      const ld = new Date(l.date);
+      return ld >= b.start && ld < b.end && l.mood !== null && l.mood !== undefined;
+    });
+    return samples.length ? samples.reduce((s, l) => s + l.mood, 0) / samples.length : 0;
+  });
+  if (moodByWeek.some((v) => v > 0)) {
+    checkPage(20);
+    doc.setFontSize(14);
+    doc.setTextColor(...INK);
+    doc.text("Mood by week", margin, y);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(...INK_MID);
+    doc.text("Average mood per week (0 = rough, 4 = great).", margin, y);
+    y += 6;
+    drawBarChart({
+      title: "Mood (0-4)",
+      labels: weekBuckets.map((b) => b.label),
+      values: moodByWeek,
+      max: 4,
+      color: SAGE,
+      valueFormat: (v) => v.toFixed(0),
+    });
+  }
+
+  // ── Sleep by week
+  const sleepByWeek = weekBuckets.map((b) => {
+    const samples = recentLogs.filter((l) => {
+      const ld = new Date(l.date);
+      return ld >= b.start && ld < b.end && l.context?.sleepHours != null;
+    });
+    return samples.length ? samples.reduce((s, l) => s + l.context.sleepHours, 0) / samples.length : 0;
+  });
+  if (sleepByWeek.some((v) => v > 0)) {
+    checkPage(20);
+    doc.setFontSize(14);
+    doc.setTextColor(...INK);
+    doc.text("Sleep by week", margin, y);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(...INK_MID);
+    doc.text("Average sleep hours per week. 7-8h is typical adult range.", margin, y);
+    y += 6;
+    drawBarChart({
+      title: "Sleep (hours)",
+      labels: weekBuckets.map((b) => b.label),
+      values: sleepByWeek,
+      max: 10,
+      color: SAGE,
+      valueFormat: (v) => `${v}h`,
+    });
   }
 
   // Lifestyle context summary
@@ -8927,15 +9108,23 @@ function generateDoctorReport(logs, profile) {
     y += 6;
   }
 
-  // Daily log detail
+  // Last 4 weeks — daily detail. The earlier 8 weeks are covered by the
+  // weekly charts above; printing 84 days of per-entry rows would balloon
+  // the PDF and bury the signal.
+  const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+  const last4WeekLogs = recentLogs.filter((l) => new Date(l.date) >= fourWeeksAgo);
   checkPage(15);
   doc.setFontSize(14);
-  doc.setTextColor(44, 31, 23);
-  doc.text("Daily Log Detail", margin, y);
+  doc.setTextColor(...INK);
+  doc.text("Last 4 weeks — daily detail", margin, y);
+  y += 5;
+  doc.setFontSize(9);
+  doc.setTextColor(...INK_MID);
+  doc.text("Weeks 1-8 are summarized in the charts above.", margin, y);
   y += 8;
 
   const moodEmojis = ["Very low", "Low", "Neutral", "Good", "Very good"];
-  const sortedLogs = [...recentLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sortedLogs = [...last4WeekLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   sortedLogs.forEach((log) => {
     const dateStr = new Date(log.date).toLocaleDateString("en-US", {
@@ -9007,7 +9196,7 @@ function generateDoctorReport(logs, profile) {
   y += 4;
   doc.text("conversations with your healthcare provider. It does not constitute medical advice.", margin, y);
   y += 4;
-  doc.text("All data is stored locally on the user's device and is not transmitted to any server.", margin, y);
+  doc.text("Symptom log is stored on the user's device. Charts and patterns above were computed locally.", margin, y);
 
   doc.save("Vela-Symptom-Report.pdf");
 }
@@ -9115,6 +9304,7 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
   const [hkOn, setHkOn] = useState(() => isHealthKitEnabled());
   const [hkStatus, setHkStatus] = useState("checking");
   const [hkBusy, setHkBusy] = useState(false);
+  const [analyticsOptOut, setAnalyticsOptOut] = useState(() => isAnalyticsOptedOut());
   useEffect(() => {
     let cancelled = false;
     getHealthKitStatus().then((s) => { if (!cancelled) setHkStatus(s); });
@@ -9438,6 +9628,22 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="body">
             <span className="label">What Ask Vela sends</span>
             <span className="sub">30-day counts and averages, plus a per-day breakdown of the last week. Never your notes, custom-symptom names, or exact dates.</span>
+          </span>
+        </div>
+        <div className="set-row" style={{ cursor: "default" }}>
+          <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
+          <span className="body">
+            <span className="label">Product analytics</span>
+            <span className="sub">{analyticsOptOut ? "Off. Nothing is sent." : "On. Event names only (log saved, paywall shown, etc.) — never your symptom data."}</span>
+          </span>
+          <span
+            className={`set-toggle${!analyticsOptOut ? " on" : ""}`}
+            onClick={(e) => { e.stopPropagation(); const next = !analyticsOptOut; setAnalyticsOptedOut(next); setAnalyticsOptOut(next); haptic("Light"); }}
+            role="switch"
+            aria-checked={!analyticsOptOut}
+            aria-label="Product analytics"
+          >
+            <span className="thumb" />
           </span>
         </div>
       </div>
@@ -9830,6 +10036,7 @@ export default function App() {
     setLogs(demoLogs);
     setProfile([1, [0, 1, 2], 4, "sometimes"]);
     setOnboarded(true);
+    setScreen("tracker"); // otherwise the screen-state initializer leaves us on "onboard"
     setIsPremium(true); // dev shortcut so you don't have to click through paywall
     window.history.replaceState({}, "", window.location.pathname);
   }, []);

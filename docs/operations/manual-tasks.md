@@ -120,34 +120,41 @@ sweep. The product copy was tightened to match what the code does today,
 but each item below is a feature the user-facing surface was implying
 and we may want to actually build before launch.
 
-### [ ] Real 12-week, chart-rich doctor-report PDF
-- Today: `generateDoctorReport` covers last 30 days, text only.
-- Paywall mock + earlier copy implied multi-page, multi-symptom charts.
-- Decision needed: extend the PDF, or live with the trimmed claim.
-- Touchpoint: `src/App.jsx` `generateDoctorReport`, paywall hero copy.
+### [x] ~~Real 12-week, chart-rich doctor-report PDF~~ (done 2026-05-12)
+- Built the chart version: 12-week scope, top-3 symptom weekly-frequency
+  bar charts, mood-by-week, sleep-by-week. Last 4 weeks of daily detail
+  preserved beneath. Paywall hero + pillar copy bumped back up.
 
 ### [ ] Wire LIVE_COMMUNITY backend, then flip COMMUNITY_PREVIEW to false
+- **Launch decision (2026-05-12):** Ship Community in preview mode for
+  v1. The locked Share button + honest "opens later this season" copy
+  is acceptable, and the prompt-of-the-day is a real piece of content
+  to sit with. Wiring Firebase pre-launch isn't worth blocking the
+  first review on.
 - `community.js` has the Firebase shape; the iOS UI is gated behind a
   `COMMUNITY_PREVIEW` flag at the top of `CommunityScreen` so the fake
   reply counts and "12 reading now" no longer ship.
-- When the backend is live, set the flag to false and ensure the prompt
-  of the day comes from the backend (not the hardcoded one).
+- When the backend is wired post-launch, set the flag to false and
+  ensure the prompt of the day comes from the backend.
 
-### [ ] Settings opt-out for PostHog product events (iOS)
-- Privacy policy now promises "let us know and we'll add an opt-out."
-- Build the toggle so we can keep that promise without a code release.
-- Five events live in `src/analytics.js`.
+### [x] ~~Settings opt-out for PostHog product events (iOS)~~ (done 2026-05-12)
+- New toggle in Settings → Privacy & Data. Honored at init (SDK never
+  initializes) and on every track call (defense in depth).
+- Privacy policy updated to point users at the toggle by name.
 
-### [ ] Onboarding selections that actually shape the experience
-- Q1 (concerns) and Q2 (goals) are mostly stored-then-ignored.
-- Either wire them into Today/Insights ordering, doctor-report sections,
-  and Ask Vela system prompt — or trim the copy further.
+### [x] ~~Onboarding selections that actually shape the experience~~ (done 2026-05-12)
+- Q1 concerns now bubble to the front of every symptom-category tile
+  list in Today via `prioritizedSymptomsForCat`.
+- Both Ask Vela and Daily Brief payloads now include the user's full
+  concerns + goals arrays. Server-side `buildUserMessage` reads them
+  and surfaces them to the model.
 
-### [ ] Trim HealthKit read scope to only what we use
-- Permission prompt currently asks for sleep + HRV + step count.
-- We only consume sleep. Asking for unused scopes inflates the prompt
-  the user sees, and is a soft Apple-review risk.
-- Touchpoint: `src/healthkit.js`.
+### [x] ~~Trim HealthKit read scope to only what we use~~ (done 2026-05-12)
+- `read: ["sleepAnalysis"]` only. HRV / step count removed from the JS
+  auth request. Swift plugin's sample-type switch retains the cases as
+  forward-compat hooks; they're inert without a matching JS read.
+- `NSHealthShareUsageDescription` rewritten to "Vela reads your sleep
+  hours from Apple Health…" (sleep-only).
 
 ---
 

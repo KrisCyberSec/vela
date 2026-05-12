@@ -409,7 +409,15 @@ function hash(s) {
 function buildUserMessage(question, summary, profile) {
   const lines = [];
   if (profile?.stage) lines.push(`User stage: ${profile.stage}`);
-  if (profile?.goal) lines.push(`Primary goal: ${profile.goal}`);
+  if (Array.isArray(profile?.concerns) && profile.concerns.length) {
+    lines.push(`Flagged concerns at onboarding: ${profile.concerns.join(", ")}`);
+  }
+  if (Array.isArray(profile?.goals) && profile.goals.length) {
+    lines.push(`Goals: ${profile.goals.join(", ")}`);
+  } else if (profile?.goal) {
+    // Legacy single-goal field from pre-2026-05-12 builds.
+    lines.push(`Primary goal: ${profile.goal}`);
+  }
   if (summary.daysLogged != null) {
     lines.push(`\nLogging history: ${summary.daysLogged} days of entries (${summary.uniqueDays || summary.daysLogged} unique days). Most recent entry: ${summary.lastEntryDaysAgo === 0 ? "today" : `${summary.lastEntryDaysAgo} days ago`}.`);
   }

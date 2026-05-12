@@ -67,8 +67,10 @@ export async function enableHealthKit() {
     return { ok: false, reason: "Apple Health isn't available in this build." };
   }
   try {
+    // Sleep is the only HealthKit type Vela actually reads today. Keep the
+    // scope minimal — Apple review flags over-broad HealthKit requests.
     await HealthPlugin.requestAuthorization({
-      read: ["sleepAnalysis", "heartRateVariability", "stepCount"],
+      read: ["sleepAnalysis"],
       write: [],
     });
     localStorage.setItem(STORAGE_KEY, "true");

@@ -10,17 +10,49 @@
  *   - paywall_converted  user completed a purchase; props: { plan }
  *
  * Add new events sparingly — every event is a thing to maintain.
+ *
+ * Opt-out: users can disable product analytics from Settings → Privacy & Data.
+ * Toggling on sets `vela_analytics_opt_out=true` in localStorage. We honor
+ * it at init (never call posthog.init) AND at every track call (defense in
+ * depth — if the user opts out mid-session, the next event is dropped).
  */
 
 import posthog from 'posthog-js';
 
 const KEY = process.env.REACT_APP_POSTHOG_KEY || '';
 const HOST = process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com';
+const OPT_OUT_KEY = 'vela_analytics_opt_out';
 
 let initialized = false;
 
+function isOptedOut() {
+  try { return localStorage.getItem(OPT_OUT_KEY) === 'true'; } catch { return false; }
+}
+
+export function isAnalyticsOptedOut() {
+  return isOptedOut();
+}
+
+export function setAnalyticsOptedOut(optOut) {
+  try {
+    if (optOut) {
+      localStorage.setItem(OPT_OUT_KEY, 'true');
+      // Best-effort: stop sending events from the current session too.
+      if (initialized) {
+        try { posthog.opt_out_capturing(); } catch {}
+      }
+    } else {
+      localStorage.removeItem(OPT_OUT_KEY);
+      if (initialized) {
+        try { posthog.opt_in_capturing(); } catch {}
+      }
+    }
+  } catch { /* private mode */ }
+}
+
 export function initAnalytics() {
   if (initialized || !KEY) return;
+  if (isOptedOut()) return;
   posthog.init(KEY, {
     api_host: HOST,
     person_profiles: 'identified_only',
@@ -34,6 +66,7 @@ export function initAnalytics() {
 
 export function track(event, props) {
   if (!initialized) return;
+  if (isOptedOut()) return;
   try {
     posthog.capture(event, props);
   } catch {
@@ -43,6 +76,7 @@ export function track(event, props) {
 
 export function identify(distinctId, props) {
   if (!initialized) return;
+  if (isOptedOut()) return;
   try {
     posthog.identify(distinctId, props);
   } catch {

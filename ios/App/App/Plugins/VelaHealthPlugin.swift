@@ -4,9 +4,12 @@
 //   - requestAuthorization(read: [String], write: [String])
 //   - queryHKitSampleType(sampleName: String, startDate: ISO, endDate: ISO, limit: Int)
 //
-// We deliberately keep this small: only the data types Vela uses today
-// (sleep analysis, HRV, step count). Adding more types later is a
-// matter of extending sampleType(forName:) below.
+// We deliberately keep this small: today the JS layer only asks for sleep
+// analysis (see src/healthkit.js). HRV / step count / resting heart rate
+// branches remain in sampleType(forName:) and canonicalUnit(forName:)
+// below as forward-compat hooks — they won't fire unless the JS read
+// scope is expanded to include them. Adding more types later is a
+// matter of extending the JS read array.
 //
 // Required project setup (also documented in docs/operations/ios-build.md):
 //   - Xcode → Signing & Capabilities → + Capability → HealthKit

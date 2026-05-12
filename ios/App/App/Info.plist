@@ -54,7 +54,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.healthcare-fitness</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Vela uses your sleep and heart-rate variability from Apple Health to auto-fill your daily check-in, so you don't retype what your watch already knows. Your health data stays on your device.</string>
+	<string>Vela reads your sleep hours from Apple Health so you don't have to retype them. We don't access any other health data.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Vela does not write to Apple Health. This permission is required by iOS only because Vela imports HealthKit data.</string>
 </dict>

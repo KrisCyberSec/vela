@@ -34,7 +34,7 @@ SEE YOUR PATTERNS
 PREMIUM: UNLOCK THE FULL PICTURE
 - Ask Vela: an AI companion grounded in your own anonymized data, not generic web advice
 - Daily brief: a 2-3 sentence morning read on your last week
-- Doctor-ready PDF report covering the last 30 days
+- Doctor-ready PDF report covering 12 weeks of trends with charts for your top symptoms, mood, and sleep
 - Personalized experiments tied to the patterns Vela actually finds
 - Cycle prediction, including for irregular cycles
 - Apple Health sleep auto-fill
