@@ -7,6 +7,14 @@ no marketing chrome.
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 3.2.
 Captions: `docs/operations/manual-tasks.md` § App Store screenshots.
 
+🤝 **Working together.** This sheet is Mac-local — sim + Safari +
+`scripts/capture-screenshots.sh`. Drop me a note when you've got the
+6.7" set captured and I'll talk you through any reframe ("the
+Insights card got cropped, reshoot the simulator with the keyboard
+dismissed", etc.). After all 12 are saved, run `verify` and paste the
+output to me — I'll spot any dimension mismatch faster than you'd
+catch it in Preview's inspector.
+
 ## Sizes ASC requires
 
 | Device class | Pixel dimensions | Simulator to use |

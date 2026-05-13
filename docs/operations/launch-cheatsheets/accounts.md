@@ -6,6 +6,13 @@ Three new accounts (Sentry, Anthropic, RevenueCat) and one verification
 
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 2.
 
+🤝 **Working together.** Kris does account creation + payment +
+credential copy (auth-required steps). Tell me when each credential is
+saved in your password manager and I'll mark progress, draft the
+`.env.local` snippet for you, and stage the Netlify-paste step. End-to-
+end verification (curl-equivalent fetches, Sentry round-trip) waits
+until after `netlify-env.md` — that's where I do most of my chunk.
+
 ## Credential → destination grid
 
 | Service | Credential to copy | Pastes into |

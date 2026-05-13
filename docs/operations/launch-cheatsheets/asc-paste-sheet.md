@@ -8,6 +8,14 @@ Narrative source: `docs/operations/launch-walkthrough.md` § Phase 4.
 Metadata source of truth: `appstore-metadata.md` (last polish:
 2026-05-13, commit `d9d5b67`).
 
+🤝 **Working together.** ASC sign-in needs your Apple ID, so the
+clicking is yours. I'll be on standby for: (a) reading any paste-ready
+string out of `appstore-metadata.md` if you'd rather not switch
+windows, (b) decoding any reviewer-rejection email Apple sends, (c)
+once the listing is live, say "check the public listing" and I'll
+fetch `apps.apple.com/.../id<APP_ID>` from Chrome and diff against
+`appstore-metadata.md`.
+
 ## Sign in + create the app record
 
 1. <https://appstoreconnect.apple.com> → sign in.
@@ -42,8 +50,8 @@ Click **Save** (top right).
 
 ## Page: Pricing and Availability
 
-Sidebar → **Pricing and Availability**. Price: **Free**, Availability:
-**All territories**. The IAPs are where the money lives.
+Sidebar → **Pricing and Availability** → Price **Free** + Availability
+**All territories**. (The IAPs are where the money lives.)
 
 ## Page: Monetization → In-App Purchases
 
@@ -72,43 +80,28 @@ ships alongside them.
 
 ## Page: App Privacy ⚠ HIGHEST REJECTION RISK
 
-Sidebar → **App Privacy** → **Get Started** (or **Edit**).
+Sidebar → **App Privacy** → **Get Started** (or **Edit**). Sequence:
 
-Sequence matters — follow exactly:
-
-1. **"Do you or your third-party partners collect data?"** → **Yes**
-
-   ⚠ Counter-intuitive but correct. Ask Vela sends an anonymized
-   summary to our Netlify proxy → Anthropic. That counts as
-   collection, even though it's stripped (no notes, no custom names,
-   no exact dates).
-
-2. **Data Type screen** — check ONLY:
-   - ☑ **Health & Fitness** → **Health & Fitness** (sub-category)
-
-   Leave Contact Info, Identifiers, Location, Browsing History,
-   Purchases, etc. UNCHECKED.
-
-3. Click **Save**.
-
-4. **Health & Fitness configuration** (next screen):
+1. **"Do you or your third-party partners collect data?"** → **Yes**.
+   Counter-intuitive but correct — Ask Vela sends an anonymized
+   summary to our Netlify proxy → Anthropic, which counts as
+   collection (even with notes / custom names / exact dates stripped).
+2. **Data Type screen** — check ONLY ☑ **Health & Fitness → Health &
+   Fitness** (sub-category). Everything else unchecked (Contact Info,
+   Identifiers, Location, Browsing History, Purchases). **Save**.
+3. **Health & Fitness configuration**:
 
 | Question | Answer |
 |---|---|
-| How is this data used? | ☑ **App Functionality** ONLY. Uncheck Analytics, Product Personalization, App Functionality, Developer's Advertising or Marketing, Third-Party Advertising, Other Purposes. |
+| How is this data used? | ☑ **App Functionality** ONLY (uncheck Analytics, Personalization, Advertising, Other) |
 | Is the data linked to the user's identity? | **No** |
 | Is the data used for tracking? | **No** |
 
-5. **Save**.
+4. **Save**. ✓ Preview should show "Track You: Not Collected", "Linked
+   to You: Not Collected", "Not Linked to You: Health & Fitness".
 
-✓ The Privacy Nutrition Label preview should show:
-- "Data Used to Track You" → Data Not Collected
-- "Data Linked to You" → Data Not Collected
-- "Data Not Linked to You" → Health & Fitness
-
-If a reviewer rejects: come back here, re-verify the Health & Fitness
-checkbox. Cross-reference against `landing/privacy.html` — they must
-match.
+If a reviewer rejects, re-verify Health & Fitness and cross-check
+against `landing/privacy.html` — they must match.
 
 ## Page: 1.0 Prepare for Submission
 

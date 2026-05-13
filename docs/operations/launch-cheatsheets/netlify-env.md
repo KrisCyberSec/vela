@@ -6,6 +6,14 @@ up the AI proxies and Sentry. Run AFTER `accounts.md` and
 
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 6.
 
+🤝 **Working together.** Kris pastes the three vars + triggers
+redeploy (auth-required). When the deploy is green, say "check the
+endpoints" and I'll fetch both `/api/ask-vela` and `/api/daily-brief`
+from Chrome and report what JSON comes back. For the Sentry round-
+trip, fire the test error from your DevTools console; if it doesn't
+show in Sentry, share a screenshot of your Issues page and I'll help
+triage the why.
+
 ## The three variables (names verified from source)
 
 | Var name | Read by | Value format | Where the value comes from |
@@ -65,23 +73,23 @@ Netlify needs a fresh build to bake the new vars in.
 
 ### Anthropic + RevenueCat path — alive vs. 503
 
+Two paths, same outcome:
+
+**Option A (pair):** Say "check the endpoints" once redeploy is green
+and I'll fetch both from Chrome and report the JSON. Faster than
+typing curl yourself.
+
+**Option B (solo):**
 ```bash
 curl -s -X POST https://velahealth.health/api/ask-vela | head -3
+curl -s -X POST https://velahealth.health/api/daily-brief | head -3
 ```
 
 | Response | Meaning |
 |---|---|
-| `{"error":"Method not allowed"}` or similar 400/401/403 JSON | ✓ Function is alive, env vars are present, you hit a downstream guard. Good. |
-| `{"error":"Server is missing ANTHROPIC_API_KEY"}` | ✗ `ANTHROPIC_API_KEY` not set or empty. Re-paste in Netlify and re-deploy. |
-| HTML "Page Not Found" or 500 | ✗ Function not deployed at all. Check `netlify/functions/ask-vela.js` exists in the build output. |
-
-Same probe for daily brief:
-
-```bash
-curl -s -X POST https://velahealth.health/api/daily-brief | head -3
-```
-
-Same interpretation table.
+| `{"error":"Method not allowed"}` or similar 400/401/403 JSON | ✓ Function alive, env vars present, downstream guard hit. Good. |
+| `{"error":"Server is missing ANTHROPIC_API_KEY"}` | ✗ Var not set or empty. Re-paste in Netlify and re-deploy. |
+| HTML "Page Not Found" or 500 | ✗ Function not deployed at all. |
 
 ### Sentry path — error round-trip
 

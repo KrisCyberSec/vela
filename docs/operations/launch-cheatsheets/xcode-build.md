@@ -35,6 +35,14 @@
 
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 7.
 
+🤝 **Working together.** Xcode is local-only — your hands on the
+keyboard for signing, archiving, uploading. For the two build
+errors above, say "fix the build break" and I'll write the small
+mechanical patches in a separate commit (hoist App.jsx imports +
+add the two missing imports in cannedAI.js), then re-run
+`npm run build` to confirm green. After upload, Apple emails about
+ITMS-XXXX errors get easier to triage if you paste me the email body.
+
 ## Pre-flight code-side checks (other than the build break above)
 
 | Check | Result | Source |

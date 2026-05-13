@@ -6,6 +6,14 @@ has created both IAPs.
 
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 5.
 
+🤝 **Working together.** The RC dashboard + ASC API key generation
+need your auth — that's all you. I'll re-grep
+`src/subscription.js` if you want to triple-check the entitlement
+constant before you type it (it's `premium`, lowercase). For the
+sandbox-purchase test on your physical iPhone, share a screenshot of
+Settings → Subscription after the purchase and I'll tell you whether
+the state matches what `subscription.js` expects.
+
 ## 🚨 The one thing that will silently break everything
 
 **The entitlement name must be exactly `premium` — lowercase, no caps,
