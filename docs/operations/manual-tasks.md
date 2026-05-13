@@ -134,6 +134,15 @@ Sorted by what blocks what. Cross items off as they ship.
 - Dimensions in `docs/product/app-store-listing.md`
 - Can be generated from the existing screens — no new code needed
 
+### [x] ~~Add smoke tests~~ (suite landed 2026-05-13)
+- Five Jest tests under `src/__tests__/` and `src/lib/__tests__/` lock
+  in the three regressions that would hurt most: privacy-promise
+  contracts on the two off-device payloads, the doctor-report PDF, the
+  perfect-correlation insight, and the App boot path.
+- No CI yet — running them is still a manual `npm test -- --watchAll=false`
+  step. Wire CI (GitHub Actions, Netlify build hook, whatever) so these
+  run on every push before launch.
+
 ---
 
 ## Promised in copy, not yet built
