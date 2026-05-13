@@ -74,3 +74,8 @@ Every prompt in this directory should have:
   privacy-claim accuracy, stale feature claims, gotchas (committed
   secrets, debug logs, version fields). Outputs a single report; no
   commits. Spawn this last, just before you submit.
+- [`launch-cheatsheets.md`](./launch-cheatsheets.md) — Produces six
+  paste-ready cheat sheets covering accounts, screenshots, App Store
+  Connect, RevenueCat, Netlify env vars, and Xcode build. Output is
+  six scannable reference cards under `docs/operations/launch-cheatsheets/`
+  that Kris pulls up at each dashboard while clicking through.
