@@ -58,4 +58,19 @@ Every prompt in this directory should have:
 
 - [`smoke-tests.md`](./smoke-tests.md) — Add a minimal Jest test suite
   covering the high-stakes regression surfaces (privacy contracts,
-  PDF generation, boot path).
+  PDF generation, boot path). Landed 2026-05-13 as commit `6f14a94`.
+
+### Pre-submission templates (App Store v1.0)
+
+- [`appstore-metadata-final-pass.md`](./appstore-metadata-final-pass.md)
+  — Polish `appstore-metadata.md` to paste-ready: brand-voice audit,
+  em-dash cleanup, character-count verification, retune keywords,
+  rewrite What's New (current version violates banned-word rule).
+- [`app-icon-1024.md`](./app-icon-1024.md) — Generate the 1024×1024
+  RGB-no-alpha PNG App Store Connect requires and wire it into the
+  Xcode asset catalog. Common rejection cause if missed.
+- [`pre-submission-audit.md`](./pre-submission-audit.md) — Read-only
+  audit pass across every user-facing surface: banned words, em dashes,
+  privacy-claim accuracy, stale feature claims, gotchas (committed
+  secrets, debug logs, version fields). Outputs a single report; no
+  commits. Spawn this last, just before you submit.
