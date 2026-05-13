@@ -1,158 +1,24 @@
-import { useState, useEffect, useRef } from "react";
-import { jsPDF } from "jspdf";
-import { Capacitor } from "@capacitor/core";
+import { useState, useEffect } from "react";
 // import * as communityMod from "./community"; // Re-enable when LIVE_COMMUNITY=true
-import { initAnalytics, track, isAnalyticsOptedOut, setAnalyticsOptedOut } from "./analytics";
+import { initAnalytics, track } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases, getAppUserId } from "./subscription";
-import { identifyUser, clearUser, reportError } from "./errorReporting";
+import { identifyUser, clearUser } from "./errorReporting";
 import { readJSON as safeReadJSON } from "./safeStorage";
-import { getThemePref, setTheme } from "./theme";
-import {
-  isHealthKitEnabled,
-  enableHealthKit,
-  disableHealthKit,
-  fetchYesterdaySleep,
-  getHealthKitStatus,
-} from "./healthkit";
 
-import { SymptomIcon, UIIcon, MoodFace, EnergyGlyph, RevealChart } from "./components/icons";
+import { UIIcon } from "./components/icons";
 import { haptic } from "./lib/haptic";
 
 import {
-  SYMPTOMS,
-  CANONICAL_SYMPTOM_NAMES,
-  CONCERN_TO_SYMPTOM_NAMES,
-  prioritizedSymptomsForCat,
-  MOODS,
-} from "./lib/symptoms";
-import { QUESTIONS } from "./lib/questions";
-
-import {
-  getGreeting,
-  getAdaptiveGreeting,
-  localDateStr,
   localISOString,
   getStreak,
-  getJourneyLabel,
 } from "./lib/formatters";
 
-import {
-  getPersonalization,
-} from "./lib/personalization";
+import { getPersonalization } from "./lib/personalization";
 
 import {
-  computeEarlyStats,
-  analyzePatterns,
-  buildWeeklySummary,
-} from "./lib/patterns";
-
-
-
-
-import {
-  ASK_VELA_MONTHLY_CAP,
-  ASK_VELA_COUNT_KEY,
-  getMonthlyCount,
-  checkAndUpdateMonthlyCap,
-  bumpMonthlyCapTo,
-} from "./lib/quota";
-
-import {
-  buildDailyBriefSummary,
-  buildAskVelaSummary,
-} from "./lib/summaries";
-
-
-import { analyzeCorrelations } from "./lib/correlations";
-
-
-import { CRISIS_PATTERNS, looksLikeCrisis, CRISIS_RESOURCES } from "./lib/crisis";
-
-import { CrisisSupportCard } from "./components/CrisisSupportCard";
-
-import {
-  FEEDBACK_KEY,
-  getInsightFeedback,
-  setInsightFeedback,
-  insightKey,
-  recordFeedback,
-  applyFeedbackRanking,
-  getThumbsUpInsights,
-} from "./lib/insightFeedback";
-
-import {
-  forecastTomorrow,
-} from "./lib/forecast";
-
-import {
-  detectAnomalies,
-  anomalyToQuestion,
-} from "./lib/anomalies";
-
-
-import {
-  predictNextCycle,
-} from "./lib/cycle";
-
-import {
-  EXPERIMENT_LIBRARY,
-  EXPERIMENT_BRIEF_KEYWORDS,
-  parseBriefForExperiments,
-  renderBriefBody,
-  compareExperiment,
-  matchExperimentForInsight,
-  suggestExperiments,
-} from "./lib/experiments";
-
-
-
-
-
-
-
-import {
-  REMINDER_MESSAGES,
   cancelAllReminders,
   scheduleReminders,
-  generateTalkingPoints,
 } from "./lib/reminders";
-
-
-
-
-
-// ─── AI Analysis Functions ───────────────────────────────────────────────────
-
-import {
-  analyzeSymptomTrend,
-  analyzeTriggerImpact,
-  analyzeOverallTrend,
-  analyzeBestWorstDays,
-  analyzeRecentPattern,
-  generateDoctorSummary,
-} from "./lib/aiAnalysis";
-
-
-
-
-
-
-// ─── AI Question Matching & Response Generation ──────────────────────────────
-
-import {
-  AI_SYMPTOM_NAMES,
-  AI_TRIGGER_NAMES,
-  SYMPTOM_KNOWLEDGE,
-  TRIGGER_KNOWLEDGE,
-  getSymptomKnowledge,
-  getStageContext,
-  matchQuestion,
-  generateResponse,
-} from "./lib/cannedAI";
-
-// ─── Evidence-Based Knowledge Base ─────────────────────────────────────────
-// Sources: NAMS (North American Menopause Society), NHS, Mayo Clinic,
-// Cochrane reviews, Journal of Midlife Health, Menopause journal
 
 
 
@@ -182,9 +48,6 @@ import PaywallScreen from "./screens/Paywall";
 import EditQuestionScreen from "./screens/EditQuestion";
 import SettingsScreen from "./screens/Settings";
 import CommunityScreen from "./screens/Community";
-
-import { generateDoctorReport } from "./lib/doctorReport";
-import { exportCSV } from "./lib/csv";
 
 
 // ─── Styles ──────────────────────────────────────────────────────────────────

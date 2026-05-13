@@ -17,7 +17,6 @@ import {
   analyzeRecentPattern,
   generateDoctorSummary,
 } from "./aiAnalysis";
-import { generateTalkingPoints } from "./reminders";
 import { getJourneyLabel } from "./formatters";
 import { getPersonalization } from "./personalization";
 import { analyzePatterns } from "./patterns";
