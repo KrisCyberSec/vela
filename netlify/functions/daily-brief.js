@@ -272,6 +272,9 @@ function buildUserMessage(summary, profile) {
   if (summary.weekSleep) {
     lines.push(`This week's avg sleep: ${summary.weekSleep.avg.toFixed(1)}h`);
   }
+  if (summary.weekHrv) {
+    lines.push(`This week's avg HRV: ${Math.round(summary.weekHrv.avg)}ms (from Apple Health)`);
+  }
 
   if (summary.anomalies && summary.anomalies.length) {
     lines.push("\nAnomalies vs the user's 30-day baseline:");
