@@ -171,7 +171,20 @@ import {
   LEVELS,
 } from "./lib/gamification";
 
+// Screen components (Phase 2 refactor — these used to be inline below
+// alongside the styles block, but ESLint's `import/first` rule trips
+// `npm run build` when any import appears after a non-import statement).
+import OnboardingScreen from "./screens/Onboarding";
+import TrackerScreen from "./screens/Today";
+import HistoryScreen from "./screens/History";
+import InsightsScreen from "./screens/Insights";
+import PaywallScreen from "./screens/Paywall";
+import EditQuestionScreen from "./screens/EditQuestion";
+import SettingsScreen from "./screens/Settings";
+import CommunityScreen from "./screens/Community";
 
+import { generateDoctorReport } from "./lib/doctorReport";
+import { exportCSV } from "./lib/csv";
 
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -3040,38 +3053,8 @@ const css = `
   .wellbeing-card { animation-delay: 0.15s; animation-fill-mode: both; }
 `;
 
-// ─── Onboarding Screen ────────────────────────────────────────────────────────
-
-import OnboardingScreen from "./screens/Onboarding";
-
-import TrackerScreen from "./screens/Today";
-
-// ─── History Screen ──────────────────────────────────────────────────────────
-
-import HistoryScreen from "./screens/History";
-
-import InsightsScreen from "./screens/Insights";
-
-
-import PaywallScreen from "./screens/Paywall";
-
-import {
-  generateDoctorReport,
-} from "./lib/doctorReport";
-
-import {
-  exportCSV,
-} from "./lib/csv";
-
-// ─── Edit Single Question Screen ─────────────────────────────────────────────
-
-import EditQuestionScreen from "./screens/EditQuestion";
-
-// ─── Milestones Card (collapsible) ────────────────────────────────────────────
-
-import SettingsScreen from "./screens/Settings";
-
-import CommunityScreen from "./screens/Community";
+// Screen components + lib helpers (doctorReport, csv) imported at the
+// top of this file — see the block right after the gamification import.
 
 export default function App() {
   // App-init reads use safeReadJSON: a localStorage exception (e.g. Safari private mode,

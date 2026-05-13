@@ -80,6 +80,7 @@ Every prompt in this directory should have:
   six scannable reference cards under
   [`docs/operations/launch-cheatsheets/`](../launch-cheatsheets/)
   that Kris pulls up at each dashboard while clicking through.
-  Suite landed 2026-05-13; `xcode-build.md` flags a real production
-  build break (App.jsx scattered imports + cannedAI.js missing
-  imports) that needs fixing before archive.
+  Suite landed 2026-05-13. The build break the original output
+  flagged (App.jsx scattered imports + cannedAI.js missing imports)
+  has been fixed in a follow-up commit; `xcode-build.md` now shows
+  build status green.

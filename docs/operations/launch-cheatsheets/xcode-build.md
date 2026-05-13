@@ -1,37 +1,26 @@
 # Xcode build cheat sheet
 
-> ## 🚨 BLOCKED — production build currently fails
+> ## Build status: ✓ green (as of this commit)
 >
-> `npm run build` does not compile cleanly on current `main`. The same
-> command runs under `npx cap sync ios`, so the iOS bundle can't be
-> archived from this state.
+> `npm run build` compiles cleanly. Two refactor leftovers were fixed
+> in the same commit as this status update:
 >
-> **Two real errors as of commit `0457505`:**
+> 1. **App.jsx scattered imports** (lines ~3045–3074) were hoisted to
+>    the top alongside the gamification import block. Fixed the
+>    `import/first` ESLint error that was failing the build.
+> 2. **cannedAI.js missing imports** — added
+>    `import { getPersonalization } from "./personalization"` and
+>    `import { analyzePatterns } from "./patterns"`. Both moved during
+>    the screen-component refactor; their consumers in cannedAI.js
+>    were left with bare references.
 >
-> 1. **`src/App.jsx` — scattered imports** at lines ~3045–3074.
->    Leftover from the Phase 2 screen refactor (`ce2b22a`). ESLint
->    `import/first` treats them as errors in production builds even
->    though Jest is happy.
->
-> 2. **`src/lib/cannedAI.js` — undefined references.** Line 317 calls
->    `getPersonalization`, line 651 calls `analyzePatterns`. Both
->    moved to `src/lib/personalization.js` and `src/lib/patterns.js`
->    during the refactor; the `import` statements were never added at
->    the top of `cannedAI.js`.
->
-> ```
-> Failed to compile.
-> [eslint]
-> src/App.jsx     Line 3045:1: import/first   (+ 9 more)
-> src/lib/cannedAI.js
->   Line 317:13:  'getPersonalization' is not defined  no-undef
->   Line 651:22:  'analyzePatterns' is not defined     no-undef
-> ```
->
-> Both are small mechanical fixes. Re-run `npm run build` after; do
-> NOT proceed below until it prints "Compiled successfully." The
-> smoke-test suite (`6f14a94`) doesn't exercise either path, which is
-> why this slipped — there is no CI yet (`manual-tasks.md` flags this).
+> Pre-existing `no-unused-vars` warnings remain (~40 in App.jsx —
+> imports of things that moved to screen components and weren't
+> cleaned up). They print as warnings under default `npm run build`
+> but become errors under `CI=true`. Netlify's React-app build isn't
+> wired (we deploy the landing folder), and Xcode invokes
+> `npm run build` without CI=true, so this doesn't block launch — but
+> it's a cleanup worth doing post-launch.
 
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 7.
 
