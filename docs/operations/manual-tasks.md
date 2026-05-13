@@ -40,6 +40,83 @@ Sorted by what blocks what. Cross items off as they ship.
 - App Store Connect will require justification text on first build with
   HealthKit — paste from `NSHealthShareUsageDescription` in Info.plist
 
+### [ ] Code signing in Xcode
+- Xcode → App target → **Signing & Capabilities** → check **Automatically
+  manage signing** with your Apple Developer team selected
+- Verify the bundle ID matches `com.velahealth.app`
+- A **Distribution** certificate and **App Store** provisioning profile
+  will be generated when you do the first archive build
+
+### [ ] 1024×1024 app icon (no alpha channel)
+- App Store Connect wants a single 1024×1024 PNG for the App Store
+  listing. The existing `landing/icon-512.png` is too small AND may
+  have alpha — both reasons for rejection.
+- Generator script at `landing/generate-app-icon.js` if you want to
+  regenerate from source. Output: `landing/icon-1024.png`, no alpha.
+- Drop into Xcode → `Assets.xcassets/AppIcon.appiconset/` (1024×1024
+  slot) AND upload separately to App Store Connect → Media Manager.
+
+### [ ] App Store screenshots
+- Required sizes (Apple needs at least one set; using 6.7" covers most
+  devices when "default" is selected):
+  - 6.7" display: **1290 × 2796** (iPhone 14/15/16 Pro Max)
+  - 6.5" display: **1284 × 2778** (iPhone 11 Pro Max, XS Max)
+- 3 minimum, 10 maximum per size.
+- Frames + captions to use as a spec (from the screenshots agent's
+  earlier draft pass):
+  1. **Welcome** — "A quiet place for the noisy years."
+  2. **Today** — "See yesterday's pattern before today even starts."
+  3. **Insights** — "Patterns Vela has noticed — the kind worth showing your doctor."
+  4. **Ask Vela** — "Real AI grounded in your data — not generic web advice."
+  5. **Paywall** — "Make sense of it. Out loud."
+  6. **History** — "Every day, a quiet entry. Every month, a record."
+- Best path: iPhone 15 Pro Max simulator → seed with `?seed=demo` →
+  use `Cmd+S` to capture at native resolution. The captions go in the
+  App Store Connect form, not on the screenshots themselves (don't
+  overlay text on the images for v1).
+
+### [ ] Privacy nutrition label in App Store Connect
+- **Highest-probability source of rejection.** The unusual case for
+  Vela is: the symptom log is local-only, BUT Ask Vela and Daily Brief
+  send an anonymized summary to our server (which proxies to
+  Anthropic). The label must reflect this honestly.
+- Correct declaration:
+  - **Health & Fitness data** → *Used for App Functionality* →
+    *Not Linked to User Identity*
+  - All other categories: *Data Not Collected*
+- Do NOT check "Data Not Collected" universally. A reviewer who sees
+  the network call to `/api/ask-vela` will reject for inaccurate
+  disclosure.
+- The privacy policy at `landing/privacy.html` already matches this.
+  Cross-reference the two before submitting.
+
+### [ ] App Review Information (reviewer notes + contact)
+- ASC → App Information → App Review Information.
+- Reviewer notes (paste verbatim, adjust as needed):
+  > Vela has no login or account. Tap "Begin" to start the 90-second
+  > onboarding. To exercise premium features without a real
+  > subscription, the reviewer can use the App Store sandbox tester
+  > flow against the in-app paywall. The "Ask Vela" feature sends an
+  > anonymized summary of symptom data (no notes, no custom names, no
+  > exact dates) to Anthropic's Claude API via our Netlify proxy.
+  > Disclosure in Settings → Privacy & Data and in our privacy policy.
+- Contact email: `support@velahealth.health`
+- Sign-in required: No.
+
+### [ ] TestFlight build that boots, logs, and completes a sandbox purchase
+- Xcode → Product → Archive → Distribute App → App Store Connect →
+  Upload.
+- Wait ~10-30 min for processing in ASC → TestFlight.
+- Install on a physical iPhone via TestFlight app.
+- Sandbox tester (App Store Connect → Users and Access → Sandbox).
+- Verification flow:
+  1. Onboarding completes cleanly.
+  2. A log saves and reappears on History.
+  3. Tap paywall → buy annual subscription with sandbox tester →
+     Premium features unlock.
+  4. Ask Vela returns a real response (requires ANTHROPIC_API_KEY).
+  5. Doctor report PDF generates and is shareable from iOS share sheet.
+
 ---
 
 ## Blocking real Ask Vela + Daily Brief in production
