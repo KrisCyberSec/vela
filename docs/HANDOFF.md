@@ -44,6 +44,8 @@ locally + landing page live at velahealth.health.
 - `docs/operations/now.md` — what's actively being worked on this week
 - `docs/operations/workflow.md` — how work moves through the project
 - `docs/operations/manual-tasks.md` — what's waiting on a human
+- `docs/operations/launch-walkthrough.md` — literal step-by-step playbook
+  for App Store submission (Day-1-Apple-enrollment through Submit-for-Review)
 - `docs/operations/cowork-prompts/` — template prompts for spawning Cowork
   sessions on recurring work
 
