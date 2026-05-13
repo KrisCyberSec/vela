@@ -1,10 +1,23 @@
-// Generates iOS app icon at 1024x1024 for AppIcon.appiconset.
-// Run: node generate-app-icon.js
+// Generates the Vela app icon at 1024×1024, no alpha, RGB.
+//
+// Writes to two places:
+//   1. landing/icon-1024.png            — source-of-truth file checked
+//                                          into the repo
+//   2. ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+//                                        — what Xcode bakes into the IPA
+//
+// App Store Connect requires the 1024×1024 PNG to be flat RGB (no alpha
+// channel). Apple applies the rounded-rect mask themselves, so the icon
+// is rendered edge-to-edge with no corner radius.
+//
+// Run:  node landing/generate-app-icon.js
+// Deps: sharp (devDependency).
 
 const sharp = require("sharp");
 const path = require("path");
 
-// Larger, more refined mark for the 1024 icon
+// Vela mark: clay→sage gradient background, cream "V" leaf-stem glyph.
+// 1024×1024 SVG; sharp rasterizes it down to a flat RGB PNG.
 const iconSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
@@ -35,23 +48,38 @@ const iconSvg = `<?xml version="1.0" encoding="UTF-8"?>
   </g>
 </svg>`;
 
-async function run() {
-  const outPath = path.join(
-    __dirname,
-    "..",
-    "ios",
-    "App",
-    "App",
-    "Assets.xcassets",
-    "AppIcon.appiconset",
-    "AppIcon-512@2x.png"
-  );
+// Flatten any transparency against the background gradient's starting
+// clay tone. Belt-and-suspenders — `.removeAlpha()` already strips the
+// alpha channel, but `flatten()` first composites onto a solid color so
+// any semi-transparent pixels render correctly instead of going black.
+const FLATTEN_AGAINST = { r: 196, g: 133, b: 108 }; // #C4856C — clay
 
+const landingOutPath = path.join(__dirname, "icon-1024.png");
+const xcodeOutPath = path.join(
+  __dirname,
+  "..",
+  "ios",
+  "App",
+  "App",
+  "Assets.xcassets",
+  "AppIcon.appiconset",
+  "AppIcon-512@2x.png"
+);
+
+async function render(outPath) {
   await sharp(Buffer.from(iconSvg))
-    .png({ quality: 100 })
+    .flatten({ background: FLATTEN_AGAINST })
+    .removeAlpha()
+    .toColorspace("srgb")
+    .png({ compressionLevel: 9, palette: false })
     .toFile(outPath);
-
-  console.log("✓ App icon regenerated at " + outPath);
+  console.log("✓ " + outPath);
 }
 
-run().catch(err => { console.error(err); process.exit(1); });
+async function run() {
+  await render(landingOutPath);
+  await render(xcodeOutPath);
+  console.log("Done. Verify with: file " + landingOutPath);
+}
+
+run().catch((err) => { console.error(err); process.exit(1); });
