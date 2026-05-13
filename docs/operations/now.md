@@ -12,13 +12,6 @@ flow.
 
 ## In flight
 
-### Smoke test suite
-- **Spawned** in Claude Cowork (2026-05-12). Five tests: boot, Ask Vela
-  payload scrub, Daily Brief payload scrub, doctor-report PDF, perfect
-  correlation finding.
-- **Done means:** `npm test -- --watchAll=false` exits 0 with 5 test
-  files passing, all committed.
-
 ### Sentry DSN wire-up
 - **Code-side done** (commit `678c4fc`). Window-level handlers, user
   context, release tagging, error sinks all in place.
@@ -26,6 +19,13 @@ flow.
   env, throws a smoke test from DevTools, sees it land in the Sentry
   dashboard tagged `vela@0.1.0`. Recipe in
   `docs/operations/manual-tasks.md` under "Create Sentry account."
+
+### Push local main to origin
+- **Local main** is 18 commits ahead of `origin/main` (the entire
+  refactor + workflow + smoke tests). Cowork updated local main but
+  didn't push. Decision pending.
+- **Done means:** `git push origin main` runs clean (it's a
+  fast-forward, no rebase needed), `origin/main` now at `6f14a94`.
 
 ---
 
@@ -45,6 +45,12 @@ slice.
 
 Auto-prune after Friday. See git log for the canonical record.
 
+- `6f14a94` Smoke-test suite — 5 files, 9 tests, locks privacy
+  contracts, doctor-report PDF, perfect-correlation insight, and the
+  App boot path. `npm test` passes in ~1.6s. (Landed via Cowork; flagged
+  follow-up: wire CI so it runs on push.)
+- `c124ad3` Workflow scaffolding — workflow.md, now.md, parking-lot.md,
+  cowork-prompts/ template directory
 - `678c4fc` Sentry coverage expansion (window handlers, user context,
   release tagging, fetch error sinks)
 - `ce2b22a` Phase 2 refactor — 8 screens into `src/screens/`
