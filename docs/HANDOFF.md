@@ -31,10 +31,11 @@ locally + landing page live at velahealth.health.
 
 ## Where we are right now
 
-Latest commit: lead-engineer audit pass (premium-gate fix, server crisis sync, paywall trigger tracking, landing page sweep).
+Latest commit: finish the HRV half-wire (auto-fetch alongside sleep on Today, persist on log context, surface via anomaly engine + Daily Brief + Ask Vela).
 
 Recent commits:
-- (this commit) Lead-engineer audit: critical premium-gate fix on History day-detail, server crisis regex sync to client (5 missing patterns + false-positive guards + observability log), paywall trigger tracking on all 17 callsites, auto-submit race fix, landing page sweep (CBT removed, emoji replaced with SVG, timeline updated, premium pillars updated, free-tier copy honest, HRV claim corrected)
+- (this commit) HRV is now fully wired. `fetchYesterdayHRV` runs alongside `fetchYesterdaySleep` on Today mount, attaches `context.hrv` to the log at submit. Added z-score anomaly check parallel to the sleep one, anomalyToQuestion case so the "Ask Vela why" affordance works, weekHrv on the brief summary, avgHrv + per-day hrv on the Ask Vela summary, and matching prompt lines on both Netlify functions. Paywall card + Settings sub-copy updated to advertise HRV honestly.
+- (prior) Lead-engineer audit: critical premium-gate fix on History day-detail, server crisis regex sync to client (5 missing patterns + false-positive guards + observability log), paywall trigger tracking on all 17 callsites, auto-submit race fix, landing page sweep (CBT removed, emoji replaced with SVG, timeline updated, premium pillars updated, free-tier copy honest, HRV claim corrected)
 - (prior) Round-two within-app cohesion (4 cross-screen handoffs)
 - `e61e2af` Within-app cohesion (History → Ask Vela, Insights pattern → experiment, Today trigger nudge)
 - `8af959a` Bumped Ask Vela monthly cap 60 → 250, richer Claude summary
@@ -122,7 +123,6 @@ Round two:
 
 - **Dead code in `src/App.jsx`**: ~130 lines of legacy gamification (`EXPERIMENTS` array at ~line 3013, `CBT_PROGRAMS` at ~line 3032, `concernToCBT`/`concernToExp` maps at ~line 411). Only referenced by `computeXP` for `vela_completed_experiments`/`vela_completed_cbt` localStorage keys that no production user has (app isn't live). Has banned brand-voice words ("wellness" category) and emoji icons. Safe to delete in a follow-up.
 - **Untracked `./vela/` directory at repo root**: an old copy with its own `.git`, ~1.5 MB. Not deployed. Safe to `rm -rf` after confirming no local-only work.
-- **HRV is half-wired**: `fetchYesterdayHRV` exists in `src/healthkit.js` but the App.jsx import is commented out and no UI surface uses it. Either wire it into an Insights HRV-vs-symptom card or delete the function. Until then, paywall + Settings copy says just "sleep."
 - **Premium pillars in paywall vs reality**: paywall lists 8 pillars but Daily Brief, Anomaly insights, and Forecast (all live premium features) are not on it. Consider whether to add or leave them as in-context surprises.
 
 ## Key file map

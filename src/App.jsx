@@ -12,8 +12,7 @@ import {
   enableHealthKit,
   disableHealthKit,
   fetchYesterdaySleep,
-  // fetchYesterdayHRV — wired in the module, will surface in a future
-  // Insights HRV-vs-symptom card. Skipped at the import site for now.
+  fetchYesterdayHRV,
   getHealthKitStatus,
 } from "./healthkit";
 import {
@@ -750,6 +749,10 @@ function buildDailyBriefSummary(logs) {
   const weekSleep = sleepSamples.length >= 3
     ? { avg: sleepSamples.reduce((s, l) => s + l.context.sleepHours, 0) / sleepSamples.length }
     : null;
+  const hrvSamples = week.filter((l) => l.context && l.context.hrv !== null && l.context.hrv !== undefined);
+  const weekHrv = hrvSamples.length >= 3
+    ? { avg: hrvSamples.reduce((s, l) => s + l.context.hrv, 0) / hrvSamples.length }
+    : null;
 
   // Borrow correlations + anomalies + cycle from the existing engines
   const correlations = analyzeCorrelations(logs).slice(0, 4).map((c) => c.text);
@@ -783,6 +786,7 @@ function buildDailyBriefSummary(logs) {
     weekTopSymptom,
     weekMood,
     weekSleep,
+    weekHrv,
     correlations,
     anomalies,
     cyclePrediction,
@@ -821,6 +825,8 @@ function buildAskVelaSummary(logs) {
 
   const sleepSamples = recent.filter((l) => l.context && l.context.sleepHours !== null && l.context.sleepHours !== undefined);
   const avgSleep = sleepSamples.length ? sleepSamples.reduce((s, l) => s + l.context.sleepHours, 0) / sleepSamples.length : null;
+  const hrvSamplesRecent = recent.filter((l) => l.context && l.context.hrv !== null && l.context.hrv !== undefined);
+  const avgHrv = hrvSamplesRecent.length ? hrvSamplesRecent.reduce((s, l) => s + l.context.hrv, 0) / hrvSamplesRecent.length : null;
   const stressSamples = recent.filter((l) => l.context && l.context.stress !== null && l.context.stress !== undefined);
   const avgStress = stressSamples.length ? stressSamples.reduce((s, l) => s + l.context.stress, 0) / stressSamples.length : null;
 
@@ -862,13 +868,14 @@ function buildAskVelaSummary(logs) {
       continue;
     }
     const symSet = new Set();
-    let moodSum = 0, moodCount = 0, sleep = null, stress = null;
+    let moodSum = 0, moodCount = 0, sleep = null, stress = null, hrv = null;
     let period = false;
     dayLogs.forEach((l) => {
       Object.keys(l.symptoms || {}).forEach((s) => { if (typeof s === "string" && s.length < 40) symSet.add(s); });
       if (l.mood !== null && l.mood !== undefined) { moodSum += l.mood; moodCount++; }
       if (l.context?.sleepHours != null) sleep = l.context.sleepHours;
       if (l.context?.stress != null) stress = l.context.stress;
+      if (l.context?.hrv != null) hrv = l.context.hrv;
       if (l.context?.period && l.context.period !== "none") period = true;
     });
     const avgMoodIdx = moodCount > 0 ? Math.round(moodSum / moodCount) : null;
@@ -879,6 +886,7 @@ function buildAskVelaSummary(logs) {
       symptoms: [...symSet],
       mood: avgMoodIdx !== null ? moodLabels[avgMoodIdx] : null,
       sleep,
+      hrv,
       stress,
       period,
     });
@@ -908,6 +916,7 @@ function buildAskVelaSummary(logs) {
     avgMood,
     avgMoodLabel,
     avgSleep,
+    avgHrv,
     avgStress,
     correlations: corr,
     cyclePrediction,
@@ -1496,6 +1505,28 @@ function detectAnomalies(logs) {
     }
   }
 
+  // HRV anomaly (z-score against personal baseline). Normal range varies
+  // by person 2-3x, so absolute thresholds are useless. Personal z-score
+  // is the only honest comparison.
+  const hrvBase = baseline.filter((l) => l.context?.hrv != null).map((l) => l.context.hrv);
+  const hrvWeek = week.filter((l) => l.context?.hrv != null).map((l) => l.context.hrv);
+  if (hrvBase.length >= 10 && hrvWeek.length >= 3) {
+    const baseAvg = hrvBase.reduce((a, b) => a + b, 0) / hrvBase.length;
+    const baseSd = Math.sqrt(hrvBase.reduce((s, x) => s + (x - baseAvg) ** 2, 0) / hrvBase.length) || 1;
+    const weekAvg = hrvWeek.reduce((a, b) => a + b, 0) / hrvWeek.length;
+    const z = (weekAvg - baseAvg) / baseSd;
+    if (Math.abs(z) >= 1.2) {
+      anomalies.push({
+        kind: "hrv-shift",
+        weekAvg: Math.round(weekAvg), baseAvg: Math.round(baseAvg), z: +z.toFixed(1),
+        text: z < 0
+          ? `HRV is averaging ${Math.round(weekAvg)}ms this week. ${Math.round(baseAvg - weekAvg)}ms below your usual. Often tracks with stress or recovery load.`
+          : `HRV is averaging ${Math.round(weekAvg)}ms this week. ${Math.round(weekAvg - baseAvg)}ms above your usual. A sign your body is recovering well.`,
+        icon: "Heartbeat",
+      });
+    }
+  }
+
   // Mood anomaly
   const moodBase = baseline.filter((l) => l.mood != null).map((l) => l.mood);
   const moodWeek = week.filter((l) => l.mood != null).map((l) => l.mood);
@@ -1539,6 +1570,12 @@ function anomalyToQuestion(a) {
   if (a.kind === "mood-shift") {
     if (a.delta < 0) return "My mood has dipped this week. What might be contributing?";
     return "My mood has lifted this week. What might be helping?";
+  }
+  if (a.kind === "hrv-shift") {
+    if (a.z < 0) {
+      return `My HRV is averaging ${a.weekAvg}ms this week, about ${a.baseAvg - a.weekAvg}ms below my usual. What might be contributing?`;
+    }
+    return `My HRV is averaging ${a.weekAvg}ms this week, above my usual. Anything in my data that might explain it?`;
   }
   return "What's unusual about my week so far?";
 }
@@ -6140,16 +6177,22 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
   const [showCelebration, setShowCelebration] = useState(null);
   // HealthKit auto-fill — pulls yesterday's sleep when permission's been
   // granted. Sets a flag so the UI can show "Synced from Apple Health"
-  // and the user can override by tapping the +/- buttons.
+  // and the user can override by tapping the +/- buttons. HRV has no UI
+  // input (asking users to type milliseconds is silly) — we just attach
+  // it silently to the log context for downstream correlation/anomaly.
   const [hkSyncedSleep, setHkSyncedSleep] = useState(false);
+  const [hkHrv, setHkHrv] = useState(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!isHealthKitEnabled()) return;
-      const hours = await fetchYesterdaySleep();
-      if (cancelled || hours == null) return;
-      setSleepHours((current) => current == null ? hours : current);
-      setHkSyncedSleep(true);
+      const [hours, hrv] = await Promise.all([fetchYesterdaySleep(), fetchYesterdayHRV()]);
+      if (cancelled) return;
+      if (hours != null) {
+        setSleepHours((current) => current == null ? hours : current);
+        setHkSyncedSleep(true);
+      }
+      if (hrv != null) setHkHrv(hrv);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -6313,7 +6356,7 @@ function TrackerScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPayw
       moodEmoji: mood !== null ? MOODS[mood] : null,
     });
 
-    onLog({ mood, energy, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
+    onLog({ mood, energy, symptoms: activeSymptoms, severities, notes, context: { sleepHours, hrv: hkHrv, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
     setMood(null);
     setEnergy(null);
     setActiveSymptoms({});
@@ -8619,7 +8662,7 @@ function PaywallScreen({ onClose, onSubscribe, onRestore }) {
       icon: "Heart",
       tone: "sage",
       title: "Apple Health sync",
-      body: "Pull sleep hours from your watch automatically, so you don't retype what your wrist already knows. (HRV joins this card in a future update.)",
+      body: "Pull sleep hours and HRV from your watch automatically, so you don't retype what your wrist already knows. Both feed Vela's pattern and recovery insights.",
     },
     {
       icon: "ChartBar",
@@ -9382,10 +9425,10 @@ function SettingsScreen({ profile, logs, isPremium, onShowPaywall, onEditQuestio
           <span className="body">
             <span className="label">Apple Health</span>
             <span className="sub">
-              {!isPremium ? "Auto-fill sleep hours from your watch" :
+              {!isPremium ? "Auto-fill sleep and HRV from your watch" :
                 hkStatus === "no-native" ? "Available on iOS only" :
                 hkStatus === "no-plugin" ? "Update Vela to enable Apple Health" :
-                hkOn ? "Pulling sleep on every Today open" :
+                hkOn ? "Pulling sleep and HRV on every Today open" :
                 "Tap to grant permission"}
             </span>
           </span>

@@ -382,6 +382,7 @@ function summarySignature(summary) {
   if (summary.daysLogged != null) buckets.push(`d${bucket(summary.daysLogged, 5)}`);
   if (summary.avgMood != null) buckets.push(`m${Math.round(summary.avgMood)}`);
   if (summary.avgSleep != null) buckets.push(`s${Math.round(summary.avgSleep)}`);
+  if (summary.avgHrv != null) buckets.push(`hrv${bucket(summary.avgHrv, 5)}`);
   if (summary.avgStress != null) buckets.push(`st${Math.round(summary.avgStress)}`);
   // Top 3 symptoms by frequency, for differentiating the kind of user
   if (summary.symptomCounts) {
@@ -415,6 +416,7 @@ function buildUserMessage(question, summary, profile) {
     lines.push(`\nAverage mood (last 30 days): ${summary.avgMoodLabel} (${summary.avgMood.toFixed(1)} / 4)`);
   }
   if (summary.avgSleep != null) lines.push(`Average sleep: ${summary.avgSleep.toFixed(1)} hours`);
+  if (summary.avgHrv != null) lines.push(`Average HRV (from Apple Health): ${Math.round(summary.avgHrv)}ms`);
   if (summary.avgStress != null) lines.push(`Average stress: ${summary.avgStress.toFixed(1)} / 5`);
   if (summary.correlations && summary.correlations.length) {
     lines.push("\nObserved correlations in their data:");
@@ -446,6 +448,7 @@ function buildUserMessage(question, summary, profile) {
       const parts = [];
       if (d.mood) parts.push(`mood ${d.mood}`);
       if (d.sleep != null) parts.push(`${d.sleep}h sleep`);
+      if (d.hrv != null) parts.push(`HRV ${d.hrv}ms`);
       if (d.stress != null) parts.push(`stress ${d.stress}/5`);
       if (d.period) parts.push("period day");
       if (d.symptoms && d.symptoms.length) parts.push(`symptoms: ${d.symptoms.join(", ")}`);
