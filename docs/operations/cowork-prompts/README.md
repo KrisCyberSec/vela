@@ -77,5 +77,9 @@ Every prompt in this directory should have:
 - [`launch-cheatsheets.md`](./launch-cheatsheets.md) — Produces six
   paste-ready cheat sheets covering accounts, screenshots, App Store
   Connect, RevenueCat, Netlify env vars, and Xcode build. Output is
-  six scannable reference cards under `docs/operations/launch-cheatsheets/`
+  six scannable reference cards under
+  [`docs/operations/launch-cheatsheets/`](../launch-cheatsheets/)
   that Kris pulls up at each dashboard while clicking through.
+  Suite landed 2026-05-13; `xcode-build.md` flags a real production
+  build break (App.jsx scattered imports + cannedAI.js missing
+  imports) that needs fixing before archive.
