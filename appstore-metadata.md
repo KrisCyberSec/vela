@@ -1,4 +1,6 @@
-# Vela — App Store Metadata
+# Vela. App Store Metadata
+
+Last paste-ready review: 2026-05-13 (commit 5097125)
 
 ## App Name
 Vela: Menopause Companion
@@ -18,7 +20,7 @@ Free (with in-app subscription: $8.99/month or $69.99/year, 14-day free trial)
 
 Your body is changing. Vela helps you understand it.
 
-Vela is a private symptom companion built for women navigating perimenopause and menopause. Log your daily symptoms, mood, and notes in seconds — then let Vela surface the patterns your doctor needs to see.
+Vela is a private symptom companion built for women navigating perimenopause and menopause. Log your daily symptoms, mood, and notes in seconds, then let Vela surface the patterns your doctor needs to see.
 
 TRACK WHAT MATTERS
 - 44 menopause-specific symptoms across hot flashes, sleep, mood, cognitive, physical, intimate, and digestive categories
@@ -42,7 +44,7 @@ PREMIUM: UNLOCK THE FULL PICTURE
 - CSV data export
 
 BUILT FOR PRIVACY
-- Your symptom log is stored on your device only — we never see, upload, or share it
+- Your symptom log is stored on your device only. We never see, upload, or share it.
 - The one exception, by your tap: Ask Vela sends an anonymized summary (counts and averages, no notes, no custom-symptom names, no exact dates) to answer your question
 - No account, no sign-up
 - No advertising trackers
@@ -52,13 +54,13 @@ Vela is not medical advice. Always consult your healthcare provider.
 ---
 
 ## Keywords (100 chars max)
-perimenopause,menopause,symptom tracker,hot flashes,hormones,mood,health,women,cycle,night sweats
+perimenopause,hot flashes,night sweats,HRT,estrogen,hormones,cycle,brain fog,mood,tracker,log
 
 ## Promotional Text (170 chars max)
-Track perimenopause & menopause symptoms privately. Spot patterns, ask AI grounded in your own data, and walk into your next appointment prepared.
+Track perimenopause and menopause symptoms in seconds. Spot patterns, ask AI grounded in your own data, and bring the picture to your doctor.
 
 ## What's New (for v1.0)
-Welcome to Vela! Your menopause companion is here. Track symptoms, discover patterns, and take control of your hormonal health journey.
+Hello. This is the first release of Vela, built for women in perimenopause and menopause. Track what's happening, see the patterns, and walk into your next appointment prepared.
 
 ---
 
