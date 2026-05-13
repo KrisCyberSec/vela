@@ -19,29 +19,46 @@ locally + landing page live at velahealth.health.
 
 **Tech**:
 - React 18 + Capacitor 8 (iOS hybrid)
-- Single file: `src/App.jsx` (~10400 lines, intentional)
 - CRA (`react-scripts 5`) build
+- Source layout (post-2026-05-12 refactor):
+  - `src/App.jsx` (~3,800 lines: App() orchestrator + the CSS template
+    literal. Pure logic and screens are out, see below.)
+  - `src/lib/` — 16 pure-function modules (correlations, summaries,
+    forecast, anomalies, cycle, patterns, experiments, etc.)
+  - `src/screens/` — 8 screen components (Today, History, Insights,
+    Onboarding, Paywall, Settings, Community, EditQuestion)
+  - `src/components/` — shared JSX (icons, CrisisSupportCard)
 - Netlify Functions for AI proxy + waitlist
 - Netlify Blobs for rate limits + cost tracking + caches
 - jsPDF for doctor reports
 - Phosphor Icons (duotone) — no emoji in UI ever
 - Apple HealthKit via custom Capacitor plugin (`ios/App/App/Plugins/`)
+- Sentry pre-wired (DSN paste pending), PostHog wired (live on landing,
+  pending end-to-end verify on iOS)
 
 **Repo**: github.com/KrisCyberSec/vela on `main` branch.
 
 ## Where we are right now
 
-Latest commit: lead-engineer audit pass (premium-gate fix, server crisis sync, paywall trigger tracking, landing page sweep).
+**Read first when picking up a session:**
+- `docs/operations/now.md` — what's actively being worked on this week
+- `docs/operations/workflow.md` — how work moves through the project
+- `docs/operations/manual-tasks.md` — what's waiting on a human
+- `docs/operations/cowork-prompts/` — template prompts for spawning Cowork
+  sessions on recurring work
 
-Recent commits:
-- (this commit) Lead-engineer audit: critical premium-gate fix on History day-detail, server crisis regex sync to client (5 missing patterns + false-positive guards + observability log), paywall trigger tracking on all 17 callsites, auto-submit race fix, landing page sweep (CBT removed, emoji replaced with SVG, timeline updated, premium pillars updated, free-tier copy honest, HRV claim corrected)
-- (prior) Round-two within-app cohesion (4 cross-screen handoffs)
-- `e61e2af` Within-app cohesion (History → Ask Vela, Insights pattern → experiment, Today trigger nudge)
-- `8af959a` Bumped Ask Vela monthly cap 60 → 250, richer Claude summary
-- `1e997aa` Stripped 213 em dashes from user-facing copy + cost-tracking warning logs
-- `9f8c1c7` Lead-engineer review for 50k users (crisis safety, perfect-correlation logic, brand voice)
-- `e2b99e1` Six "feels alive" features (adaptive thresholds, lag detection, anomalies, daily brief, forecast, feedback loop)
-- `631dd62` Trial → 14 days + native Swift HealthKit plugin
+Latest commits (full history via `git log --oneline`):
+- `678c4fc` Sentry coverage expansion (window handlers, user context,
+  release tagging, fetch error sinks)
+- `ce2b22a` Phase 2 refactor — 8 screens into src/screens/
+- `4374772` Phase 1.5 refactor — 5 remaining helpers
+- `d56f92b` Icons + haptic extraction
+- `9e38a19` Phase 1 refactor — 16 pure-function lib modules
+- `5a7b5a4` Five pre-launch decisions resolved (12-week chart PDF,
+  Community preview, onboarding wire-up, HealthKit scope trim, PostHog
+  opt-out toggle)
+- `b547890` Sweep landing + app copy for claims the code can't back
+- `324ea9c` Match privacy copy to what the code actually does
 
 Working tree clean. All pushed to origin/main.
 
