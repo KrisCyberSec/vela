@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 // import * as communityMod from "./community"; // Re-enable when LIVE_COMMUNITY=true
 import { initAnalytics, track, isAnalyticsOptedOut, setAnalyticsOptedOut } from "./analytics";
 import { initPurchases, checkSubscription, purchasePlan, restorePurchases, getAppUserId } from "./subscription";
+import { identifyUser, clearUser, reportError } from "./errorReporting";
 import { readJSON as safeReadJSON } from "./safeStorage";
 import { getThemePref, setTheme } from "./theme";
 import {
@@ -3170,6 +3171,12 @@ export default function App() {
       await initPurchases();
       const { isPremium: livePremium } = await checkSubscription();
       if (livePremium) setIsPremium(true);
+      // Set Sentry user context so errors group by user. We use the
+      // anonymous RevenueCat appUserId — never PII.
+      try {
+        const uid = await getAppUserId();
+        if (uid) identifyUser(uid);
+      } catch { /* getAppUserId already reports its own errors */ }
     })();
   }, []);
 
@@ -3342,6 +3349,7 @@ export default function App() {
         stragglers.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
       } catch {}
       cancelAllReminders();
+      clearUser(); // drop Sentry user context so next session starts fresh
       setLogs([]);
       setProfile(null);
       setOnboarded(false);

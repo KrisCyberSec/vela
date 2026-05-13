@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 
 import { track } from "../analytics";
+import { reportError } from "../errorReporting";
 import { getAppUserId } from "../subscription";
 import { readJSON as safeReadJSON } from "../safeStorage";
 import { SymptomIcon, UIIcon, MoodFace } from "../components/icons";
@@ -229,6 +230,11 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
       if (serverRemaining != null) setRemainingToday(serverRemaining);
     } catch (err) {
+      // Network failure on the Ask Vela request. We gracefully fall back
+      // to the canned response, but log the underlying error so we can
+      // see at scale whether the failure is e.g. the function timing out,
+      // returning malformed JSON, or hitting a CDN edge case.
+      reportError(err, { tag: "ask_vela_fetch_failed" });
       const answer = generateResponse(matchQuestion(text), logs, profile);
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
     } finally {

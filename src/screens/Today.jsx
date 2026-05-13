@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 
 import { track } from "../analytics";
+import { reportError } from "../errorReporting";
 import { getAppUserId } from "../subscription";
 import { isHealthKitEnabled, fetchYesterdaySleep } from "../healthkit";
 
@@ -109,7 +110,12 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
             localStorage.setItem("vela_last_brief_date", today);
           } catch { /* private mode */ }
         }
-      } catch { /* network. Try again tomorrow */ }
+      } catch (err) {
+        // Network failure or JSON parse error. Brief will retry tomorrow;
+        // log to Sentry so we can see if a particular failure mode is
+        // happening at scale (e.g. the function returning malformed JSON).
+        reportError(err, { tag: "daily_brief_fetch_failed" });
+      }
       finally { if (!cancelled) setBriefLoading(false); }
     })();
     return () => { cancelled = true; };

@@ -91,13 +91,36 @@ Sorted by what blocks what. Cross items off as they ship.
 - Verification still pending: run `netlify dev`, fire a tracked event (e.g. open the daily log → `log_started`, or hit the paywall → `paywall_shown`), then check the PostHog "Live events" view.
 
 ### [ ] Create Sentry account + paste DSN
-- [sentry.io](https://sentry.io) → free tier covers ~5k errors/mo
-- Create a React project, copy the DSN
-- Set in Netlify env:
-  ```
-  REACT_APP_SENTRY_DSN=https://xxxxx@xxx.ingest.sentry.io/xxx
-  ```
-- Code-side wiring is done in `src/errorReporting.js`
+- [sentry.io](https://sentry.io) → free Developer plan covers 5k errors/mo
+  (plenty for v1 — Vela is client-side-error-light by design).
+- Create a project, platform: **React**. Name suggestion: `vela-ios`.
+- Copy the DSN (looks like `https://abc@xxxx.ingest.sentry.io/12345`).
+- Two places to paste it:
+  - `.env.local` (already in `.gitignore`, picks it up via CRA at build time)
+  - Netlify env vars (so production CRA builds inherit it)
+- Verification flow once the DSN is set:
+  1. Restart `netlify dev`.
+  2. Open the app, navigate to Settings → tap **Reset all data**.
+     Reset clears Sentry user context too — confirms `clearUser()` runs.
+  3. Force a test error: open DevTools console, run
+     `setTimeout(() => { throw new Error('sentry-smoke-test'); }, 0)`.
+  4. Within ~10s, the error should appear in Sentry under
+     **Issues** with the release tag `vela@0.1.0`.
+- Code-side wiring (all done):
+  - `src/errorReporting.js` — init, `reportError()`, `identifyUser()`,
+    `clearUser()`. Adds `window.onerror` + `unhandledrejection` handlers
+    on init. Tags every event with the `vela@<version>` release.
+  - `src/ErrorBoundary.jsx` — catches React render errors.
+  - `src/subscription.js` — 6 tagged `reportError()` calls covering
+    every RevenueCat failure mode.
+  - `src/screens/Today.jsx` — tagged report on daily-brief fetch failure.
+  - `src/screens/Insights.jsx` — tagged report on ask-vela fetch failure.
+  - `src/App.jsx` — `identifyUser(appUserId)` on launch once RevenueCat
+    resolves; `clearUser()` on "Reset all data".
+- (Optional, post-launch.) Wire source-map upload via
+  `@sentry/webpack-plugin` so production stack traces deobfuscate. Needs
+  a Sentry **auth token** (Settings → Auth tokens) plus the org + project
+  slugs. Not needed for v1 — minified stack traces are still actionable.
 
 ---
 
