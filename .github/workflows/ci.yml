@@ -1,0 +1,58 @@
+# CI — runs on every push to main and on every pull request.
+#
+# Two jobs:
+#   1. test   — runs the smoke suite (src/**/__tests__/*.test.js)
+#   2. build  — proves the production CRA bundle compiles
+#
+# Both must pass before a commit is "trusted." Red ❌ on the GitHub
+# commit list = don't merge / don't deploy. Green ✓ = privacy contracts,
+# doctor PDF, and boot path are still verified.
+#
+# Node 20 LTS — CRA 5 supports 14, 16, 18, 20. We pin 20 to match the
+# version most likely to be on the user's Mac long-term.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs when a new commit lands on the same branch.
+# Saves Actions minutes and avoids stale red checks on superseded commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm test -- --watchAll=false
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      # CI=true is the CRA convention to make warnings non-fatal here.
+      # Set to false explicitly because GitHub Actions sets CI=true by
+      # default, which would treat ESLint warnings as build failures.
+      # If you want stricter "warnings are failures" enforcement,
+      # remove the env override on the run line.
+      - run: npm run build
+        env:
+          CI: false
