@@ -15,6 +15,7 @@ What's done in code vs. what only you can do in Apple's / 3rd-party dashboards.
 | App icon (1024×1024 single-asset) | ✅ Present |
 | Splash screen | ✅ Present |
 | `Info.plist`: `ITSAppUsesNonExemptEncryption=false` | ✅ Set (no encryption disclosure required) |
+| `PrivacyInfo.xcprivacy` | ✅ Aligned to Health, purchases, anonymous ID, product events, and diagnostics |
 | Privacy URL → `https://velahealth.health/privacy.html` | ✅ Live + verified |
 | Support URL → `mailto:support@velahealth.health` | ✅ Live + verified (forwards to your Gmail) |
 | RevenueCat SDK wired with `web_fallback` / `misconfigured` / `native` modes | ✅ Fixed in this commit |
@@ -156,10 +157,11 @@ The first-run audit findings are mostly resolved. What's left is documented belo
    - Pricing tier
    - Availability (countries — start with US-only if uncertain)
    - **Export compliance:** "Does your app use encryption?" — answer **No** (your `Info.plist` already declares `ITSAppUsesNonExemptEncryption=false`)
+   - **App Privacy:** disclose Health, Purchase History, anonymous User ID, Product Interaction, Crash Data, and Other Diagnostic Data. Do not submit a universal "Data Not Collected" label.
 8. **Submit for Review.**
 9. **Apple review takes 24–48 hours.** Common rejection reasons specific to Vela:
    - Subscription terms not properly disclosed in the app and the listing → `landing/terms.html` and `landing/privacy.html` are linked from the paywall and the App Store, this should be fine
-   - Privacy nutrition label inconsistent with `Info.plist` permission usage strings → Vela doesn't request anything sensitive (no camera, mic, contacts, calendar), so this should pass — leave the privacy questionnaire honest
+   - Privacy nutrition label inconsistent with actual SDK/network behavior → use the disclosure list above and keep it aligned with `PrivacyInfo.xcprivacy`
    - "Mentions of competitors or other platforms" — re-read `appstore-metadata.md` to confirm no Caria/Balance/Flo references in user-facing copy
 
 ---

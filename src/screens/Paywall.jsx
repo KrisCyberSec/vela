@@ -5,12 +5,43 @@
 // restore handlers via props. No localStorage of its own — the parent
 // owns subscription state.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { UIIcon } from "../components/icons";
+import { getPaywallPlans } from "../subscription";
+
+const FALLBACK_PLANS = {
+  annual: {
+    title: "Annual",
+    priceString: "$69.99",
+    priceLine: "$69.99/yr",
+    note: "$5.83/mo · billed yearly",
+    trial: null,
+  },
+  monthly: {
+    title: "Monthly",
+    priceString: "$8.99",
+    priceLine: "$8.99/mo",
+    note: "Cancel anytime",
+    trial: null,
+  },
+};
 
 export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const [plan, setPlan] = useState("annual");
+  const [plans, setPlans] = useState(FALLBACK_PLANS);
+
+  useEffect(() => {
+    let alive = true;
+    getPaywallPlans().then((next) => {
+      if (!alive) return;
+      setPlans({
+        annual: next?.annual || FALLBACK_PLANS.annual,
+        monthly: next?.monthly || FALLBACK_PLANS.monthly,
+      });
+    });
+    return () => { alive = false; };
+  }, []);
 
   // Pillar copy must match what actually ships. Each pillar below maps to
   // a real feature with shipping code:
@@ -97,7 +128,15 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
     },
   ];
 
-  const ctaPrice = plan === "annual" ? "$69.99/yr" : "$8.99/mo";
+  const ctaLabel = plan === "annual" ? "Continue with Annual" : "Continue with Monthly";
+  const selectedPlan = plans[plan] || FALLBACK_PLANS[plan];
+  const ctaText = selectedPlan.trial
+    ? `Start ${selectedPlan.trial.label} free · then ${selectedPlan.priceLine}`
+    : `${ctaLabel} · ${selectedPlan.priceLine}`;
+  const finePrint = selectedPlan.trial
+    ? `After trial, auto-renews at ${selectedPlan.priceLine} until canceled`
+    : "Auto-renews until canceled";
+  const planNote = (p) => p.trial ? `${p.trial.label} free · then ${p.priceLine}` : p.note;
 
   return (
     <div className="pw-app">
@@ -172,8 +211,8 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           >
             <span className="save-badge">Save 35%</span>
             <div className="term">Annual</div>
-            <div className="price">$69.99<small>/yr</small></div>
-            <div className="note">$5.83/mo · billed yearly</div>
+            <div className="price">{plans.annual.priceString}<small>/yr</small></div>
+            <div className="note">{planNote(plans.annual)}</div>
           </button>
           <button
             type="button"
@@ -181,18 +220,18 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
             onClick={() => setPlan("monthly")}
           >
             <div className="term">Monthly</div>
-            <div className="price">$8.99<small>/mo</small></div>
-            <div className="note">Cancel anytime</div>
+            <div className="price">{plans.monthly.priceString}<small>/mo</small></div>
+            <div className="note">{planNote(plans.monthly)}</div>
           </button>
         </div>
       </div>
 
       <div className="pw-cta-bar">
         <button type="button" className="pw-cta" onClick={() => onSubscribe(plan)}>
-          Try free for 14 days · then {ctaPrice}
+          {ctaText}
         </button>
         <div className="pw-cta-fine">
-          Cancel anytime ·{" "}
+          {finePrint} ·{" "}
           <a href="/terms.html" target="_blank" rel="noreferrer">Terms</a> ·{" "}
           <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a>
         </div>

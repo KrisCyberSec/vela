@@ -48,11 +48,4 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
-      # CI=true is the CRA convention to make warnings non-fatal here.
-      # Set to false explicitly because GitHub Actions sets CI=true by
-      # default, which would treat ESLint warnings as build failures.
-      # If you want stricter "warnings are failures" enforcement,
-      # remove the env override on the run line.
       - run: npm run build
-        env:
-          CI: false

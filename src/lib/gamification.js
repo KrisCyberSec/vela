@@ -8,34 +8,34 @@ import { getStreak } from "./formatters";
 
 export const BADGES = [
   // Streak badges
-  { id: "streak-3", icon: "🌱", name: "Seedling", desc: "3-day logging streak", check: (s) => s.streak >= 3 },
-  { id: "streak-7", icon: "🌿", name: "Sprouting", desc: "7-day logging streak", check: (s) => s.streak >= 7 },
-  { id: "streak-14", icon: "🌳", name: "Taking Root", desc: "14-day logging streak", check: (s) => s.streak >= 14 },
-  { id: "streak-30", icon: "🌲", name: "Deeply Rooted", desc: "30-day logging streak", check: (s) => s.streak >= 30 },
-  { id: "streak-60", icon: "🏔️", name: "Mountain Strong", desc: "60-day logging streak", check: (s) => s.streak >= 60 },
+  { id: "streak-3", icon: "Flower", name: "Seedling", desc: "3-day logging streak", check: (s) => s.streak >= 3 },
+  { id: "streak-7", icon: "Flower", name: "Sprouting", desc: "7-day logging streak", check: (s) => s.streak >= 7 },
+  { id: "streak-14", icon: "Target", name: "Taking Root", desc: "14-day logging streak", check: (s) => s.streak >= 14 },
+  { id: "streak-30", icon: "Star", name: "Deeply Rooted", desc: "30-day logging streak", check: (s) => s.streak >= 30 },
+  { id: "streak-60", icon: "SunHorizon", name: "Mountain Strong", desc: "60-day logging streak", check: (s) => s.streak >= 60 },
   // Logging milestones
-  { id: "logs-1", icon: "✨", name: "First Step", desc: "Log your first entry", check: (s) => s.totalLogs >= 1 },
-  { id: "logs-10", icon: "📝", name: "Getting Started", desc: "Log 10 entries", check: (s) => s.totalLogs >= 10 },
-  { id: "logs-50", icon: "📊", name: "Data Builder", desc: "Log 50 entries", check: (s) => s.totalLogs >= 50 },
-  { id: "logs-100", icon: "🏆", name: "Century Club", desc: "Log 100 entries", check: (s) => s.totalLogs >= 100 },
-  { id: "logs-365", icon: "👑", name: "Year of Wisdom", desc: "Log 365 entries", check: (s) => s.totalLogs >= 365 },
+  { id: "logs-1", icon: "CheckCircle", name: "First Step", desc: "Log your first entry", check: (s) => s.totalLogs >= 1 },
+  { id: "logs-10", icon: "FileText", name: "Getting Started", desc: "Log 10 entries", check: (s) => s.totalLogs >= 10 },
+  { id: "logs-50", icon: "ChartBar", name: "Data Builder", desc: "Log 50 entries", check: (s) => s.totalLogs >= 50 },
+  { id: "logs-100", icon: "Star", name: "Century Club", desc: "Log 100 entries", check: (s) => s.totalLogs >= 100 },
+  { id: "logs-365", icon: "Sparkle", name: "Year of Wisdom", desc: "Log 365 entries", check: (s) => s.totalLogs >= 365 },
   // Feature discovery
-  { id: "mood-first", icon: "😊", name: "Mood Tracker", desc: "Log your first mood", check: (s) => s.moodLogs >= 1 },
-  { id: "notes-first", icon: "📓", name: "Journaler", desc: "Add your first note", check: (s) => s.notesCount >= 1 },
-  { id: "context-first", icon: "🔍", name: "Context Seeker", desc: "Log sleep, stress, or a trigger", check: (s) => s.contextLogs >= 1 },
-  { id: "symptoms-5", icon: "🩺", name: "Body Listener", desc: "Track 5 different symptoms", check: (s) => s.uniqueSymptoms >= 5 },
-  { id: "symptoms-10", icon: "🧬", name: "Full Spectrum", desc: "Track 10 different symptoms", check: (s) => s.uniqueSymptoms >= 10 },
+  { id: "mood-first", icon: "Smiley", name: "Mood Tracker", desc: "Log your first mood", check: (s) => s.moodLogs >= 1 },
+  { id: "notes-first", icon: "FileText", name: "Journaler", desc: "Add your first note", check: (s) => s.notesCount >= 1 },
+  { id: "context-first", icon: "MagnifyingGlass", name: "Context Seeker", desc: "Log sleep, stress, or a trigger", check: (s) => s.contextLogs >= 1 },
+  { id: "symptoms-5", icon: "FirstAidKit", name: "Body Listener", desc: "Track 5 different symptoms", check: (s) => s.uniqueSymptoms >= 5 },
+  { id: "symptoms-10", icon: "Brain", name: "Full Spectrum", desc: "Track 10 different symptoms", check: (s) => s.uniqueSymptoms >= 10 },
   // Community
-  { id: "community-post", icon: "💬", name: "Voice Found", desc: "Write your first community post", check: (s) => s.communityPosts >= 1 },
-  { id: "community-5", icon: "🤝", name: "Supporter", desc: "Write 5 community posts", check: (s) => s.communityPosts >= 5 },
+  { id: "community-post", icon: "ChatCircle", name: "Voice Found", desc: "Write your first community post", check: (s) => s.communityPosts >= 1 },
+  { id: "community-5", icon: "ChatCircleText", name: "Supporter", desc: "Write 5 community posts", check: (s) => s.communityPosts >= 5 },
   // Insights
-  { id: "insight-first", icon: "💡", name: "Pattern Spotter", desc: "View your first weekly insight", check: (s) => s.uniqueDays >= 7 },
-  { id: "ai-chat", icon: "🤖", name: "Vela Whisperer", desc: "Ask Vela your first question", check: (s) => s.aiChats >= 1 },
+  { id: "insight-first", icon: "Lightbulb", name: "Pattern Spotter", desc: "View your first weekly insight", check: (s) => s.uniqueDays >= 7 },
+  { id: "ai-chat", icon: "ChatCircleText", name: "Vela Whisperer", desc: "Ask Vela your first question", check: (s) => s.aiChats >= 1 },
   // Special
-  { id: "weekend-warrior", icon: "🦸", name: "Weekend Warrior", desc: "Log on both Saturday and Sunday", check: (s) => s.weekendLogs >= 2 },
-  { id: "night-owl", icon: "🦉", name: "Night Owl", desc: "Log after 10pm", check: (s) => s.nightLogs >= 1 },
-  { id: "early-bird", icon: "🐦", name: "Early Bird", desc: "Log before 7am", check: (s) => s.earlyLogs >= 1 },
-  { id: "period-tracker", icon: "🩸", name: "Cycle Aware", desc: "Log period data for the first time", check: (s) => s.periodLogs >= 1 },
+  { id: "weekend-warrior", icon: "Calendar", name: "Weekend Warrior", desc: "Log on both Saturday and Sunday", check: (s) => s.weekendLogs >= 2 },
+  { id: "night-owl", icon: "Moon", name: "Night Owl", desc: "Log after 10pm", check: (s) => s.nightLogs >= 1 },
+  { id: "early-bird", icon: "SunHorizon", name: "Early Bird", desc: "Log before 7am", check: (s) => s.earlyLogs >= 1 },
+  { id: "period-tracker", icon: "Drop", name: "Cycle Aware", desc: "Log period data for the first time", check: (s) => s.periodLogs >= 1 },
 ];
 
 // Level names are quiet status markers, not aspirational badges. We

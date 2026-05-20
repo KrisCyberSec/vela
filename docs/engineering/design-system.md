@@ -150,15 +150,11 @@ Don't bold-emphasize body text. Use italics or color-shift to ink-mid.
 - **Active:** `color: var(--clay)` (or `var(--sage-dark)` in sage contexts)
 - **Sizes:** 14px (inline chips), 22px (UI icon default), 26px (symptom tile), 48px (hero icon in reveal cards)
 
-**Two registries** in `src/App.jsx`:
-- `SYMPTOM_ICONS` — health-symptom names (Flame for hot flash, Brain for brain fog, BatteryLow for fatigue, etc.)
-- `UI_ICONS` — chrome (Bell for reminders, Lock for privacy, Star for premium, etc.)
+**Two registries** live in `src/components/icons.jsx`:
+- `SYMPTOM_ICONS` covers health-symptom names such as Flame for hot flash, Brain for brain fog, and BatteryLow for fatigue.
+- `UI_ICONS` covers interface chrome such as Bell for reminders, Lock for privacy, Star for premium, and ChartBar for analytics.
 
-**Emoji is allowed in two places only:**
-1. **Mood selector:** 😔 😕 😐 🙂 😊 — emojis ARE the right vocabulary for human emotion
-2. **Plant-themed milestone badges:** 🌱 Seedling → 🌿 Sprouting → 🌳 Taking Root → 🌲 Deeply Rooted — brand language
-
-Anywhere else, system emojis read childish for the audience. Use Phosphor.
+Do not use system emoji in the app UI. Mood, energy, badges, milestone states, and error states should use custom SVG or Phosphor icons so the product stays adult and consistent.
 
 ---
 

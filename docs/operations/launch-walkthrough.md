@@ -342,7 +342,7 @@ In the left sidebar, click **Monetization** → **In-App Purchases** →
      - Description: `Unlimited Ask Vela, daily brief, doctor PDF reports, personalized experiments, and more.`
    - **Review Information** (Apple will see this):
      - Screenshot: upload one of the paywall screenshots from Phase 3.2
-     - Review Notes: `Tap "Try free for 14 days" on the paywall to subscribe. Sandbox tester accounts work normally.`
+     - Review Notes: `Tap the Annual purchase button on the paywall. If the sandbox Apple ID is eligible for the introductory offer, the button says "Start 14 days free · then $69.99/yr"; otherwise it says "Continue with Annual · $69.99/yr". Sandbox tester accounts work normally.`
 6. Click **Save** at the top.
 
 **Second IAP — Monthly subscription:**
@@ -375,27 +375,32 @@ In the left sidebar, click **App Privacy**.
    privacy-first. But Ask Vela sends an anonymized summary, which
    counts as collection.)
 
-3. **Data Type screen**: select what's collected. Check ONLY this box:
-   - ☑ **Health & Fitness** → **Health & Fitness** (the sub-category)
+3. **Data Type screen**: select what's collected:
+   - ☑ **Health & Fitness** → **Health**
+   - ☑ **Purchases** → **Purchase History**
+   - ☑ **Identifiers** → **User ID**
+   - ☑ **Usage Data** → **Product Interaction**
+   - ☑ **Diagnostics** → **Crash Data**
+   - ☑ **Diagnostics** → **Other Diagnostic Data**
 
-   Leave everything else unchecked. We don't collect contact info,
-   identifiers, location, browsing history, etc.
+   Leave contact info, location, browsing history, search history,
+   contacts, photos, audio, and advertising data unchecked.
 
 4. Click **Save**.
 
-5. **Health & Fitness configuration screen** appears. Answer:
-   - **How is this data used?**: ☑ **App Functionality**
-     (Uncheck everything else. Specifically, do NOT check
-     "Analytics", "Product Personalization", "Advertising", or "Other
-     Purposes".)
-   - **Is the data linked to the user's identity?**: **No**
-   - **Is the data used for tracking?**: **No**
+5. Configure each type:
+   - **Health**: App Functionality + Product Personalization; Linked: No; Tracking: No.
+   - **Purchase History**: App Functionality + Analytics; Linked: No while using anonymous RevenueCat app user IDs; Tracking: No.
+   - **User ID**: App Functionality; Linked: No while the ID is anonymous and not tied to email/account identity; Tracking: No.
+   - **Product Interaction**: Analytics; Linked: No; Tracking: No.
+   - **Crash Data**: App Functionality; Linked: No; Tracking: No.
+   - **Other Diagnostic Data**: App Functionality; Linked: No; Tracking: No.
 
 6. Click **Save**.
 
-✓ **You'll see**: a "Privacy Nutrition Label" preview. It should show
-"Data Used to Track You: Data Not Collected" and "Data Linked to You:
-Data Not Collected" and "Data Not Linked to You: Health & Fitness".
+✓ **You'll see**: a Privacy Nutrition Label preview with no tracking, no
+data linked to identity, and the above data types under "Data Not Linked
+to You."
 
 ⚠ **If a reviewer rejects this**: they'll cite "incomplete privacy
 disclosure." The fix is to come back here and verify Health & Fitness
@@ -740,7 +745,10 @@ Tap to open Vela. Verify each:
 
 3. **Paywall + sandbox purchase.**
    - Tap Settings → Subscription → "Upgrade to Vela".
-   - Tap "Try free for 14 days · then $69.99/yr".
+   - Tap "Start 14 days free · then $69.99/yr" if the sandbox tester is
+     eligible for the introductory offer. If Apple reports the account is
+     not eligible or eligibility is unknown, tap "Continue with Annual ·
+     $69.99/yr".
    - You'll be prompted to sign in with a sandbox tester account.
      (Set up at ASC → Users and Access → Sandbox → Testers → +. Use a
      fresh email like `vela-sandbox-1@yourdomain.com`. Sign out of

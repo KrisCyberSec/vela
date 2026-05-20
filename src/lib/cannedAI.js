@@ -213,7 +213,7 @@ export function getStageContext(stage, symptom) {
   if (!knowledge || !knowledge.stages) return "";
   const stageKey = stage?.toLowerCase().includes("peri") ? "perimenopause" : stage?.toLowerCase().includes("post") ? "postmenopause" : stage?.toLowerCase().includes("surgical") ? "surgical" : null;
   if (!stageKey || !knowledge.stages[stageKey]) return "";
-  return `\n\n📋 ${knowledge.stages[stageKey]}`;
+  return `\n\nContext: ${knowledge.stages[stageKey]}`;
 }
 
 export function matchQuestion(input) {
@@ -340,17 +340,17 @@ export function generateResponse(handler, logs, profile) {
       triggerSymptom: [`How is my ${param?.symptom || "symptom"} trending?`, "What are my worst triggers?"],
     };
     const options = followUps[handler] || followUps.recent;
-    return `\n\n💬 Try asking: "${options[Math.floor(Math.random() * options.length)]}"`;
+    return `\n\nTry asking: "${options[Math.floor(Math.random() * options.length)]}"`;
   };
 
   // ─── NEW: Help handler ───
   if (handler.handler === "help") {
-    return `I analyze your logged data to help you understand your patterns. Here's what I can help with:\n\n• Ask about any symptom. "How are my hot flashes?"\n• Trigger analysis. "How does caffeine affect me?"\n• Compound questions. "What triggers my brain fog?"\n• Trends. "Am I getting better or worse?"\n• Day analysis. "Which day is best for me?"\n• Doctor prep. "What should I tell my doctor?"\n• Weekly recap. "How am I doing this week?"\n\nThe more you log, the smarter my answers get!`;
+    return `I analyze your logged data to help you understand your patterns. Here's what I can help with:\n\n• Ask about any symptom. "How are my hot flashes?"\n• Trigger analysis. "How does caffeine affect me?"\n• Compound questions. "What triggers my brain fog?"\n• Trends. "Am I getting better or worse?"\n• Day analysis. "Which day is best for me?"\n• Doctor prep. "What should I tell my doctor?"\n• Weekly recap. "How am I doing this week?"\n\nThe more you log, the more specific my answers get.`;
   }
 
   // ─── NEW: Thanks handler ───
   if (handler.handler === "thanks") {
-    const responses = ["You're welcome! I'm here whenever you need me. 💚", "Glad I could help! Remember, every log you make helps me give you better insights.", "Anytime! Your consistency in tracking is what makes these insights possible.", "Happy to help! Let me know if you want to dig deeper into anything."];
+    const responses = ["You're welcome. I'm here whenever you need me.", "Glad I could help. Every log you make helps me give you better insights.", "Anytime. Your consistency in tracking is what makes these insights possible.", "Happy to help. Let me know if you want to dig deeper into anything."];
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
@@ -389,9 +389,9 @@ export function generateResponse(handler, logs, profile) {
     // Add research-backed context for this symptom
     const sKnowledge = getSymptomKnowledge(symptom);
     if (sKnowledge) {
-      msg += `\n📚 ${sKnowledge.science}`;
+      msg += `\nContext: ${sKnowledge.science}`;
       const strategy = sKnowledge.strategies[Math.floor(Math.random() * sKnowledge.strategies.length)];
-      msg += `\n\n💡 Evidence-based tip: ${strategy}`;
+      msg += `\n\nEvidence-based tip: ${strategy}`;
     }
     const stageCtx = getStageContext(stage, symptom);
     if (stageCtx) msg += stageCtx;
@@ -426,7 +426,7 @@ export function generateResponse(handler, logs, profile) {
     const data = analyzeOverallTrend(logs);
     if (data.recentDays < 3) return "I need a few more days of mood data to give you a reliable picture. Keep logging!";
     const recentMoods = logs.filter((l) => (new Date() - new Date(l.date)) / 86400000 <= 14 && l.mood !== null && l.mood !== undefined);
-    const moodLabels = ["😔 rough", "😕 low", "😐 okay", "🙂 good", "😊 great"];
+    const moodLabels = ["rough", "low", "okay", "good", "great"];
     const moodDist = [0, 0, 0, 0, 0];
     recentMoods.forEach((l) => { if (l.mood >= 0 && l.mood <= 4) moodDist[l.mood]++; });
     const mostCommon = moodDist.indexOf(Math.max(...moodDist));
@@ -435,16 +435,16 @@ export function generateResponse(handler, logs, profile) {
     msg += `Most common mood: ${moodLabels[mostCommon]} (${moodDist[mostCommon]}/${recentMoods.length} days)\n`;
     if (data.prevDays >= 3) {
       const delta = data.recentMood - data.prevMood;
-      msg += `Trend: ${Math.abs(delta) > 0.3 ? (delta > 0 ? "📈 Improving" : "📉 Dipping") : "➡️ Steady"} (was ${data.prevMood} → now ${data.recentMood})\n`;
+      msg += `Trend: ${Math.abs(delta) > 0.3 ? (delta > 0 ? "Improving" : "Dipping") : "Steady"} (was ${data.prevMood} to now ${data.recentMood})\n`;
     }
     if (avgEnergy !== null) msg += `Energy correlation: ${avgEnergy >= 2.5 ? "your energy and mood are both in a decent place" : "your energy has been low, which often pulls mood down too"}.\n`;
     // Research-backed mood context
     const moodKnowledge = data.recentMood < 2 ?
-      `\n📚 Estrogen helps regulate serotonin. Your brain's "feel good" neurotransmitter. As estrogen fluctuates, mood dips are a physiological response, not a character flaw. Research shows mood changes are most intense during the transition and typically improve afterward.` :
-      `\n📚 Research shows that mood during menopause is influenced by hormonal changes, sleep quality, stress, and social support. The fact that you're tracking is itself a positive step. Self-awareness is linked to better emotional regulation.`;
+      `\nContext: Estrogen helps regulate serotonin. Your brain's "feel good" neurotransmitter. As estrogen fluctuates, mood dips are a physiological response, not a character flaw. Research shows mood changes are most intense during the transition and typically improve afterward.` :
+      `\nContext: Research shows that mood during menopause is influenced by hormonal changes, sleep quality, stress, and social support. The fact that you're tracking is itself a positive step. Self-awareness is linked to better emotional regulation.`;
     msg += moodKnowledge;
-    if (data.recentMood < 1.5) msg += `\n\n💡 If your mood has been consistently low, please consider talking to your healthcare provider. Depression during menopause is very common and highly treatable.`;
-    else msg += `\n\n💡 Regular exercise (even 20 minutes) has evidence as strong as medication for mild-moderate mood changes during menopause.`;
+    if (data.recentMood < 1.5) msg += `\n\nWhat may help: If your mood has been consistently low, please consider talking to your healthcare provider. Depression during menopause is very common and highly treatable.`;
+    else msg += `\n\nWhat may help: Regular exercise (even 20 minutes) has evidence as strong as medication for mild-moderate mood changes during menopause.`;
     return msg + suggestFollowUp("mood");
   }
 
@@ -459,7 +459,7 @@ export function generateResponse(handler, logs, profile) {
     let msg = `Your energy over the last 2 weeks:\n\nAverage: ${avg}/4 (${labels[Math.round(avg)] || "Moderate"})\n`;
     if (prevAvg !== null) {
       const delta = avg - prevAvg;
-      msg += `Trend: ${Math.abs(delta) > 0.3 ? (delta > 0 ? "⬆️ Improving" : "⬇️ Declining") : "➡️ Steady"} (was ${prevAvg} → now ${avg})\n`;
+      msg += `Trend: ${Math.abs(delta) > 0.3 ? (delta > 0 ? "Improving" : "Declining") : "Steady"} (was ${prevAvg} to now ${avg})\n`;
     }
     // Check sleep correlation
     const poorSleepDays = recentE.filter((l) => l.context?.sleep === "poor" || l.context?.sleep === "terrible");
@@ -467,12 +467,12 @@ export function generateResponse(handler, logs, profile) {
     if (poorSleepDays.length >= 2 && goodSleepDays.length >= 2) {
       const poorE = poorSleepDays.reduce((s, l) => s + l.energy, 0) / poorSleepDays.length;
       const goodE = goodSleepDays.reduce((s, l) => s + l.energy, 0) / goodSleepDays.length;
-      if (goodE - poorE > 0.5) msg += `\n💡 Your data confirms it: energy averages ${labels[Math.round(goodE)] || "higher"} after good sleep vs ${labels[Math.round(poorE)] || "lower"} after poor sleep.`;
+      if (goodE - poorE > 0.5) msg += `\nYour data confirms it: energy averages ${labels[Math.round(goodE)] || "higher"} after good sleep vs ${labels[Math.round(poorE)] || "lower"} after poor sleep.`;
     }
     // Research-backed energy context
-    msg += `\n\n📚 Menopause-related fatigue is multifactorial: disrupted sleep, hormonal shifts affecting energy metabolism, and the cumulative toll of other symptoms. Up to 85% of menopausal women report it.`;
-    if (avg <= 1.5) msg += `\n\n💡 Your energy has been quite low. Checking iron, B12, thyroid, and vitamin D levels with your provider is a good idea. These are common, easily treatable contributors to fatigue in midlife women.`;
-    else msg += `\n\n💡 Regular moderate exercise paradoxically increases energy. Consistent wake times. Even on weekends. Also help regulate your circadian rhythm.`;
+    msg += `\n\nContext: Menopause-related fatigue is multifactorial: disrupted sleep, hormonal shifts affecting energy metabolism, and the cumulative toll of other symptoms. Up to 85% of menopausal women report it.`;
+    if (avg <= 1.5) msg += `\n\nWhat may help: Your energy has been quite low. Checking iron, B12, thyroid, and vitamin D levels with your provider is a good idea. These are common, easily treatable contributors to fatigue in midlife women.`;
+    else msg += `\n\nWhat may help: Regular moderate exercise paradoxically increases energy. Consistent wake times. Even on weekends. Also help regulate your circadian rhythm.`;
     return msg + suggestFollowUp("energy");
   }
 
@@ -481,7 +481,7 @@ export function generateResponse(handler, logs, profile) {
     const knowledge = getSymptomKnowledge(handler.param);
     if (data.recentCount === 0 && data.prevCount === 0) {
       let msg = `I haven't seen ${handler.param} in your recent logs. That's great!`;
-      if (knowledge) msg += `\n\n📚 For context: ${knowledge.prevalence}`;
+      if (knowledge) msg += `\n\nFor context: ${knowledge.prevalence}`;
       return msg;
     }
     const trendWord = data.trend === "increasing" ? "more frequently" : data.trend === "decreasing" ? "less often. That's encouraging!" : "at about the same rate";
@@ -495,23 +495,23 @@ export function generateResponse(handler, logs, profile) {
     }
     // Research-backed context
     if (knowledge) {
-      msg += `\n\n📚 ${knowledge.science}`;
+      msg += `\n\nContext: ${knowledge.science}`;
       // Pick a relevant strategy based on trend
       const strategyIdx = data.trend === "increasing" ? 0 : Math.floor(Math.random() * knowledge.strategies.length);
-      msg += `\n\n💡 What helps: ${knowledge.strategies[strategyIdx]}`;
+      msg += `\n\nWhat helps: ${knowledge.strategies[strategyIdx]}`;
       // Stage-specific insight
       const stageCtx = getStageContext(stage, handler.param);
       if (stageCtx) msg += stageCtx;
       // Severity-appropriate doctor nudge
       if (data.recentCount >= 7 || (data.recentSev > 0 && data.recentSev >= 7)) {
-        msg += `\n\n⚕️ ${knowledge.whenToSeeDoc}`;
+        msg += `\n\nDoctor note: ${knowledge.whenToSeeDoc}`;
       }
     } else {
       msg += stageNote;
     }
     // Concern callout
     if (concern && handler.param.toLowerCase().includes(concern.toLowerCase().split(" ")[0])) {
-      msg += `\n\n📌 This is one of the concerns you flagged during onboarding. I'm keeping a close eye on it.`;
+      msg += `\n\nNote: This is one of the concerns you flagged during onboarding. I'm keeping a close eye on it.`;
     }
     return msg + suggestFollowUp("symptomTrend", handler.param);
   }
@@ -521,7 +521,7 @@ export function generateResponse(handler, logs, profile) {
     const tKnowledge = TRIGGER_KNOWLEDGE[handler.param.toLowerCase()] || TRIGGER_KNOWLEDGE[handler.param.toLowerCase().replace("poor ", "")];
     if (data.daysWithTrigger === 0) {
       let msg = `I don't have enough data on ${handler.param} yet. Try logging it when it comes up, and I'll analyze the impact!`;
-      if (tKnowledge) msg += `\n\n📚 What research says: ${tKnowledge.science}`;
+      if (tKnowledge) msg += `\n\nWhat research says: ${tKnowledge.science}`;
       return msg;
     }
     let energyImpact = "";
@@ -533,20 +533,20 @@ export function generateResponse(handler, logs, profile) {
     if (data.impact === "worsens") {
       msg = `Here's what your data shows: on days with ${handler.param}, you average ${data.avgSymptomsWith} symptoms compared to ${data.avgSymptomsWithout} without it. Your mood also tends to be ${data.avgMoodWith < data.avgMoodWithout ? "lower" : "about the same"} (${data.avgMoodWith} vs ${data.avgMoodWithout}).${energyImpact}`;
       if (tKnowledge) {
-        msg += `\n\n📚 Why this happens: ${tKnowledge.science}`;
-        msg += `\n\n💡 ${tKnowledge.tip}`;
+        msg += `\n\nWhy this happens: ${tKnowledge.science}`;
+        msg += `\n\nWhat may help: ${tKnowledge.tip}`;
       }
     } else if (data.impact === "helps") {
       msg = `Your data suggests ${handler.param} may be helping you! On those days, you average ${data.avgSymptomsWith} symptoms vs ${data.avgSymptomsWithout} without it, and your mood tends to be ${data.avgMoodWith > data.avgMoodWithout ? "better" : "similar"}.${energyImpact}`;
       if (tKnowledge) {
-        msg += `\n\n📚 The science backs this up: ${tKnowledge.science}`;
-        msg += `\n\n💡 ${tKnowledge.tip}`;
+        msg += `\n\nThe science backs this up: ${tKnowledge.science}`;
+        msg += `\n\nWhat may help: ${tKnowledge.tip}`;
       }
     } else {
       msg = `${handler.param} doesn't show a strong correlation either way in your data. You average ${data.avgSymptomsWith} symptoms with it and ${data.avgSymptomsWithout} without.${energyImpact}`;
       if (tKnowledge) {
-        msg += `\n\n📚 ${tKnowledge.nuance}`;
-        msg += `\n\n💡 ${tKnowledge.tip}`;
+        msg += `\n\nContext: ${tKnowledge.nuance}`;
+        msg += `\n\nWhat may help: ${tKnowledge.tip}`;
       }
     }
     return msg + suggestFollowUp("triggerImpact", handler.param);
@@ -565,11 +565,11 @@ export function generateResponse(handler, logs, profile) {
     if (worst.length > 0) {
       const topTrigger = worst[0].triggerName.toLowerCase().replace("poor ", "");
       const tK = TRIGGER_KNOWLEDGE[topTrigger];
-      if (tK) msg += `\n\n📚 About ${worst[0].triggerName}: ${tK.science}\n\n💡 ${tK.tip}`;
+      if (tK) msg += `\n\nAbout ${worst[0].triggerName}: ${tK.science}\n\nWhat may help: ${tK.tip}`;
     } else if (best.length > 0) {
       const topHelper = best[0].triggerName.toLowerCase().replace("poor ", "");
       const tK = TRIGGER_KNOWLEDGE[topHelper];
-      if (tK) msg += `\n\n📚 About ${best[0].triggerName}: ${tK.science}`;
+      if (tK) msg += `\n\nAbout ${best[0].triggerName}: ${tK.science}`;
     }
     return msg + suggestFollowUp("triggers");
   }
@@ -580,7 +580,7 @@ export function generateResponse(handler, logs, profile) {
     const energyTrend = data.recentEnergy > 0 && data.prevEnergy > 0 ? (data.recentEnergy > data.prevEnergy ? " Your energy is also trending up!" : data.recentEnergy < data.prevEnergy ? " I notice your energy has dipped a bit too." : "") : "";
     if (data.direction === "improving") {
       let msg = `Great news. You're trending better! Your symptoms have decreased from an average of ${data.prevSymptoms}/day to ${data.recentSymptoms}/day, and your mood has ${data.recentMood > data.prevMood ? `improved from ${data.prevMood} to ${data.recentMood}` : "held steady"}.${energyTrend} Whatever you're doing, it's working!`;
-      msg += `\n\n📚 Research shows that the menopause transition is not a steady decline. Many women experience periods of improvement. Consistent tracking helps you identify what's working so you can do more of it.`;
+      msg += `\n\nContext: Research shows that the menopause transition is not a steady decline. Many women experience periods of improvement. Consistent tracking helps you identify what's working so you can do more of it.`;
       return msg + suggestFollowUp("trend");
     }
     if (data.direction === "worse") {
@@ -594,15 +594,15 @@ export function generateResponse(handler, logs, profile) {
         const topKnowledge = getSymptomKnowledge(topSym[0]);
         if (topKnowledge) {
           msg += `\n\nYour most frequent symptom right now is ${topSym[0]} (${topSym[1]}x in 2 weeks). ${topKnowledge.prevalence}`;
-          msg += `\n\n💡 ${topKnowledge.strategies[0]}`;
+          msg += `\n\nWhat may help: ${topKnowledge.strategies[0]}`;
         }
       }
-      msg += `\n\n📚 Symptom fluctuation is normal during the menopausal transition. Research shows symptoms naturally wax and wane. This isn't a setback, it's part of the process.${energyNote}`;
+      msg += `\n\nContext: Symptom fluctuation is normal during the menopausal transition. Research shows symptoms naturally wax and wane. This isn't a setback, it's part of the process.${energyNote}`;
       if (data.recentSymptoms > 4) msg += ` If this pattern continues, consider bringing your Vela data to your healthcare provider. They can help.`;
       return msg + suggestFollowUp("trend");
     }
     let stableMsg = `Things are holding steady. ${data.recentSymptoms} symptoms/day on average, mood around ${data.recentMood}.${energyTrend}`;
-    stableMsg += `\n\n📚 Stability is actually a positive sign. Research shows that many women reach a "new baseline" during menopause where symptoms become predictable and manageable. You may be finding yours.`;
+    stableMsg += `\n\nContext: Stability is actually a positive sign. Research shows that many women reach a "new baseline" during menopause where symptoms become predictable and manageable. You may be finding yours.`;
     return stableMsg + suggestFollowUp("trend");
   }
 
@@ -620,9 +620,9 @@ export function generateResponse(handler, logs, profile) {
     const topEntry = Object.entries(symC).sort((a, b) => b[1] - a[1])[0];
     if (topEntry) {
       const topK = getSymptomKnowledge(topEntry[0]);
-      if (topK) msg += `\n\n📚 About your most frequent symptom (${topEntry[0]}): ${topK.whenToSeeDoc}`;
+      if (topK) msg += `\n\nAbout your most frequent symptom (${topEntry[0]}): ${topK.whenToSeeDoc}`;
     }
-    msg += "\n\n📋 Tip: Generate a full PDF report from the Doctor Prep section. Providers respond well to structured data.";
+    msg += "\n\nTip: Generate a full PDF report from the Doctor Prep section. Providers respond well to structured data.";
     return msg;
   }
 
@@ -640,10 +640,10 @@ export function generateResponse(handler, logs, profile) {
       if (data.worst.avgEnergy !== null) msg += `, energy: ${data.worst.avgEnergy}`;
       msg += `). `;
     }
-    msg += `\n\n💡 Research on chronobiology suggests that aligning demanding tasks with your best days and scheduling recovery time on harder days can significantly improve quality of life. Your data gives you this advantage. Use it!`;
+    msg += `\n\nWhat may help: Research on chronobiology suggests that aligning demanding tasks with your best days and scheduling recovery time on harder days can significantly improve quality of life. Your data gives you this advantage. Use it.`;
     if (data.best && data.worst && data.best.day !== data.worst?.day) {
       const moodGap = (data.best.avgMood || 0) - (data.worst.avgMood || 0);
-      if (moodGap > 1) msg += `\n\n📊 The mood gap between your best and worst days is significant (${moodGap.toFixed(1)} points). Look at what's different about your ${data.worst.day} routine. Sleep the night before, schedule, stress levels.`;
+      if (moodGap > 1) msg += `\n\nData note: The mood gap between your best and worst days is significant (${moodGap.toFixed(1)} points). Look at what's different about your ${data.worst.day} routine. Sleep the night before, schedule, stress levels.`;
     }
     return msg + suggestFollowUp("bestWorstDays");
   }
@@ -656,7 +656,7 @@ export function generateResponse(handler, logs, profile) {
     if (patterns.length > 0) msg += patterns.slice(0, 3).map((pt) => `• ${pt}`).join("\n");
     if (correlations.length > 0 && patterns.length < 3) {
       const extra = correlations.slice(0, 3 - patterns.length).filter((c) => !patterns.some((pt) => pt.includes(c.text)));
-      if (extra.length > 0) msg += "\n" + extra.map((c) => `• ${c.icon} ${c.text}`).join("\n");
+      if (extra.length > 0) msg += "\n" + extra.map((c) => `• ${c.text}`).join("\n");
     }
     msg += `\n\nThese patterns are based on your personal data. Everyone's experience is unique.${stageNote}`;
     return msg + suggestFollowUp("patterns");
@@ -671,14 +671,14 @@ export function generateResponse(handler, logs, profile) {
   if (data.topSymptoms.length > 0) {
     msg += `Top symptoms: ${data.topSymptoms.map((s) => `${s.name} (${s.count}x)`).join(", ")}\n`;
     if (concern && data.topSymptoms.some((s) => s.name.toLowerCase().includes(concern.toLowerCase()))) {
-      msg += `\n📌 Your ${concern} appeared ${data.topSymptoms.find((s) => s.name.toLowerCase().includes(concern.toLowerCase())).count} times this week.\n`;
+      msg += `\nNote: Your ${concern} appeared ${data.topSymptoms.find((s) => s.name.toLowerCase().includes(concern.toLowerCase())).count} times this week.\n`;
     }
   }
   if (data.topContext && data.topContext.length > 0) {
     const filtered = data.topContext.filter((t) => !t.name.startsWith("Stress:") && !t.name.startsWith("Sleep:"));
     if (filtered.length > 0) msg += `Context: ${filtered.map((t) => `${t.name} (${t.count}x)`).join(", ")}\n`;
   }
-  if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })} ${["😞","😕","😐","🙂","😊"][data.bestDay.mood] || ""}`;
+  if (data.bestDay) msg += `\nBest day: ${new Date(data.bestDay.date).toLocaleDateString("en-US", { weekday: "long" })}${data.bestDay.mood != null ? ` (${["rough", "low", "okay", "good", "great"][data.bestDay.mood] || "mood logged"})` : ""}`;
   msg += stageNote + energyNote;
   return msg + suggestFollowUp("recent");
 }

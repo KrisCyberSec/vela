@@ -54,9 +54,9 @@ Vela makes it trivial to track, find patterns, and walk into doctor appointments
 
 See [business/financial-model.md](../business/financial-model.md) for unit economics and revenue scenarios.
 
-## Current stage (April 2026)
+## Current stage (May 2026)
 
-**Product:** Feature-complete. ~7,800 lines of production code in `src/App.jsx`.
+**Product:** Feature-complete. React app now split across `src/App.jsx`, `src/screens/`, `src/lib/`, and `src/components/`.
 
 **Infrastructure live:**
 - Landing page at [velahealth.health](https://velahealth.health)

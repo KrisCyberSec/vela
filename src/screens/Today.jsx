@@ -23,7 +23,7 @@ import { computeEarlyStats } from "../lib/patterns";
 import { getPersonalization } from "../lib/personalization";
 import { QUESTIONS } from "../lib/questions";
 import { buildDailyBriefSummary } from "../lib/summaries";
-import { MOODS, SYMPTOMS, prioritizedSymptomsForCat } from "../lib/symptoms";
+import { SYMPTOMS, prioritizedSymptomsForCat } from "../lib/symptoms";
 
 export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPaywall }) {
   const [mood, setMood] = useState(null);
@@ -168,51 +168,51 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
 
     let celebTitle = "Entry logged!";
     let celebText = "";
-    let celebIcon = "✓";
+    let celebIcon = "CheckCircle";
 
     if (uniqueDays === 1) {
-      celebTitle = "Your journey begins!";
+      celebTitle = "First entry saved";
       celebText = "6 more days until your first pattern report.";
-      celebIcon = "🌱";
+      celebIcon = "Flower";
     } else if (uniqueDays === 2) {
       celebTitle = "Day 2. Building your baseline";
       celebText = concern
         ? `Vela is now watching your ${concern} patterns. 5 more days to insights.`
         : "Building your baseline. 5 more days to insights.";
-      celebIcon = "📊";
+      celebIcon = "ChartBar";
     } else if (uniqueDays === 3) {
       celebTitle = "Early patterns forming";
       celebText = stats?.topSymptom
         ? `Your most logged symptom so far: ${stats.topSymptom[0]}. 4 more days for deeper analysis.`
         : "Your data is starting to tell a story. 4 more days to go.";
-      celebIcon = "🔍";
+      celebIcon = "MagnifyingGlass";
     } else if (uniqueDays >= 4 && uniqueDays < 7) {
       celebTitle = `${daysLeft} day${daysLeft !== 1 ? "s" : ""} to insights`;
       celebText = concern
         ? `Almost there! Vela will reveal what triggers your ${concern}.`
         : "Almost there! Your personalized patterns are taking shape.";
-      celebIcon = "🌟";
+      celebIcon = "Star";
     } else if (uniqueDays === 7) {
       celebTitle = "Insights unlocked!";
       celebText = "Your first week is complete. Head to Insights to see your patterns.";
-      celebIcon = "✨";
+      celebIcon = "Sparkle";
     } else {
       // Streak milestone celebrations
       if (currentStreak === 30) {
         celebTitle = "30-day streak!";
         celebText = "A full month of tracking. You now have powerful data about your body's patterns. This is the kind of consistency that changes how you manage your health.";
-        celebIcon = "👑";
+        celebIcon = "Target";
       } else if (currentStreak === 21) {
         celebTitle = "21-day streak!";
         celebText = "Three weeks strong. Research shows it takes 21 days to form a habit. Tracking is now part of your routine.";
-        celebIcon = "🏆";
+        celebIcon = "Star";
       } else if (currentStreak === 14) {
         celebTitle = "14-day streak!";
         celebText = "Two solid weeks! Vela can now compare week-over-week trends and spot patterns that shorter tracking misses.";
-        celebIcon = "⭐";
+        celebIcon = "Sparkle";
       } else if (currentStreak >= 3) {
         celebTitle = `${currentStreak}-day streak!`;
-        celebIcon = "🔥";
+        celebIcon = "Flame";
       }
       if (![14, 21, 30].includes(currentStreak)) {
         celebText = entrySymptoms.length > 0
@@ -228,7 +228,6 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
       streak: currentStreak,
       uniqueDays,
       symptomCount: entrySymptoms.length,
-      moodEmoji: mood !== null ? MOODS[mood] : null,
     });
 
     onLog({ mood, energy, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
@@ -797,14 +796,15 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
       {showCelebration && (
         <div className="post-log-celebration" onClick={() => setShowCelebration(null)}>
           <div className="celebration-card">
-            <div className="celebration-icon">{showCelebration.icon}</div>
+            <div className="celebration-icon">
+              <UIIcon name={showCelebration.icon} size={42} weight="duotone" />
+            </div>
             <div className="celebration-title">{showCelebration.title}</div>
-            {showCelebration.moodEmoji && (
-              <div className="celebration-mood">{showCelebration.moodEmoji}</div>
-            )}
             <div className="celebration-text">{showCelebration.text}</div>
             {showCelebration.streak > 1 && (
-              <div className="celebration-streak">🔥 {showCelebration.streak}-day streak</div>
+              <div className="celebration-streak">
+                <UIIcon name="Flame" size={14} weight="fill" /> {showCelebration.streak}-day streak
+              </div>
             )}
             {showCelebration.uniqueDays < 7 && (
               <div className="celebration-progress">

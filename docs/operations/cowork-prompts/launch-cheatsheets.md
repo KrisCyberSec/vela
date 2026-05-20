@@ -82,7 +82,7 @@ Verify the var names by `grep -r "process.env" netlify/functions/ src/`. After K
 - `curl -X POST https://velahealth.health/api/ask-vela` → expect 401/403/400 (means the function is alive; 500 or "function not found" means env var missing).
 - `curl -X POST https://velahealth.health/api/daily-brief` → same.
 
-Sentry verification: open DevTools console on velahealth.health, run `setTimeout(() => { throw new Error('test') }, 0)`. Within 10s, the error appears in Sentry tagged `vela@0.1.0`.
+Sentry verification: open DevTools console on velahealth.health, run `setTimeout(() => { throw new Error('test') }, 0)`. Within 10s, the error appears in Sentry tagged `vela@1.0.0`.
 
 ### 6. `xcode-build.md`
 
@@ -91,7 +91,7 @@ Pre-flight code-side verification BEFORE Kris opens Xcode (do these checks inlin
 - `ios/App/App/Info.plist` has `NSHealthShareUsageDescription` (required for HealthKit)
 - `ios/App/App/Info.plist` has `ITSAppUsesNonExemptEncryption=false` (or the encryption disclosure question will block the upload)
 - `capacitor.config.ts` `appId` is `com.velahealth.app`
-- `package.json` `version` matches the version field Kris will set in Xcode (currently `0.1.0` — confirm)
+- `package.json` `version` matches the version field Kris will set in Xcode (currently `1.0.0` — confirm)
 - The app builds cleanly: run `npm run build` and report success/failure. If build fails, report the error and stop — don't write the rest of the cheat sheet.
 - The web bundle is synced into the iOS project: confirm by checking that `ios/App/App/public/` exists and has files (or `npx cap sync ios` is needed)
 

@@ -49,8 +49,6 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Vela does not track you. This permission is required by iOS but will never be requested.</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.healthcare-fitness</string>
 	<key>NSHealthShareUsageDescription</key>

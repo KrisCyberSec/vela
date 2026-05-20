@@ -101,4 +101,4 @@ export function prioritizedSymptomsForCat(allSymptoms, cat, concerns) {
   return [...matched, ...others];
 }
 
-export const MOODS = ["😔", "😕", "😐", "🙂", "😊"];
+export const MOODS = ["rough", "low", "okay", "good", "great"];

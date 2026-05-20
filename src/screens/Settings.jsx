@@ -367,7 +367,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
           <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
           <span className="body">
             <span className="label">Product analytics</span>
-            <span className="sub">{analyticsOptOut ? "Off. Nothing is sent." : "On. Event names only (log saved, paywall shown, etc.) — never your symptom data."}</span>
+            <span className="sub">{analyticsOptOut ? "Off. Nothing is sent." : "On. Event names only (log saved, paywall shown, etc.). Never your symptom data."}</span>
           </span>
           <span
             className={`set-toggle${!analyticsOptOut ? " on" : ""}`}

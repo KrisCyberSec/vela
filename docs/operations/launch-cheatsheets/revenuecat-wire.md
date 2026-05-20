@@ -104,7 +104,9 @@ the slug.
 | `$rc_monthly` | `com.velahealth.app.premium.monthly` |
 
 4. Drag `$rc_annual` to position 1 (it's the recommended pricing tier
-   shown first in the paywall).
+   shown first in the paywall). The app reads RevenueCat's package metadata
+   and only shows trial text when the selected package reports an eligible
+   free introductory offer.
 
 ### Step 4 — Attach packages to the entitlement
 
@@ -124,8 +126,8 @@ Catches typo-class bugs before Apple's reviewer does:
 2. Physical iPhone → **Settings → App Store → Sandbox Account** → sign
    in with the tester.
 3. Install the TestFlight build (`xcode-build.md`).
-4. In the app: Settings → Subscription → **Upgrade to Vela → Try free
-   for 14 days · then $69.99/yr**. Complete the purchase prompt.
+4. In the app: Settings → Subscription → **Upgrade to Vela → Continue
+   with Annual · $69.99/yr**. Complete the purchase prompt.
 
 ✓ Pass: Subscription shows **Active**, Premium features unlock.
 ✗ Fail (paid, still locked): entitlement-name typo. Back to Step 2,

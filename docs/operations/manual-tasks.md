@@ -47,14 +47,11 @@ Sorted by what blocks what. Cross items off as they ship.
 - A **Distribution** certificate and **App Store** provisioning profile
   will be generated when you do the first archive build
 
-### [ ] 1024×1024 app icon (no alpha channel)
-- App Store Connect wants a single 1024×1024 PNG for the App Store
-  listing. The existing `landing/icon-512.png` is too small AND may
-  have alpha — both reasons for rejection.
-- Generator script at `landing/generate-app-icon.js` if you want to
-  regenerate from source. Output: `landing/icon-1024.png`, no alpha.
-- Drop into Xcode → `Assets.xcassets/AppIcon.appiconset/` (1024×1024
-  slot) AND upload separately to App Store Connect → Media Manager.
+### [x] 1024×1024 app icon (no alpha channel)
+- Verified present at `landing/icon-1024.png`: 1024×1024 RGB PNG, no alpha.
+- Verified present in `ios/App/App/Assets.xcassets/AppIcon.appiconset/`.
+- Still upload the same 1024×1024 icon separately to App Store Connect
+  → Media Manager if Apple asks for it outside the binary.
 
 ### [ ] App Store screenshots
 - Required sizes (Apple needs at least one set; using 6.7" covers most
@@ -76,19 +73,28 @@ Sorted by what blocks what. Cross items off as they ship.
   overlay text on the images for v1).
 
 ### [ ] Privacy nutrition label in App Store Connect
-- **Highest-probability source of rejection.** The unusual case for
-  Vela is: the symptom log is local-only, BUT Ask Vela and Daily Brief
-  send an anonymized summary to our server (which proxies to
-  Anthropic). The label must reflect this honestly.
+- **Highest-probability source of rejection.** The symptom log is mostly
+  local-only, but Vela still has off-device flows: Ask Vela/Daily Brief
+  summaries, RevenueCat purchases, PostHog product events, and Sentry
+  diagnostics. The label must reflect all of them.
 - Correct declaration:
-  - **Health & Fitness data** → *Used for App Functionality* →
-    *Not Linked to User Identity*
-  - All other categories: *Data Not Collected*
+  - **Health & Fitness → Health**: App Functionality + Product
+    Personalization, Not Linked, Not Tracking.
+  - **Purchases → Purchase History**: App Functionality + Analytics, Not
+    Linked if you keep anonymous RevenueCat app user IDs, Not Tracking.
+  - **Identifiers → User ID**: App Functionality, Not Linked, Not
+    Tracking. This is the anonymous RevenueCat/Sentry app user ID, not an
+    email or account login.
+  - **Usage Data → Product Interaction**: Analytics, Not Linked, Not
+    Tracking. Users can opt out in Settings, but Apple still asks for
+    everything the app may collect.
+  - **Diagnostics → Crash Data** and **Other Diagnostic Data**: App
+    Functionality, Not Linked, Not Tracking.
 - Do NOT check "Data Not Collected" universally. A reviewer who sees
-  the network call to `/api/ask-vela` will reject for inaccurate
-  disclosure.
-- The privacy policy at `landing/privacy.html` already matches this.
-  Cross-reference the two before submitting.
+  `/api/ask-vela`, RevenueCat, Sentry, or PostHog traffic can reject for
+  inaccurate disclosure.
+- The privacy policy at `landing/privacy.html` and the native
+  `PrivacyInfo.xcprivacy` manifest have been aligned to this disclosure.
 
 ### [ ] App Review Information (reviewer notes + contact)
 - ASC → App Information → App Review Information.
@@ -182,7 +188,7 @@ Sorted by what blocks what. Cross items off as they ship.
   3. Force a test error: open DevTools console, run
      `setTimeout(() => { throw new Error('sentry-smoke-test'); }, 0)`.
   4. Within ~10s, the error should appear in Sentry under
-     **Issues** with the release tag `vela@0.1.0`.
+     **Issues** with the release tag `vela@1.0.0`.
 - Code-side wiring (all done):
   - `src/errorReporting.js` — init, `reportError()`, `identifyUser()`,
     `clearUser()`. Adds `window.onerror` + `unhandledrejection` handlers

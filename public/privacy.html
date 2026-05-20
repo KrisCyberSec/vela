@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vela — Privacy Policy</title>
+  <title>Vela. Privacy Policy</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px 16px; color: #2C1F17; line-height: 1.7; }
-    h1 { font-size: 24px; margin-bottom: 4px; }
-    h2 { font-size: 18px; margin-top: 28px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 680px; margin: 0 auto; padding: 32px 20px 80px; color: #2C1F17; line-height: 1.7; }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin-top: 32px; }
+    h3 { font-size: 15px; margin-top: 20px; color: #6B5347; }
     .date { color: #6B5347; font-size: 14px; margin-bottom: 24px; }
+    .intro { background: #F5E6DE; padding: 16px 20px; border-radius: 8px; margin: 20px 0 32px; }
     p, li { font-size: 15px; }
     ul { padding-left: 20px; }
     a { color: #C97B5C; }
@@ -16,43 +18,63 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p class="date">Effective date: March 14, 2026</p>
+  <p class="date">Effective date: May 20, 2026</p>
 
-  <p>Vela ("we", "our", or "the app") is a perimenopause and menopause symptom tracking companion. We are committed to protecting your privacy.</p>
+  <div class="intro">
+    <strong>Plain English summary:</strong> Your health log stays on your device. When you use Ask Vela or Daily brief, Vela sends an anonymized summary to our server so Anthropic's Claude API can answer from your patterns. The summary does not include notes, custom symptom names, exact dates, your name, email, or an advertising identifier.
+  </div>
 
-  <h2>Data We Collect</h2>
-  <p>Vela collects the following information that you voluntarily provide:</p>
+  <p>Vela ("we", "our", or "the app") is a perimenopause and menopause symptom tracking companion operated by Vela Health. This policy covers the Vela iOS app and the velahealth.health website.</p>
+
+  <h2>1. Data Stored In The App</h2>
+  <p>The app stores information you enter voluntarily:</p>
   <ul>
-    <li>Onboarding questionnaire answers (hormonal stage, symptom preferences, goals)</li>
-    <li>Daily symptom logs (mood, symptoms, severity ratings, free-text notes)</li>
+    <li>Onboarding answers, including menopause stage, concerns, goals, and guidance preferences</li>
+    <li>Daily logs, including mood, energy, symptoms, severity ratings, sleep, stress, triggers, period context, and free-text notes</li>
+    <li>Experiment progress, Ask Vela conversation history, and feedback on insights</li>
+  </ul>
+  <p>This data is stored locally in the app's device storage. We cannot read it, recover it, or sync it for you.</p>
+
+  <h2>2. AI Features</h2>
+  <p>Ask Vela and Daily brief are premium AI features. When you use them, the app sends a compact summary to Vela's Netlify-hosted API, which forwards it to Anthropic's Claude API. The summary includes aggregated counts and averages from recent logs, plus a weekday-based last-week breakdown. It does not include free-text notes, custom symptom labels, exact dates, real names, email addresses, or advertising IDs.</p>
+  <p>Our server verifies premium status with RevenueCat before spending AI tokens. It also keeps rate-limit, cost-limit, and short-lived cache records in Netlify Blobs. These records use hashed identifiers where practical and are used to operate the feature, prevent abuse, and manage cost.</p>
+
+  <h2>3. Purchases And Connected Services</h2>
+  <ul>
+    <li><strong>Apple:</strong> processes App Store subscriptions.</li>
+    <li><strong>RevenueCat:</strong> manages subscription status using an anonymous app user ID and purchase receipt. No health log contents are sent to RevenueCat.</li>
+    <li><strong>Apple Health:</strong> if you grant permission, Vela reads sleep hours. Vela does not write to Apple Health.</li>
+    <li><strong>Sentry:</strong> may receive crash and error reports if configured. We use an anonymous app user ID for grouping errors. We do not intentionally send health log contents.</li>
   </ul>
 
-  <h2>How Data Is Stored</h2>
-  <p>All data is stored <strong>locally on your device only</strong>, using your browser's or app's local storage. We do not transmit, upload, or store your health data on any external server.</p>
-  <p>If you delete the app, your data will be permanently lost. We have no ability to recover it.</p>
+  <h2>4. Product Analytics</h2>
+  <p>The app may use PostHog for limited product analytics if configured. Autocapture and session recording are disabled. The app sends event names and small counts, such as log saved, paywall shown, and Ask Vela used. It does not send symptom names, notes, Ask Vela questions, Ask Vela answers, or log contents. You can turn product analytics off in Settings &gt; Privacy &amp; Data.</p>
 
-  <h2>Data We Do NOT Collect</h2>
+  <h2>5. Website And Waitlist</h2>
+  <p>If you join the waitlist on velahealth.health, we collect your email address, submission time, browser user agent, referring URL, and IP address. Waitlist data is stored on Netlify infrastructure and is used to manage launch communication. We do not sell or rent it.</p>
+
+  <h2>6. Community Features</h2>
+  <p>The community feature is currently preview-only. If we enable live community features later, posts and replies you publish may be stored on Firebase and visible to other Vela users under an anonymous alias. We will update this policy before enabling live community features.</p>
+
+  <h2>7. Data We Do Not Collect</h2>
   <ul>
-    <li>We do not collect personal identifiers (name, email, phone number)</li>
-    <li>We do not use analytics or tracking SDKs</li>
-    <li>We do not collect device identifiers or advertising IDs</li>
-    <li>We do not share any data with third parties</li>
+    <li>We do not collect your real name, phone number, address, contacts, photos, location, or calendar.</li>
+    <li>We do not use ad networks or ad-tracking pixels.</li>
+    <li>We do not collect advertising IDs or device fingerprints.</li>
+    <li>We do not sell data to anyone.</li>
   </ul>
 
-  <h2>In-App Purchases</h2>
-  <p>Subscription purchases are processed entirely by Apple through the App Store. We use RevenueCat to manage subscription status. RevenueCat receives an anonymous app user ID and purchase receipt — no personal health data is shared with RevenueCat.</p>
-  <p>See RevenueCat's privacy policy at <a href="https://www.revenuecat.com/privacy">revenuecat.com/privacy</a>.</p>
+  <h2>8. Your Rights And Choices</h2>
+  <p>You can delete app data from Settings &gt; Reset all data or by deleting the app. Because app health data stays on your device, deletion is immediate and we do not have a server copy to recover.</p>
+  <p>For waitlist data, you can request access, correction, deletion, or portability by emailing <a href="mailto:support@velahealth.health">support@velahealth.health</a>.</p>
 
-  <h2>Children's Privacy</h2>
-  <p>Vela is not intended for use by children under 13. We do not knowingly collect data from children.</p>
+  <h2>9. Security</h2>
+  <p>We use HTTPS for network connections and keep server secrets in protected environment variables. No system is perfectly secure. If we learn of a breach affecting your data, we will notify you as required by law.</p>
 
-  <h2>Your Rights</h2>
-  <p>Since all data is stored locally on your device, you have full control. You can delete all data at any time by clearing the app's data or uninstalling the app.</p>
+  <h2>10. Changes</h2>
+  <p>We may update this policy from time to time. The effective date above reflects the most recent change.</p>
 
-  <h2>Changes to This Policy</h2>
-  <p>We may update this policy from time to time. Changes will be reflected in the "Effective date" above.</p>
-
-  <h2>Contact</h2>
-  <p>Questions about this policy? Contact us at <a href="mailto:support@velahealth.health">support@velahealth.health</a>.</p>
+  <h2>11. Contact</h2>
+  <p>Questions about this policy? Contact <a href="mailto:support@velahealth.health">support@velahealth.health</a>.</p>
 </body>
 </html>

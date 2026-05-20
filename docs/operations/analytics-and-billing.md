@@ -51,9 +51,15 @@ If `paywall_shown / log_completed (D7)` is healthy but `paywall_converted / payw
    ```
 8. **Test in sandbox:** install the app via TestFlight, sign into a sandbox Apple ID (Settings → App Store → Sandbox Account), open the paywall, complete a purchase. RevenueCat dashboard shows the transaction within seconds.
 
+The paywall reads RevenueCat offerings and checks
+`checkTrialOrIntroductoryPriceEligibility` before showing trial copy. If
+RevenueCat/Apple reports the sandbox Apple ID is eligible, the button says
+`Start 14 days free · then $69.99/yr` or `Start 14 days free · then
+$8.99/mo`. Unknown or ineligible status falls back to plain paid copy.
+
 ### Web behavior (intentional)
 
-`Capacitor.isNativePlatform()` is false in the browser dev preview, so RevenueCat init is skipped and `purchasePlan()` returns `error: 'not_available'`. The paywall handler treats that as a dev fallback and unlocks premium locally — useful for taking screenshots and demoing the paywall flow without an Apple sandbox account.
+`Capacitor.isNativePlatform()` is false in the browser dev preview, so RevenueCat init is skipped and `purchasePlan()` returns `error: 'web_fallback'`. The paywall handler treats that as a dev fallback and unlocks premium locally — useful for taking screenshots and demoing the paywall flow without an Apple sandbox account.
 
 ---
 

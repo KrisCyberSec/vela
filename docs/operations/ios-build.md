@@ -55,14 +55,15 @@ Current state (verified in `ios/App/App/`):
 ### Info.plist keys set
 
 - `ITSAppUsesNonExemptEncryption = false` — skips the annual encryption compliance question
-- `NSUserTrackingUsageDescription` — required even though we don't track
 - `LSApplicationCategoryType = public.app-category.healthcare-fitness` — App Store category
 
 ### Privacy Manifest
 
 `PrivacyInfo.xcprivacy` declares:
 - No tracking
-- No collected data types (app is fully on-device)
+- Collected data types for the actual off-device flows: Health, Purchase
+  History, anonymous User ID, Product Interaction, Crash Data, and Other
+  Diagnostic Data
 - Accessed API categories with "required reasons":
   - `UserDefaults` (CA92.1) — localStorage via WebView
   - `FileTimestamp` (C617.1) — general file ops
@@ -93,8 +94,8 @@ Apps installed this way expire after 7 days and must be re-deployed. Fine for te
    - Category: Health & Fitness
    - Primary language: English (US)
 3. **In-app purchases** — create 2 subscriptions:
-   - `vela_premium_monthly` at $8.99/mo (Apple Tier 9), 14-day intro free trial
-   - `vela_premium_annual` at $69.99/yr (Apple Tier 70), 14-day intro free trial
+   - `com.velahealth.app.premium.monthly` at $8.99/mo (Apple Tier 9), 14-day intro free trial
+   - `com.velahealth.app.premium.annual` at $69.99/yr (Apple Tier 70), 14-day intro free trial
 
    Both go in the same Subscription Group (`vela_premium`). Allow upgrade/downgrade between them.
 

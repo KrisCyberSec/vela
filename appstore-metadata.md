@@ -12,7 +12,7 @@ Track symptoms. See patterns.
 Health & Fitness
 
 ## Price
-Free (with in-app subscription: $8.99/month or $69.99/year, 14-day free trial)
+Free (with in-app subscription: $8.99/month or $69.99/year)
 
 ---
 

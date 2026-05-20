@@ -94,7 +94,7 @@ export default function CommunityScreen() {
           <div className="cir-first-eye"><UIIcon name="Sparkle" size={12} /> First time here</div>
           <h3>You don't have to <em>say anything yet.</em></h3>
           <p>{COMMUNITY_PREVIEW
-            ? "The circle opens later this season. Until then, the prompt below is real — sit with it. Sharing and replies will turn on when we flip the switch."
+            ? "The circle opens later this season. Until then, the prompt below is real. Sit with it. Sharing and replies will turn on when we flip the switch."
             : "Most people read for a week before they answer. That's fine. The prompt below is today's. There will be a new one tomorrow."}</p>
           <div className="cir-first-rules">
             <span><UIIcon name="Eye" size={12} /> Anonymous by default</span>

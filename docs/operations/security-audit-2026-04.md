@@ -48,7 +48,7 @@ The admin token lives in `ADMIN.md` (gitignored, never committed) and as the `AD
 
 | Service | Env var | Status |
 |---------|---------|--------|
-| PostHog (web + app) | `REACT_APP_POSTHOG_KEY` (CRA), `POSTHOG_KEY` const in `landing/index.html` | Empty → no-op, no analytics flowing yet |
+| PostHog (web + app) | `REACT_APP_POSTHOG_KEY` (CRA), `POSTHOG_KEY` const in `landing/index.html` | Landing page has a public PostHog project key; app key still no-ops unless env is set |
 | Sentry | `REACT_APP_SENTRY_DSN` | Empty → no-op |
 | RevenueCat | `REACT_APP_REVENUECAT_IOS_API_KEY` | Empty → paywall unlocks locally for dev (by design) |
 | Netlify Blobs (waitlist storage) | `NETLIFY_BLOBS_TOKEN` | Set in Netlify env (not in repo) |
@@ -56,7 +56,7 @@ The admin token lives in `ADMIN.md` (gitignored, never committed) and as the `AD
 
 ## Things to revisit when more humans touch this code
 
-- **`vela/` subdirectory** at repo root is an untracked second clone. Won't ship, but clean it up to avoid confusion. (Run `rm -rf vela/` if you don't recognize how it got there.)
+- **Runtime dependency audit** now passes with `npm audit --omit=dev`. Full `npm audit` still reports CRA/Jest/Webpack build-tool advisories until the project migrates off `react-scripts`.
 - **`docs/operations/analytics-and-billing.md`** has `appl_xxxxxxxxxxxxxxxxxxxx` and `phc_xxxxxxxxxxxxxxxxxxxx` example placeholders. These are clearly fake; not a leak, but if you're ever skimming for "did I commit a real key," they'll flag in casual greps. Keep them or replace with `<YOUR_KEY_HERE>` — preference call.
 - **Firebase community config** (`src/community.js`) — when `LIVE_COMMUNITY` is flipped to `true`, audit the Firebase rules and what's exposed in client-side config (Firebase API keys are public by design but rules need to be tight).
 - **Admin dashboard CSRF** — `/admin.html` uses Bearer auth, no cookies, so CSRF is structurally not a concern.

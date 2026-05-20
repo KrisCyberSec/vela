@@ -1,10 +1,10 @@
-# Vela 🌿
+# Vela
 
 **Your menopause companion.** A privacy-first iOS app for tracking perimenopause and menopause symptoms, discovering personal patterns, and walking into your doctor's office prepared.
 
 - **Landing page (live):** [velahealth.health](https://velahealth.health)
 - **App stage:** Feature-complete, pre–App Store
-- **Codebase:** Single-file React app (~7,800 lines in `src/App.jsx`), packaged for iOS via Capacitor
+- **Codebase:** React app split across `src/screens/`, `src/lib/`, and `src/components/`, packaged for iOS via Capacitor
 
 ---
 
@@ -50,13 +50,16 @@ Vela/
 ├── README.md                 ← this file
 ├── ADMIN.md                  ← private tokens (gitignored)
 ├── src/
-│   └── App.jsx               ← main React app (single-file, ~7800 lines)
+│   ├── App.jsx               ← app shell, routing, persistence, global CSS
+│   ├── screens/              ← Today, History, Insights, Settings, etc.
+│   ├── lib/                  ← pure analysis, AI summaries, PDF, storage helpers
+│   └── components/           ← shared UI components and icon wrappers
 ├── public/                   ← CRA public assets + privacy.html + terms.html
 ├── landing/                  ← velahealth.health source (separate from the app)
 │   ├── index.html            ← marketing landing page
 │   ├── admin.html            ← password-protected waitlist dashboard
-│   └── netlify/functions/    ← waitlist.js, waitlist-export.js
 ├── docs/                     ← all project documentation
+├── netlify/functions/        ← waitlist + AI proxy functions
 ├── ios/                      ← Capacitor iOS shell
 ├── build/                    ← production build output
 ├── Vela-Pitch-Deck.pptx      ← investor/friend pitch deck
@@ -67,7 +70,7 @@ Vela/
 
 ## Tech Stack
 
-- **Frontend:** React 18, single-file `App.jsx` (no build-time splitting needed for MVP)
+- **Frontend:** React 18 with CRA, screen modules, pure `src/lib/` analysis modules
 - **iOS:** Capacitor 8 (native shell wrapping the React app)
 - **PDF reports:** jsPDF
 - **Community backend (ready to flip):** Firebase 12 (Firestore + anonymous auth)

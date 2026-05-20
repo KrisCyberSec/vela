@@ -319,7 +319,7 @@ export function generateDoctorReport(logs, profile) {
     y += 6;
   }
 
-  // Last 4 weeks — daily detail. The earlier 8 weeks are covered by the
+  // Last 4 weeks: daily detail. The earlier 8 weeks are covered by the
   // weekly charts above; printing 84 days of per-entry rows would balloon
   // the PDF and bury the signal.
   const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
@@ -327,7 +327,7 @@ export function generateDoctorReport(logs, profile) {
   checkPage(15);
   doc.setFontSize(14);
   doc.setTextColor(...INK);
-  doc.text("Last 4 weeks — daily detail", margin, y);
+  doc.text("Last 4 weeks: daily detail", margin, y);
   y += 5;
   doc.setFontSize(9);
   doc.setTextColor(...INK_MID);

@@ -73,7 +73,7 @@ Both Description fields (English U.S.):
 
 Review Screenshot for each: upload one of the paywall screenshots from
 `screenshot-script.md`. Review Notes for each:
-`Tap "Try free for 14 days" on the paywall to subscribe. Sandbox tester accounts work normally.`
+`Tap the Annual purchase button on the paywall. If the sandbox Apple ID is eligible for the introductory offer, the button says "Start 14 days free · then $69.99/yr"; otherwise it says "Continue with Annual · $69.99/yr". Sandbox tester accounts work normally.`
 
 Both end at "Ready to Submit" (yellow) — turns green after first build
 ships alongside them.
@@ -86,22 +86,29 @@ Sidebar → **App Privacy** → **Get Started** (or **Edit**). Sequence:
    Counter-intuitive but correct — Ask Vela sends an anonymized
    summary to our Netlify proxy → Anthropic, which counts as
    collection (even with notes / custom names / exact dates stripped).
-2. **Data Type screen** — check ONLY ☑ **Health & Fitness → Health &
-   Fitness** (sub-category). Everything else unchecked (Contact Info,
-   Identifiers, Location, Browsing History, Purchases). **Save**.
-3. **Health & Fitness configuration**:
+2. **Data Type screen** — check:
+   - ☑ **Health & Fitness → Health**
+   - ☑ **Purchases → Purchase History**
+   - ☑ **Identifiers → User ID**
+   - ☑ **Usage Data → Product Interaction**
+   - ☑ **Diagnostics → Crash Data**
+   - ☑ **Diagnostics → Other Diagnostic Data**
+3. Configure each selected type:
 
-| Question | Answer |
-|---|---|
-| How is this data used? | ☑ **App Functionality** ONLY (uncheck Analytics, Personalization, Advertising, Other) |
-| Is the data linked to the user's identity? | **No** |
-| Is the data used for tracking? | **No** |
+| Data type | Use | Linked? | Tracking? |
+|---|---|---|---|
+| Health | App Functionality + Product Personalization | No | No |
+| Purchase History | App Functionality + Analytics | No, while using anonymous RevenueCat IDs | No |
+| User ID | App Functionality | No, while anonymous and not tied to email/login | No |
+| Product Interaction | Analytics | No | No |
+| Crash Data | App Functionality | No | No |
+| Other Diagnostic Data | App Functionality | No | No |
 
-4. **Save**. ✓ Preview should show "Track You: Not Collected", "Linked
-   to You: Not Collected", "Not Linked to You: Health & Fitness".
+4. **Save**. ✓ Preview should show no tracking, no data linked to
+   identity, and the selected categories under "Data Not Linked to You."
 
-If a reviewer rejects, re-verify Health & Fitness and cross-check
-against `landing/privacy.html` — they must match.
+If a reviewer rejects, re-verify this list against `landing/privacy.html`
+and `ios/App/App/PrivacyInfo.xcprivacy` — they must match.
 
 ## Page: 1.0 Prepare for Submission
 

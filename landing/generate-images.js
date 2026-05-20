@@ -48,13 +48,13 @@ const ogSvg = `<?xml version="1.0" encoding="UTF-8"?>
   <!-- Feature pills -->
   <g font-family="Calibri, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#F5F0E8">
     <rect x="80" y="490" width="220" height="52" rx="26" fill="#7A8B6F" fill-opacity="0.25" stroke="#7A8B6F" stroke-width="1.5"/>
-    <text x="108" y="524">🔒 On-device only</text>
+    <text x="108" y="524">On-device only</text>
 
     <rect x="320" y="490" width="240" height="52" rx="26" fill="#7A8B6F" fill-opacity="0.25" stroke="#7A8B6F" stroke-width="1.5"/>
     <text x="350" y="524">🤖 AI companion</text>
 
     <rect x="580" y="490" width="260" height="52" rx="26" fill="#7A8B6F" fill-opacity="0.25" stroke="#7A8B6F" stroke-width="1.5"/>
-    <text x="610" y="524">📋 Doctor reports</text>
+    <text x="610" y="524">Doctor reports</text>
   </g>
 
   <!-- URL bottom right -->

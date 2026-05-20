@@ -18,8 +18,9 @@ flow.
   2. Code signing + 1024×1024 icon + HealthKit capability in Xcode
   3. App Store Connect: app record, IAPs, screenshots (6 frames spec'd)
   4. Privacy nutrition label — *highest rejection risk* — must declare
-     "Health & Fitness data → app functionality → not linked to user"
-     for the Ask Vela path, NOT universal "Data Not Collected"
+     Health, Purchase History, anonymous User ID, Product Interaction,
+     Crash Data, and Other Diagnostic Data. NOT universal "Data Not
+     Collected"
   5. RevenueCat fully wired (the `premium` entitlement constant must
      match) — *second highest rejection risk*
   6. Netlify env: `ANTHROPIC_API_KEY` + `REVENUECAT_REST_KEY`
@@ -32,7 +33,7 @@ flow.
   context, release tagging, error sinks all in place.
 - **Done means:** Kris pastes a real DSN into `.env.local` + Netlify
   env, throws a smoke test from DevTools, sees it land in the Sentry
-  dashboard tagged `vela@0.1.0`. Recipe in
+  dashboard tagged `vela@1.0.0`. Recipe in
   `docs/operations/manual-tasks.md` under "Create Sentry account."
 
 ### Push local main to origin

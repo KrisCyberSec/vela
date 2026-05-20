@@ -1,210 +1,150 @@
 # Architecture
 
-Technical reference for the Vela codebase. Use this to navigate the single-file React app and understand how major systems fit together.
+Technical reference for the current Vela codebase.
 
 ## Tech stack
 
-| Layer | Tech | Why |
-|-------|------|-----|
-| UI framework | React 18 | Mature, well-understood |
-| File structure | Single file (`src/App.jsx`) | All components, CSS-in-JS, constants in one place — fast to grep, zero import overhead for MVP |
-| Build tool | Create React App (react-scripts 5) | Defer build tooling decisions until scaling warrants them |
-| iOS shell | Capacitor 8 | Native iOS app from React with minimal platform code |
-| PDF generation | jsPDF 4 | Doctor reports |
-| Community backend | Firebase 12 (Firestore + anonymous auth) | Ready to enable; see [community-firebase.md](community-firebase.md) |
-| Storage | `localStorage` | On-device, privacy-first, no server required |
-| Haptics | `@capacitor/haptics` | Native iOS feedback on badges, level-ups, nudges |
+| Layer | Tech | Notes |
+|-------|------|-------|
+| UI framework | React 18 | Create React App build, packaged into iOS through Capacitor |
+| App shell | `src/App.jsx` | Routing, persistence, global CSS, top-level product state |
+| Screens | `src/screens/` | Today, History, Insights, Onboarding, Paywall, Settings, Community, EditQuestion |
+| Pure logic | `src/lib/` | Correlations, summaries, forecasts, cycle prediction, doctor report, experiments, crisis checks |
+| Shared UI | `src/components/` | Icon wrappers, crisis support card, error boundary |
+| iOS shell | Capacitor 8 | Custom HealthKit plugin under `ios/App/App/Plugins/` |
+| Server functions | Netlify Functions | Waitlist, waitlist export, Ask Vela, Daily brief |
+| Storage | Device `localStorage` | Core health log stays on device |
+| Purchases | RevenueCat + Apple IAP | Client SDK in app, server REST check before AI spend |
+| Analytics/error reporting | PostHog + Sentry | Optional, no-op without env vars |
 
-## File layout
+## Source layout
 
-```
+```text
 src/
-├── App.jsx       ← everything (~7800 lines)
-└── index.js      ← React entry point
-src/community.js  ← Firebase community module (flip-ready)
+├── App.jsx
+├── index.js
+├── ErrorBoundary.jsx
+├── analytics.js
+├── errorReporting.js
+├── healthkit.js
+├── safeStorage.js
+├── subscription.js
+├── community.js
+├── components/
+│   ├── CrisisSupportCard.jsx
+│   └── icons.jsx
+├── screens/
+│   ├── Today.jsx
+│   ├── History.jsx
+│   ├── Insights.jsx
+│   ├── Onboarding.jsx
+│   ├── Paywall.jsx
+│   ├── Settings.jsx
+│   ├── Community.jsx
+│   └── EditQuestion.jsx
+└── lib/
+    ├── summaries.js
+    ├── correlations.js
+    ├── anomalies.js
+    ├── cycle.js
+    ├── forecast.js
+    ├── doctorReport.js
+    ├── experiments.jsx
+    ├── crisis.js
+    └── ...
 ```
 
-**Why a single file?** During MVP, keeping all components in `App.jsx` means:
-- Grep-friendly (find any symbol in one pass)
-- Zero import ceremony
-- Refactor friction-free — no file churn when renaming components
+## Runtime flow
 
-When the file grows past a threshold where navigation is painful, we'll split by screen (`TrackerScreen.jsx`, `InsightsScreen.jsx`, etc.). Not yet.
+### App boot
 
-## `App.jsx` section map
+`src/index.js` initializes the top-level `ErrorBoundary` and renders `App`. `App.jsx` reads core state through `safeStorage`, initializes Sentry/PostHog/RevenueCat, and chooses the first screen based on `vela_onboarded`.
 
-Navigate the file by line range:
+### Daily logging
 
-| Lines | Section |
-|-------|---------|
-| 1–11 | Imports + haptic feedback wrapper |
-| 13–121 | Symptom/UI constants: `SYMPTOM_CATEGORIES`, `SYMPTOMS` (51), `QUESTIONS`, `MOODS` |
-| 122–177 | Utility helpers: `getGreeting`, `localDateStr`, `getStreak`, `applyStreakFreeze` |
-| 180–250 | Profile personalization: `getPersonalization` |
-| 251–265 | Early analytics: `computeEarlyStats` |
-| 266–360 | Pattern analysis: `analyzePatterns` (sequences, weekday peaks, mood correlations, co-occurrence) |
-| 362–488 | Prediction & insights: `predictSymptoms`, `analyzeCorrelations`, `getBestInsight`, `monthlyComparison` |
-| 509–763 | Doctor report: `analyzeSymptomTrend`, `analyzeTriggerImpact`, `generateDoctorSummary` |
-| 779–1007 | Ask Vela legacy knowledge base (kept as fallback): `SYMPTOM_KNOWLEDGE`, `TRIGGER_KNOWLEDGE`, `getSymptomKnowledge`, `getStageContext` |
-| 1008–1475 | Ask Vela legacy router (fallback path): `matchQuestion`, `generateResponse`, `generateWeeklyDigest` |
-| see ai-companion.md | **Real Ask Vela + Daily Brief** are now Anthropic Claude-backed via Netlify Functions (`netlify/functions/ask-vela.js`, `daily-brief.js`). Client helpers `buildAskVelaSummary`, `buildDailyBriefSummary`, `looksLikeCrisis`, `CrisisSupportCard` live in App.jsx. Full spec in `docs/engineering/ai-companion.md`. |
-| see App.jsx | **Other intelligence engines (statistical, on-device):** `analyzeCorrelations` (adaptive same-day + lag), `detectAnomalies` (z-score), `predictNextCycle`, `forecastTomorrow` (Bayesian), `suggestExperiments`, `buildWeeklySummary`, `compareExperiment`, `getInsightFeedback` + `applyFeedbackRanking`. |
-| Note | Line numbers are approximate and drift as the file evolves. Use grep with the symbol name. |
-| 1549–1669 | Gamification: `BADGES` (23), `LEVELS` (10), `computeGamificationStats`, `computeXP`, `getLevel` |
-| 1677–1870 | Content libraries: `EXPERIMENTS` (16), `DAILY_LESSONS` (60), `CBT_PROGRAMS` (3) |
-| 1874–3588 | Global styles (CSS-in-JS) |
-| 3589–6800 | Screen components (see below) |
-| 6800–7375 | Community: `COMMUNITY_TOPICS` (5), `CommunityScreen`, post/reply/vote logic |
-| 7376–7843 | Main `App` component: state, tab routing, badge/level-up detection |
+`src/screens/Today.jsx` owns the logging UI. On save, it calls `App.handleLog`, which stamps a local-time ISO date, appends the entry to `vela_logs`, tracks a minimal analytics event, shows a toast, and checks badge or level milestones.
 
-## Screen components
+### Insights
 
-| Component | Line | Role |
-|-----------|------|------|
-| `OnboardingScreen` | 3589 | 4-question wizard (stage, concerns, goals, guidance) |
-| `TrackerScreen` | 3730 | Main daily log: mood, energy, symptoms, context, notes |
-| `HistoryScreen` | 4599 | Calendar/table view of past logs |
-| `MoodLineChart` | 4699 | Mood over time |
-| `SymptomHeatmap` | 4798 | Symptom frequency by day-of-week |
-| `SleepSymptomScatter` | 4874 | Sleep hours vs symptom count |
-| `InsightLibrary` | 4948 | Browse curated insights |
-| `InsightsReveal` | 4990 | First-time 7-step animated insights reveal |
-| `InsightsScreen` | 5094 | Main insights hub |
-| `PaywallScreen` | 6039 | Premium subscription upsell |
-| `EditQuestionScreen` | 6421 | Edit onboarding answers |
-| `MilestonesCard` | 6485 | Badges + level display |
-| `SettingsScreen` | 6526 | Profile, data export, reminders, debug |
-| `CommunityScreen` | 6940 | Topics, posts, replies, voting |
+`src/screens/Insights.jsx` composes the analysis engines:
 
-## Key systems
+- `analyzeCorrelations`
+- `detectAnomalies`
+- `predictNextCycle`
+- `forecastTomorrow`
+- `buildWeeklySummary`
+- `suggestExperiments`
+- `compareExperiment`
+- `generateDoctorReport`
 
-### Logging (core loop)
+These engines run on device against `logs`.
 
-- `TrackerScreen` (3730) — the UI
-- `handleLog` (7451) — persists an entry, updates streak, fires toasts, triggers badge detection
-- Storage: `localStorage["vela_logs"]` — array of entries with `{ date, mood, energy, symptoms[], context{}, notes }`
+### Ask Vela and Daily Brief
 
-### Pattern analysis
+The client builds scrubbed summaries in `src/lib/summaries.js`. Those summaries remove notes, exact dates, and custom symptom names before leaving the device.
 
-- `analyzePatterns` (266) — four pattern types: symptom sequences, weekday peaks, mood-symptom inverse, co-occurring pairs
-- `analyzeCorrelations` (418) — sleep vs symptoms, trigger impact scores, symptom clusters
-- Surfaced in `InsightsScreen` and the weekly digest
+Network path:
 
-### Ask Vela (AI companion)
+```text
+Insights/Today
+  -> buildAskVelaSummary or buildDailyBriefSummary
+  -> /api/ask-vela or /api/daily-brief
+  -> RevenueCat premium verification
+  -> Netlify Blobs rate/cost/cache records
+  -> Anthropic Claude API
+```
 
-Full reference in [ai-companion.md](ai-companion.md). Summary:
+Server code lives in:
 
-- `matchQuestion(input)` (1008) — regex router → returns `{ handler, param, timeRange }`
-- `generateResponse(handler, logs, profile)` (1106) — 14 handlers, each assembling `data → 📚 science → 💡 strategy → 📋 stage context → ⚕️ doctor nudge → follow-up suggestion`
-- Knowledge: `SYMPTOM_KNOWLEDGE` (15 symptoms), `TRIGGER_KNOWLEDGE` (5 triggers)
-- Conversational memory: module-level `_lastHandler`, `_lastParam` (around line 826)
+- `netlify/functions/ask-vela.js`
+- `netlify/functions/daily-brief.js`
 
-### Doctor PDF report
+### Legal pages
 
-- `generateDoctorReport` (6130) — jsPDF export with symptom frequency, severity trends, trigger analysis, patterns
-- `generateDoctorSummary` (709) — structured text summary that feeds the PDF
-- Entry point: `SettingsScreen` → "Generate doctor report" button
+`Settings.jsx` opens `/privacy.html` and `/terms.html` from `public/`. The public pages must stay aligned with `landing/privacy.html` and `landing/terms.html`, because the in-app copy points users there from the iOS bundle.
 
-### CBT programs
-
-- `CBT_PROGRAMS` (1759) — 3 programs: Hot Flashes (4wk), Sleep (3wk), Anxiety/Mood (4wk)
-- Each has 3–4 modules with 5–7 daily lessons
-- XP rewards: 200/150/200 per program
-- Storage: `vela_active_cbt`, `vela_completed_cbt`
-
-### Self-experiments
-
-- `EXPERIMENTS` (1677) — 16 structured experiments, 7–14 days each
-- Tracked via context fields (e.g., `caffeine: false`, `exercise: true`)
-- XP: 40–75 per experiment
-- Storage: `vela_active_experiment`, `vela_completed_experiments`
-
-### Daily lessons
-
-- `DAILY_LESSONS` (1696) — 60 lessons, 10 XP each
-- Storage: `vela_completed_lessons`
-
-### Community
-
-- Feature-complete in `CommunityScreen` (6940)
-- Source of truth during MVP: `localStorage` (5 keys, see below)
-- Moderation: `communityMod.moderateContent()` from `src/community.js` — blocks profanity, hate speech, dangerous health claims
-- Flip to live: set `LIVE_COMMUNITY = true` in `src/community.js` — see [community-firebase.md](community-firebase.md)
-
-### Gamification
-
-- 23 badges (`BADGES`, line 1549) — streaks, logging milestones, feature discovery, community
-- 10 levels (`LEVELS`, line 1581) — XP thresholds 0 → 4,000
-- `computeXP` (line at ~1618) — 10/log + 5/unique day + 3/streak day + bonuses
-- `checkNewBadges` (7428) — triggers badge toasts and level-up modal
-
-### Premium/paywall
-
-- `isPremium` state (7393) — gates features
-- `showPaywall` (7394) — overlay for premium CTAs
-- `handleSubscribe` / `handleRestore` (7554) — currently no-ops, RevenueCat integration pending
-
-## State management
-
-All state lives in the main `App` component (7376) via `useState` hooks, persisted to `localStorage` on change.
-
-### `localStorage` keys
+## Key storage keys
 
 | Key | Content |
 |-----|---------|
-| `vela_onboarded` | boolean — onboarding complete |
-| `vela_logs` | JSON — daily log entries |
-| `vela_profile` | JSON — `[stage, concerns, goals, guidance]` |
-| `vela_reminders_enabled` | boolean |
-| `vela_reminder_times` | JSON — `{morning, evening, weekly}` |
-| `vela_streak_freezes` | JSON — frozen dates |
-| `vela_streak_freeze_count` | number |
-| `vela_custom_symptoms` | JSON — user-added symptoms |
-| `vela_completed_lessons` | JSON — lesson IDs |
-| `vela_completed_experiments` | JSON — experiment IDs |
-| `vela_active_experiment` | JSON |
-| `vela_completed_cbt` | JSON |
-| `vela_active_cbt` | JSON |
-| `vela_chat_messages` | JSON — Ask Vela history |
-| `vela_community_posts` | JSON |
-| `vela_community_votes` | JSON |
-| `vela_community_bookmarks` | JSON |
-| `vela_community_reactions` | JSON |
-| `vela_community_replies` | JSON |
-| `vela_community_guidelines_seen` | boolean |
-| `vela_community_user_topics` | JSON |
-| `vela_last_digest_date` | string |
-| `vela_insights_revealed` | boolean |
-| Various nudge dismissals | booleans |
+| `vela_onboarded` | onboarding completion flag |
+| `vela_logs` | daily log entries |
+| `vela_profile` | onboarding answers |
+| `vela_chat_messages` | local Ask Vela history |
+| `vela_daily_brief` | cached brief for the current day |
+| `vela_experiments` | active and completed experiments |
+| `vela_insight_feedback` | thumbs up/down insight feedback |
+| `vela_theme_pref` | light/system/dark preference |
+| `vela_analytics_opt_out` | product analytics opt-out |
+| `vela_healthkit_enabled` | Apple Health sleep import enabled flag |
 
-## External integrations
+`handleClearData` in `App.jsx` removes known `vela_*` keys and then sweeps remaining `vela_` prefixes.
 
-- **jsPDF** — doctor report generation (`generateDoctorReport`, line 6130)
-- **Capacitor** — iOS native shell
-- **Haptics** — medium (badge), heavy (level-up), light (nudge dismiss)
-- **Firebase** — community backend, ready to enable
+## External configuration
 
-## How to navigate the codebase
+Client-side env vars:
 
-Quick reference: what you're doing → where to look.
+- `REACT_APP_REVENUECAT_IOS_API_KEY`
+- `REACT_APP_POSTHOG_KEY`
+- `REACT_APP_POSTHOG_HOST`
+- `REACT_APP_SENTRY_DSN`
 
-| Task | Location |
-|------|----------|
-| Add a symptom | `SYMPTOMS` array, line 22; also `AI_SYMPTOM_NAMES` line 812 |
-| Add AI knowledge for a symptom | `SYMPTOM_KNOWLEDGE`, line 834 — see [ai-companion.md](ai-companion.md) |
-| Add a badge | `BADGES` array, line 1549 |
-| Add a daily lesson | `DAILY_LESSONS`, line 1696 |
-| Add a CBT program | `CBT_PROGRAMS`, line 1759 |
-| Change tabs | tabs array in `App()`, line 7567 |
-| Persist new state | add a `useEffect` around line 7416 |
-| Understand a log's flow | `handleLog`, line 7451 |
+Server-side Netlify env vars:
 
-## Build & run
+- `ANTHROPIC_API_KEY`
+- `REVENUECAT_REST_KEY`
+- `NETLIFY_BLOBS_TOKEN`
+- `ADMIN_TOKEN`
+- `ASK_VELA_DEV_TOKEN` (optional local/testing bypass)
+- `ASK_VELA_DAILY_USD` (optional AI spend cap)
+
+## Build and checks
 
 ```bash
-npm install      # install deps
-npm start        # dev server at localhost:3000
-npm run build    # production build into /build
+npm install
+npm test -- --watchAll=false
+npm run build
+npm audit
 ```
 
-Zero ESLint warnings on build is the bar — the last dead-code sweep (see commit history) brought it to a clean compile. Keep it clean.
+CI runs smoke tests and production build on pushes and pull requests to `main`.

@@ -3301,7 +3301,7 @@ export default function App() {
     if (result.isPremium) {
       setIsPremium(true);
       setShowPaywall(false);
-      setToastMsg("Premium restored. ✨");
+      setToastMsg("Premium restored.");
     } else if (result.error === "misconfigured") {
       setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
     } else {
@@ -3451,7 +3451,7 @@ export default function App() {
                 {BADGES.slice(0, 12).map((b) => (
                   <button key={b.id} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
                     onClick={() => { haptic("Medium"); setBadgeToast(b); setTimeout(() => setBadgeToast(null), 3000); }}>
-                    <span>{b.icon}</span> {b.name}
+                    <UIIcon name={b.icon} size={14} /> {b.name}
                   </button>
                 ))}
               </div>
@@ -3470,7 +3470,7 @@ export default function App() {
                 { days: 60, label: "60 days" },
               ].map((s) => (
                 <div key={s.days} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
-                  <span>🔥 {s.label} streak</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><UIIcon name="Flame" size={14} weight="fill" /> {s.label} streak</span>
                   <span style={{ fontWeight: 600, color: getStreakMultiplier(s.days) > 1 ? "var(--gold)" : "var(--ink-light)" }}>{getStreakMultiplier(s.days)}x XP</span>
                 </div>
               ))}
@@ -3513,7 +3513,7 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: 12, color: "var(--ink-light)" }}>{range}</div>
-                      {lvl.unlock && <div style={{ fontSize: 11, color: "var(--gold)" }}>🔓 {lvl.unlock}</div>}
+                      {lvl.unlock && <div style={{ fontSize: 11, color: "var(--gold)", display: "inline-flex", alignItems: "center", gap: 4 }}><UIIcon name="Lock" size={11} /> {lvl.unlock}</div>}
                     </div>
                   </div>
                 );
@@ -3526,12 +3526,12 @@ export default function App() {
             <div className="settings-card" style={{ padding: 12 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {[
-                  { label: "Basic log", msg: "Entry logged! Keep it up. 🌿 +15 XP" },
-                  { label: "First entry", msg: "First entry logged! Vela is now learning your hot flashes patterns. 🌱 +20 XP" },
-                  { label: "Day 7", msg: "7 days! Your hot flashes insights are ready. Tap Insights. ✨ +20 XP" },
-                  { label: "With streak 1.5x", msg: "Entry logged! Keep it up. 🌿 +23 XP (1.5x streak bonus!)" },
-                  { label: "With streak 3x", msg: "Entry logged! Keep it up. 🌿 +45 XP (3x streak bonus!)" },
-                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more. Great detail! 💡 +25 XP" },
+                  { label: "Basic log", msg: "Entry logged. +15 XP" },
+                  { label: "First entry", msg: "First entry logged. Vela is now learning your hot flashes patterns. +20 XP" },
+                  { label: "Day 7", msg: "7 days. Your hot flashes insights are ready. Tap Insights. +20 XP" },
+                  { label: "With streak 1.5x", msg: "Entry logged. +23 XP (1.5x streak bonus)" },
+                  { label: "With streak 3x", msg: "Entry logged. +45 XP (3x streak bonus)" },
+                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more. Good detail. +25 XP" },
                 ].map((t, i) => (
                   <button key={i} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
                     onClick={() => { setToastMsg(t.msg); setToast(true); setTimeout(() => setToast(false), 3500); }}>
@@ -3548,7 +3548,7 @@ export default function App() {
               <div className="gam-badges-grid">
                 {BADGES.map((b) => (
                   <div key={b.id} className="gam-badge earned" style={{ cursor: "pointer" }} onClick={() => { haptic("Medium"); setBadgeToast(b); setTimeout(() => setBadgeToast(null), 3000); }}>
-                    <div className="gam-badge-icon">{b.icon}</div>
+                    <div className="gam-badge-icon"><UIIcon name={b.icon} size={22} /></div>
                     <div className="gam-badge-name">{b.name}</div>
                     <div className="gam-badge-desc">{b.desc}</div>
                   </div>
@@ -3584,10 +3584,10 @@ export default function App() {
       {/* Badge Toast */}
       {badgeToast && (
         <div className="badge-toast">
-          <span className="badge-toast-icon">{badgeToast.icon}</span>
+          <span className="badge-toast-icon"><UIIcon name={badgeToast.icon} size={22} /></span>
           <div className="badge-toast-content">
             <span className="badge-toast-title">Milestone reached!</span>
-            <span className="badge-toast-text">{badgeToast.icon} {badgeToast.name}</span>
+            <span className="badge-toast-text">{badgeToast.name}</span>
           </div>
         </div>
       )}
