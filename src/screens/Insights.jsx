@@ -145,8 +145,9 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
 
   const handleQuestion = async (text) => {
     if (!text.trim() || isTyping) return;
-    track("ask_vela_used", { logCount: logs.length, gatedByDataMin: logs.length < 7 });
-    track("ask_vela_started", { logCount: logs.length, dataReady: logs.length >= 7 });
+    const uniqueLogDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+    track("ask_vela_used", { logCount: logs.length, uniqueDays: uniqueLogDays, gatedByDataMin: uniqueLogDays < 7 });
+    track("ask_vela_started", { logCount: logs.length, uniqueDays: uniqueLogDays, dataReady: uniqueLogDays >= 7 });
     const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
     setChatMessages([...chatMessages, userMsg]);
     setChatInput("");
@@ -170,11 +171,11 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     }
 
     // Pre-flight: too little data for a meaningful answer
-    if (logs.length < 7) {
-      track("ask_vela_failed", { reason: "insufficient_data", logCount: logs.length });
+    if (uniqueLogDays < 7) {
+      track("ask_vela_failed", { reason: "insufficient_data", logCount: logs.length, uniqueDays: uniqueLogDays });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
-        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${logs.length}. Keep going.`,
+        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${uniqueLogDays}. Keep going.`,
         time: new Date().toISOString(),
       }]);
       setIsTyping(false);

@@ -18,6 +18,10 @@ flow.
   - iOS 26.5 simulator runtime is installed.
   - Native Debug builds now pass for both `generic/platform=iOS Simulator`
     and `generic/platform=iOS` with signing disabled.
+  - Release-candidate audit on 2026-05-21 tightened the app to iPhone-only
+    and portrait-only, hardened Ask Vela's data-readiness/grounding/style
+    behavior, and updated screenshot guidance to Apple's current 6.9"
+    iPhone slot.
   - Apple Developer Program enrollment/payment is not done yet.
   - App Store Connect cannot proceed for this app owner yet, so no App
     Store Connect API key can be created.

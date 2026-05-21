@@ -77,9 +77,14 @@ For each: provide reference name, display name (user-visible), and one localized
 Apple requires screenshots for at least one device size. The generated
 packet is committed under `screenshots/67/` and `screenshots/65/`.
 
-**Easiest path:** use the **6.7" iPhone** category (iPhone 16 Pro Max, 1290 x 2796). Apple lets you submit ONLY 6.7" screenshots and they'll auto-scale to smaller devices. You don't need iPad or 6.5" if you don't want to.
+**Easiest path:** use the current **6.9" iPhone** screenshot slot with
+the committed 1290 x 2796 images in `screenshots/67/`. Apple accepts that
+portrait size for the Pro Max class and scales it to smaller iPhone slots.
+Vela is configured as iPhone-only, so iPad screenshots are not required.
 
-You need at least **3** screenshots (Apple's minimum), realistically **5-6** for a respectable listing.
+Apple's technical range is **1-10** screenshots. Vela's launch target is
+**6** because the first listing needs to show onboarding, pattern value,
+Ask Vela, Today, paywall transparency, and history.
 
 Generated v1 set, in upload order:
 1. **Welcome** - brand tone and privacy-first positioning.
@@ -93,7 +98,7 @@ How to capture:
 - Run `npm start`
 - Run `node scripts/generate-appstore-screenshots.mjs`
 - Run `scripts/capture-screenshots.sh verify`
-- Drag the PNGs into App Store Connect → My Apps → Vela → 1.0 Prepare for Submission → 6.7" Display
+- Drag the PNGs into App Store Connect → My Apps → Vela → 1.0 Prepare for Submission → 6.9" Display slot
 
 **Common rejection trigger:** screenshots that show actual personal data, anything resembling real medical advice, or text claims that exaggerate ("AI doctor", "diagnose menopause"). Stay descriptive, not promissory.
 

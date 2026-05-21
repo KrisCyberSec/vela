@@ -57,11 +57,13 @@ Sorted by what blocks what. Cross items off as they ship.
   → Media Manager if Apple asks for it outside the binary.
 
 ### [ ] App Store screenshots
-- Required sizes (Apple needs at least one set; using 6.7" covers most
-  devices when "default" is selected):
-  - 6.7" display: **1290 × 2796** (iPhone 14/15/16 Pro Max)
+- Required sizes (Apple needs at least one iPhone set; using the current
+  6.9" slot with the accepted 1290 x 2796 Pro Max size covers smaller
+  iPhones through App Store Connect scaling):
+  - 6.9" display slot: **1290 × 2796** (accepted Pro Max portrait size)
   - 6.5" display: **1284 × 2778** (iPhone 11 Pro Max, XS Max)
-- 3 minimum, 10 maximum per size.
+- Apple allows 1-10 screenshots per device size. Vela targets 6 because
+  the listing needs to show the whole premium story.
 - Frames + captions to use as a spec (from the screenshots agent's
   earlier draft pass):
   1. **Welcome** - "A quiet place for the noisy years."

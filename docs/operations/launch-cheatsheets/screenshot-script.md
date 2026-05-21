@@ -11,7 +11,7 @@ Captions: `docs/operations/manual-tasks.md` § App Store screenshots.
 `node scripts/generate-appstore-screenshots.mjs` with the local dev
 server running. The simulator helper is still available if you want true
 iOS Safari captures. Drop me a note when you've got the
-6.7" set captured and I'll talk you through any reframe ("the
+6.9" slot captured and I'll talk you through any reframe ("the
 Insights card got cropped, reshoot the simulator with the keyboard
 dismissed", etc.). After all 12 are saved, run `verify` and paste the
 output to me - I'll spot any dimension mismatch faster than you'd
@@ -21,10 +21,11 @@ catch it in Preview's inspector.
 
 | Device class | Pixel dimensions | Simulator to use |
 |---|---|---|
-| 6.7" Display | **1290 × 2796** | iPhone 15 Pro Max |
+| 6.9" Display slot | **1290 × 2796** | iPhone 15 Pro Max |
 | 6.5" Display | **1284 × 2778** | iPhone 11 Pro Max |
 
-Minimum 3 per size; max 10. We're targeting 6 each (the 6 frames below).
+Apple allows 1-10 screenshots per device size. We're targeting 6 each
+(the 6 frames below).
 
 ## Frames + captions (paste captions into the ASC form)
 
@@ -81,7 +82,7 @@ projects before.
 1. In a terminal: `npm start` (boots React dev server on `localhost:3000`).
 2. In another terminal, `cd /Users/kristopher/Vela`.
 
-### The 6.7" set
+### The 6.9" slot
 
 3. Run `scripts/capture-screenshots.sh boot 67`. Script boots
    iPhone 15 Pro Max and opens Simulator.app.

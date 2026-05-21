@@ -115,7 +115,7 @@ and `ios/App/App/PrivacyInfo.xcprivacy` - they must match.
 
 Sidebar → **Vela → iOS App → 1.0 Prepare for Submission**.
 
-**Screenshots**: tab **iPhone 6.7" Display** → drag in
+**Screenshots**: tab **iPhone 6.9" Display** → drag in
 `screenshots/67/01-welcome.png` ... `06-history.png`. Reorder so the
 carousel reads: Welcome, Insights, Ask Vela, Today, Paywall, History.
 Same for **iPhone 6.5" Display** with `screenshots/65/*.png`.

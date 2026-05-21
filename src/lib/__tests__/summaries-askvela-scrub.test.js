@@ -89,4 +89,16 @@ describe("buildAskVelaSummary", () => {
       expect(d).not.toHaveProperty("date");
     });
   });
+
+  it("uses the actual latest log date for recency, regardless of array order", () => {
+    const logs = [
+      dayOffset(5, { "Hot flash": true }),
+      dayOffset(1, { "Brain fog": true }),
+      dayOffset(3, { "Night sweats": true }),
+    ];
+
+    const out = buildAskVelaSummary(logs);
+
+    expect(out.lastEntryDaysAgo).toBe(1);
+  });
 });

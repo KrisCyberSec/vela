@@ -10,6 +10,20 @@ import { analyzeCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
 import { predictNextCycle } from "./cycle";
 
+function getLatestLogDate(logs) {
+  return logs.reduce((latest, log) => {
+    const date = new Date(log.date);
+    if (Number.isNaN(date.getTime())) return latest;
+    return !latest || date > latest ? date : latest;
+  }, null);
+}
+
+function daysSince(date, now) {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.floor((now - d) / 86400000));
+}
 
 // ─── Anonymized summary for Ask Vela API ────────────────────────────────
 // Strips notes (free-text), exact dates, and custom symptom names. Custom
@@ -28,8 +42,7 @@ export function buildDailyBriefSummary(logs) {
 
   const week = logs.filter(inWeek);
   const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
-  const lastEntry = logs.length > 0 ? new Date(logs[logs.length - 1].date) : null;
-  const lastEntryDaysAgo = lastEntry ? Math.floor((now - lastEntry) / (86400000)) : null;
+  const lastEntryDaysAgo = daysSince(getLatestLogDate(logs), now);
 
   // Top symptom this week. Custom-symptom names are bucketed so the
   // user-chosen label never leaves the device.
@@ -99,8 +112,7 @@ export function buildAskVelaSummary(logs) {
   const recent = logs.filter((l) => new Date(l.date) >= thirtyAgo);
 
   const uniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
-  const lastEntry = logs.length > 0 ? new Date(logs[logs.length - 1].date) : null;
-  const lastEntryDaysAgo = lastEntry ? Math.floor((now - lastEntry) / (1000 * 60 * 60 * 24)) : null;
+  const lastEntryDaysAgo = daysSince(getLatestLogDate(logs), now);
 
   // Symptom counts (last 30 days). Custom user symptoms are collapsed
   // into a single "Custom symptom" bucket so we don't ship the user-chosen

@@ -48,6 +48,12 @@ As of 2026-05-21:
 - iOS 26.5 simulator runtime is installed.
 - Native Debug builds pass for both `generic/platform=iOS Simulator` and
   `generic/platform=iOS` with signing disabled.
+- Native target is now iPhone-only and portrait-only for v1, so App Store
+  screenshot needs are iPhone-focused.
+- Ask Vela has been re-audited against synthetic data: payload grounding
+  is real, responses render readably, the day-7 gate now uses unique
+  logging days, recency uses the actual latest log date, and server output
+  strips model-generated em/en dashes.
 - Netlify production env is verified for `ANTHROPIC_API_KEY`,
   `REVENUECAT_REST_KEY`, `NETLIFY_BLOBS_TOKEN`, Sentry DSN, and PostHog key.
 - PostHog received a real `onboarding_completed` event from the production

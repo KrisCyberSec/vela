@@ -223,8 +223,9 @@ fiddling.
 
 ### Step 3.2 — Generate App Store screenshots
 
-You need 3-10 screenshots at each of these sizes:
-- **6.7" display**: 1290×2796 (iPhone 14/15/16 Pro Max)
+Apple allows 1-10 screenshots per device size. Vela is targeting 6
+screenshots so the listing tells the full story:
+- **6.9" display slot**: 1290×2796 (accepted Pro Max portrait size)
 - **6.5" display**: 1284×2778 (iPhone 11 Pro Max, XS Max)
 
 **The simplest path:**
@@ -412,9 +413,9 @@ is checked correctly.
    **1.0 Prepare for Submission**.
 2. Scroll down to **App Previews and Screenshots**.
 3. There's a tab for each device size:
-   - **iPhone 6.7" Display** (Pro Max sizes)
+   - **iPhone 6.9" Display** (Pro Max accepted sizes)
    - **iPhone 6.5" Display**
-   - You can ignore the smaller ones if you uploaded 6.7" — Apple
+   - You can ignore the smaller ones if you uploaded 6.9" - Apple
      auto-scales, but having the dedicated 6.5" set is more polished.
 4. Drag-and-drop your 6 screenshots from Phase 3.2 into each tab.
 
@@ -794,7 +795,7 @@ You're here. Final step.
 
 Scroll through the entire page once more. Confirm:
 - [ ] All metadata fields are filled (no red exclamation marks)
-- [ ] Screenshots uploaded for at least 6.7" size
+- [ ] Screenshots uploaded for at least the 6.9" iPhone slot
 - [ ] Privacy Nutrition Label complete
 - [ ] App Review Information has the reviewer notes
 - [ ] Build is selected
