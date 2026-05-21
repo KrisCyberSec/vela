@@ -148,12 +148,18 @@ public class VelaHealthPlugin: CAPPlugin {
         // samples still flow through, so we surface both shapes.
         switch rawValue {
         case HKCategoryValueSleepAnalysis.inBed.rawValue: return "inBed"
-        case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue: return "asleep"
-        case HKCategoryValueSleepAnalysis.awake.rawValue: return "awake"
-        case HKCategoryValueSleepAnalysis.asleepCore.rawValue: return "asleepCore"
-        case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: return "asleepDeep"
-        case HKCategoryValueSleepAnalysis.asleepREM.rawValue: return "asleepREM"
-        default: return "unknown"
+        case HKCategoryValueSleepAnalysis.asleep.rawValue: return "asleep"
+        default:
+            if #available(iOS 16.0, *) {
+                switch rawValue {
+                case HKCategoryValueSleepAnalysis.awake.rawValue: return "awake"
+                case HKCategoryValueSleepAnalysis.asleepCore.rawValue: return "asleepCore"
+                case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: return "asleepDeep"
+                case HKCategoryValueSleepAnalysis.asleepREM.rawValue: return "asleepREM"
+                default: break
+                }
+            }
+            return "unknown"
         }
     }
 

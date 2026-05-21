@@ -48,7 +48,7 @@ Current state (verified in `ios/App/App/`):
 | File | Purpose | Status |
 |------|---------|--------|
 | `Info.plist` | App metadata, permissions, category | ✅ Configured |
-| `PrivacyInfo.xcprivacy` | Apple privacy manifest (required 2024+) | ✅ Added, must be linked in Xcode |
+| `PrivacyInfo.xcprivacy` | Apple privacy manifest (required 2024+) | ✅ Added and included in target resources |
 | `Assets.xcassets/AppIcon.appiconset/` | App icon | ✅ Vela branded icon |
 | `Assets.xcassets/Splash.imageset/` | Launch screen | Uses default; customize later |
 
@@ -70,7 +70,7 @@ Current state (verified in `ios/App/App/`):
   - `SystemBootTime` (35F9.1) — performance measurement
   - `DiskSpace` (E174.1) — user-initiated writes
 
-**First Xcode open:** verify the PrivacyInfo.xcprivacy file is included in the app target. In Xcode's left sidebar, right-click the `App` group → Add Files to "App"… → select `PrivacyInfo.xcprivacy` → ensure "App" target is checked.
+`PrivacyInfo.xcprivacy` is already included in the Xcode target resources via `ios/App/App.xcodeproj/project.pbxproj`. On first Xcode open, just confirm it appears under the `App` group and do not add a duplicate.
 
 ## Running on your device (no paid account)
 

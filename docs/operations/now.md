@@ -22,7 +22,7 @@ flow.
   - Resume phrase: "continue App Store setup."
 - **Mission-critical path** (full recipe in `manual-tasks.md`):
   1. Apple Developer Program enrollment
-  2. Code signing + 1024×1024 icon + HealthKit capability in Xcode
+  2. Install/select full Xcode, then code signing + 1024×1024 icon + HealthKit capability
   3. App Store Connect: app record, IAPs, screenshots (6 frames spec'd)
   4. Privacy nutrition label — *highest rejection risk* — must declare
      Health, Purchase History, anonymous User ID, Product Interaction,

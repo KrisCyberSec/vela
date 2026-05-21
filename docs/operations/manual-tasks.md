@@ -37,6 +37,8 @@ Sorted by what blocks what. Cross items off as they ship.
 - This adds the entitlement to the provisioning profile (the entitlements
   file `ios/App/App/App.entitlements` is already wired in pbxproj — this
   step links it to your Apple Developer account)
+- The native HealthKit plugin, usage strings, and privacy manifest target
+  resource are already wired in the repo.
 - App Store Connect will require justification text on first build with
   HealthKit — paste from `NSHealthShareUsageDescription` in Info.plist
 
