@@ -14,6 +14,10 @@ flow.
 
 ### App Store submission readiness
 - **Current checkpoint (2026-05-20): paused on purpose.**
+  - Xcode 26.5 is installed and selected.
+  - iOS 26.5 simulator runtime is installed.
+  - Native Debug builds now pass for both `generic/platform=iOS Simulator`
+    and `generic/platform=iOS` with signing disabled.
   - Apple Developer Program enrollment/payment is not done yet.
   - App Store Connect cannot proceed for this app owner yet, so no App
     Store Connect API key can be created.
@@ -22,7 +26,7 @@ flow.
   - Resume phrase: "continue App Store setup."
 - **Mission-critical path** (full recipe in `manual-tasks.md`):
   1. Apple Developer Program enrollment
-  2. Install/select full Xcode, then code signing + 1024×1024 icon + HealthKit capability
+  2. Code signing + 1024×1024 icon + HealthKit capability
   3. App Store Connect: app record, IAPs, screenshots (6 frames spec'd)
   4. Privacy nutrition label — *highest rejection risk* — must declare
      Health, Purchase History, anonymous User ID, Product Interaction,

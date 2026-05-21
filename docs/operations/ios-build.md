@@ -41,6 +41,23 @@ Then in Xcode: **Product → Run** (⌘R).
 
 Live reload to a simulator is possible via `npx cap run ios -l` but it's flaky — scripted build+sync is more reliable.
 
+### Command-line native smoke build
+
+After Xcode is installed and first-launch setup is complete:
+
+```bash
+xcodebuild -downloadPlatform iOS
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+```
+
+If SwiftPM hangs while resolving public GitHub packages, check whether a
+saved GitHub internet password in Keychain is prompting headlessly. The
+workaround used during setup was to run `xcodebuild` with a temporary empty
+keychain search list, then immediately restore the normal keychain list.
+
 ## iOS project config
 
 Current state (verified in `ios/App/App/`):
@@ -142,6 +159,7 @@ Before clicking "Submit for Review", verify:
 ## Troubleshooting
 
 **"Could not locate device support files"** — update Xcode or your iOS version
+**"iOS <version> is not installed"** — run `xcodebuild -downloadPlatform iOS` or install it from Xcode → Settings → Components
 **"Signing failed"** — Signing & Capabilities → sign out, sign back in with Apple ID
 **White screen on launch** — `npm run build` was skipped; re-run the build flow
 **Missing plugin errors** — `npx cap sync ios` after `npm install`
