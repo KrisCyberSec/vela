@@ -71,6 +71,24 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     if (chatMessages.length > 0) localStorage.setItem("vela_chat_messages", JSON.stringify(chatMessages.slice(-20)));
   }, [chatMessages]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    let shouldOpen = false;
+    try {
+      shouldOpen = localStorage.getItem("vela_screenshot_ask_open") === "true";
+      if (shouldOpen) localStorage.removeItem("vela_screenshot_ask_open");
+    } catch { /* private mode */ }
+    if (!shouldOpen) return;
+    setChatMessages([
+      { role: "user", text: "What triggers my hot flashes?" },
+      {
+        role: "assistant",
+        text: "Your logs point to caffeine days as the clearest pattern.\n\n- Hot flashes show up more often on caffeine days.\n- Sleep also looks lighter on those nights.\n\nWorth testing: try a 7-day caffeine cutoff after lunch and watch hot flashes plus sleep together.",
+      },
+    ]);
+    setAskOpen(true);
+  }, []);
+
   // Cross-screen pickup: when another screen ("Ask Vela about this day"
   // from History, etc.) stashes a pending question, open the sheet
   // pre-loaded with it on mount. Stash gets cleared so it doesn't

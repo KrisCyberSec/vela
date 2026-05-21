@@ -1,4 +1,4 @@
-# Manual tasks — things only you can do
+# Manual tasks - things only you can do
 
 Things that require human hands at a console (App Store Connect, Apple
 Developer portal, Netlify dashboard, Xcode UI clicks, third-party
@@ -36,12 +36,12 @@ Sorted by what blocks what. Cross items off as they ship.
 ### [ ] Enable HealthKit capability in Xcode
 - Xcode → App target → **Signing & Capabilities** → **+ Capability** → HealthKit
 - This adds the entitlement to the provisioning profile (the entitlements
-  file `ios/App/App/App.entitlements` is already wired in pbxproj — this
+  file `ios/App/App/App.entitlements` is already wired in pbxproj - this
   step links it to your Apple Developer account)
 - The native HealthKit plugin, usage strings, and privacy manifest target
   resource are already wired in the repo.
 - App Store Connect will require justification text on first build with
-  HealthKit — paste from `NSHealthShareUsageDescription` in Info.plist
+  HealthKit - paste from `NSHealthShareUsageDescription` in Info.plist
 
 ### [ ] Code signing in Xcode
 - Xcode → App target → **Signing & Capabilities** → check **Automatically
@@ -64,16 +64,16 @@ Sorted by what blocks what. Cross items off as they ship.
 - 3 minimum, 10 maximum per size.
 - Frames + captions to use as a spec (from the screenshots agent's
   earlier draft pass):
-  1. **Welcome** — "A quiet place for the noisy years."
-  2. **Today** — "See yesterday's pattern before today even starts."
-  3. **Insights** — "Patterns Vela has noticed — the kind worth showing your doctor."
-  4. **Ask Vela** — "Real AI grounded in your data — not generic web advice."
-  5. **Paywall** — "Make sense of it. Out loud."
-  6. **History** — "Every day, a quiet entry. Every month, a record."
-- Best path: iPhone 15 Pro Max simulator → seed with `?seed=demo` →
-  use `Cmd+S` to capture at native resolution. The captions go in the
-  App Store Connect form, not on the screenshots themselves (don't
-  overlay text on the images for v1).
+  1. **Welcome** - "A quiet place for the noisy years."
+  2. **Insights** - "Patterns Vela has noticed, the kind worth showing your doctor."
+  3. **Ask Vela** - "Ask Vela about what your logs are showing."
+  4. **Today** - "See yesterday's pattern before today even starts."
+  5. **Paywall** - "Make sense of it. Out loud."
+  6. **History** - "Every day, a quiet entry. Every month, a record."
+- Generated packet exists in `screenshots/67/` and `screenshots/65/`.
+  Upload those files to App Store Connect in filename order. The captions
+  go in the App Store Connect form, not on the screenshots themselves
+  (don't overlay text on the images for v1).
 
 ### [ ] Privacy nutrition label in App Store Connect
 - **Highest-probability source of rejection.** The symptom log is mostly
@@ -152,7 +152,7 @@ Sorted by what blocks what. Cross items off as they ship.
 ### [ ] (Optional) Tune `ASK_VELA_DAILY_USD` in Netlify
 - Default is $50/day SHARED budget across both ask-vela + daily-brief
 - At 1000 paying users with 1 brief each per day + ~10 questions/mo
-  per user, expected daily spend is ~$1.90 — plenty of headroom
+  per user, expected daily spend is ~$1.90 - plenty of headroom
 - Set lower if you want to be more conservative early on
 - Set higher once you have real usage data and aren't worried
 
@@ -180,13 +180,13 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ### [x] ~~Create PostHog account + paste public key~~ (done 2026-05-08)
 - US Cloud project. Key (`phc_...`) set in `.env.local` AND Netlify env vars.
-- `REACT_APP_POSTHOG_HOST` not set — code defaults to `https://us.i.posthog.com` which matches the project, so no override needed.
+- `REACT_APP_POSTHOG_HOST` not set - code defaults to `https://us.i.posthog.com` which matches the project, so no override needed.
 - Verified 2026-05-21: production app bundle fired
   `onboarding_completed`, and it appeared in PostHog Activity.
 
 ### [x] ~~Create Sentry account + paste DSN~~ (done 2026-05-21)
 - [sentry.io](https://sentry.io) → free Developer plan covers 5k errors/mo
-  (plenty for v1 — Vela is client-side-error-light by design).
+  (plenty for v1 - Vela is client-side-error-light by design).
 - Create a project, platform: **React**. Name suggestion: `vela-ios`.
 - Copy the DSN (looks like `https://abc@xxxx.ingest.sentry.io/12345`).
 - Two places to paste it:
@@ -195,7 +195,7 @@ Sorted by what blocks what. Cross items off as they ship.
 - Verification flow once the DSN is set:
   1. Restart `netlify dev`.
   2. Open the app, navigate to Settings → tap **Reset all data**.
-     Reset clears Sentry user context too — confirms `clearUser()` runs.
+     Reset clears Sentry user context too - confirms `clearUser()` runs.
   3. Force a test error: open DevTools console, run
      `setTimeout(() => { throw new Error('sentry-smoke-test'); }, 0)`.
   4. Within ~10s, the error should appear in Sentry under
@@ -204,20 +204,20 @@ Sorted by what blocks what. Cross items off as they ship.
   production bundle embeds it, and a synthetic smoke event appeared in
   Sentry Issues tagged `vela@1.0.0`.
 - Code-side wiring (all done):
-  - `src/errorReporting.js` — init, `reportError()`, `identifyUser()`,
+  - `src/errorReporting.js` - init, `reportError()`, `identifyUser()`,
     `clearUser()`. Adds `window.onerror` + `unhandledrejection` handlers
     on init. Tags every event with the `vela@<version>` release.
-  - `src/ErrorBoundary.jsx` — catches React render errors.
-  - `src/subscription.js` — 6 tagged `reportError()` calls covering
+  - `src/ErrorBoundary.jsx` - catches React render errors.
+  - `src/subscription.js` - 6 tagged `reportError()` calls covering
     every RevenueCat failure mode.
-  - `src/screens/Today.jsx` — tagged report on daily-brief fetch failure.
-  - `src/screens/Insights.jsx` — tagged report on ask-vela fetch failure.
-  - `src/App.jsx` — `identifyUser(appUserId)` on launch once RevenueCat
+  - `src/screens/Today.jsx` - tagged report on daily-brief fetch failure.
+  - `src/screens/Insights.jsx` - tagged report on ask-vela fetch failure.
+  - `src/App.jsx` - `identifyUser(appUserId)` on launch once RevenueCat
     resolves; `clearUser()` on "Reset all data".
 - (Optional, post-launch.) Wire source-map upload via
   `@sentry/webpack-plugin` so production stack traces deobfuscate. Needs
   a Sentry **auth token** (Settings → Auth tokens) plus the org + project
-  slugs. Not needed for v1 — minified stack traces are still actionable.
+  slugs. Not needed for v1 - minified stack traces are still actionable.
 
 ---
 
@@ -229,7 +229,7 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ### [ ] App Store screenshots
 - Dimensions in `docs/product/app-store-listing.md`
-- Can be generated from the existing screens — no new code needed
+- Can be generated from the existing screens - no new code needed
 
 ### [x] ~~Add smoke tests~~ (suite landed 2026-05-13)
 - Five Jest tests under `src/__tests__/` and `src/lib/__tests__/` lock

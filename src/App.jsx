@@ -845,8 +845,8 @@ const css = `
   /* Ask Vela glass sheet */
   .av-scrim { position: fixed; inset: 0; background: var(--glass-modal-scrim); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
   .av-scrim.show { opacity: 1; pointer-events: auto; }
-  .av-sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; max-width: 420px; margin: 0 auto; border-radius: 24px; background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 16px 40px rgba(140, 78, 50, 0.18); z-index: 51; padding: 18px 18px 16px; max-height: 78vh; display: flex; flex-direction: column; transform: translateY(20px); opacity: 0; pointer-events: none; transition: transform 240ms cubic-bezier(0.2,0.8,0.3,1), opacity 240ms ease; }
-  .av-sheet.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .av-sheet { position: fixed; left: 50%; right: auto; bottom: 8px; width: min(420px, calc(100vw - 16px)); box-sizing: border-box; margin: 0; border-radius: 24px; background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 16px 40px rgba(140, 78, 50, 0.18); z-index: 51; padding: 18px 18px 16px; max-height: 78vh; display: flex; flex-direction: column; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: transform 240ms cubic-bezier(0.2,0.8,0.3,1), opacity 240ms ease; }
+  .av-sheet.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
   .av-handle { width: 36px; height: 4px; border-radius: 3px; background: rgba(140,78,50,0.2); margin: -6px auto 14px; }
   .av-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
   .av-avatar { width: 40px; height: 40px; border-radius: 999px; background: var(--clay); color: #fff; font-family: var(--font-serif); font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
@@ -881,7 +881,7 @@ const css = `
   .av-msg-text li + li { margin-top: 4px; }
   .av-msg-text em { color: var(--clay-dark); font-style: italic; }
   .av-input { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
-  .av-input input { flex: 1; background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-family: var(--font-sans); font-size: 13px; color: var(--ink); outline: none; }
+  .av-input input { flex: 1; min-width: 0; background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-family: var(--font-sans); font-size: 13px; color: var(--ink); outline: none; }
   .av-input input::placeholder { color: var(--ink-light); font-style: italic; }
   .av-input button { background: var(--clay); color: #fff; width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
 
@@ -2959,13 +2959,28 @@ export default function App() {
   // Dev-only URL trigger: visiting /?seed=demo seeds 30 days of synthetic
   // data + skips onboarding + unlocks premium for the session, then strips
   // the query param so a refresh doesn't re-seed. Same data shape as the
-  // hidden "Seed Demo Data" button in Settings → debug, but URL-driven so
+  // hidden "Seed Demo Data" button in Settings debug, but URL-driven so
   // you don't need DevTools or the debug screen. Compiled out in prod
   // (process.env.NODE_ENV === "production" tree-shakes the whole block).
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("seed") !== "demo") return;
+    const screenshotFrame = params.get("screenshot");
+    const shouldSeed = params.get("seed") === "demo" || (screenshotFrame && screenshotFrame !== "welcome");
+    if (screenshotFrame === "welcome") {
+      try {
+        localStorage.removeItem("vela_onboarded");
+        localStorage.removeItem("vela_logs");
+        localStorage.removeItem("vela_chat_messages");
+      } catch { /* private mode */ }
+      setLogs([]);
+      setOnboarded(false);
+      setScreen("onboard");
+      setIsPremium(false);
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+    if (!shouldSeed) return;
     const pad = (n) => String(n).padStart(2, "0");
     const localISO = (d) => {
       const tz = -d.getTimezoneOffset(), sign = tz >= 0 ? "+" : "-", tzA = Math.abs(tz);
@@ -3009,12 +3024,24 @@ export default function App() {
       localStorage.setItem("vela_logs", JSON.stringify(demoLogs));
       localStorage.setItem("vela_profile", JSON.stringify([1, [0, 1, 2], 4, "sometimes"]));
       localStorage.setItem("vela_onboarded", "true");
+      localStorage.setItem("vela_insights_revealed", "true");
+      if (screenshotFrame === "ask-vela") {
+        localStorage.setItem("vela_screenshot_ask_open", "true");
+      }
     } catch { /* private mode */ }
     setLogs(demoLogs);
     setProfile([1, [0, 1, 2], 4, "sometimes"]);
     setOnboarded(true);
-    setScreen("tracker"); // otherwise the screen-state initializer leaves us on "onboard"
+    const screenForFrame = {
+      today: "tracker",
+      insights: "insights",
+      "ask-vela": "insights",
+      paywall: "tracker",
+      history: "history",
+    }[screenshotFrame] || "tracker";
+    setScreen(screenForFrame); // otherwise the screen-state initializer leaves us on "onboard"
     setIsPremium(true); // dev shortcut so you don't have to click through paywall
+    if (screenshotFrame === "paywall") setShowPaywall(true);
     window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
