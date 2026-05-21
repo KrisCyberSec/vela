@@ -126,6 +126,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
   const handleQuestion = async (text) => {
     if (!text.trim() || isTyping) return;
     track("ask_vela_used", { logCount: logs.length, gatedByDataMin: logs.length < 7 });
+    track("ask_vela_started", { logCount: logs.length, dataReady: logs.length >= 7 });
     const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
     setChatMessages([...chatMessages, userMsg]);
     setChatInput("");
@@ -137,6 +138,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     // dedicated CrisisSupportCard rendered inline as the assistant turn.
     if (looksLikeCrisis(text)) {
       track("crisis_intercepted", {});
+      track("ask_vela_failed", { reason: "crisis_intercepted" });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
         crisis: true, // sentinel — chat renderer shows CrisisSupportCard
@@ -149,6 +151,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
 
     // Pre-flight: too little data for a meaningful answer
     if (logs.length < 7) {
+      track("ask_vela_failed", { reason: "insufficient_data", logCount: logs.length });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
         text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${logs.length}. Keep going.`,
@@ -164,6 +167,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     // that prevents us from making round-trips we know will fail.
     const monthCap = checkAndUpdateMonthlyCap();
     if (!monthCap.ok) {
+      track("ask_vela_failed", { reason: "client_monthly_cap" });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
         text: `You've asked your monthly limit of ${ASK_VELA_MONTHLY_CAP} questions. The cap resets ${monthCap.resetsOn}. Until then, the existing answers in this thread stay available.`,
@@ -209,23 +213,28 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
         const data = await r.json();
         answer = data.answer;
         if (typeof data.remainingToday === "number") serverRemaining = data.remainingToday;
+        track("ask_vela_succeeded", { cached: !!data.cached });
       } else if (r.status === 429) {
         // Rate-limited by server (per-user or per-IP cap hit). Skip the
         // canned fallback — the user needs to know they hit the limit.
         const data = await r.json().catch(() => ({}));
         answer = data.detail || "You've hit today's question limit. Try again later.";
+        track("ask_vela_failed", { reason: "server_rate_limited" });
         // Sync our local counter to the server's view so the UI reflects truth
         bumpMonthlyCapTo(ASK_VELA_MONTHLY_CAP);
       } else if (r.status === 503) {
         const data = await r.json().catch(() => ({}));
         answer = data.detail || "Ask Vela is taking a break. Try again later.";
+        track("ask_vela_failed", { reason: "server_unavailable" });
       } else if (r.status === 401 || r.status === 403) {
         const data = await r.json().catch(() => ({}));
         answer = data.detail || "Couldn't verify your subscription. Try restoring your purchase from Settings.";
+        track("ask_vela_failed", { reason: "subscription_required" });
       } else {
         // Other failure — graceful degradation to canned response so the
         // user always gets *something*
         answer = generateResponse(matchQuestion(text), logs, profile);
+        track("ask_vela_failed", { reason: "server_error_fallback" });
       }
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
       if (serverRemaining != null) setRemainingToday(serverRemaining);
@@ -235,6 +244,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
       // see at scale whether the failure is e.g. the function timing out,
       // returning malformed JSON, or hitting a CDN edge case.
       reportError(err, { tag: "ask_vela_fetch_failed" });
+      track("ask_vela_failed", { reason: "network_fallback" });
       const answer = generateResponse(matchQuestion(text), logs, profile);
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
     } finally {
@@ -948,6 +958,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             onClick={() => {
               if (!isPremium) { onShowPaywall("doctor_report"); return; }
               generateDoctorReport(logs, profile);
+              track("doctor_report_exported", { source: "insights", uniqueDays });
             }}
           >
             <div className="ico"><UIIcon name="FileText" size={20} /></div>

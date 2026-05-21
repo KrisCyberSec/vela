@@ -33,9 +33,26 @@ export function initErrorReporting() {
     dsn: DSN,
     environment: ENV,
     release: RELEASE,
+    sendDefaultPii: false,
     tracesSampleRate: 0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
+    beforeSend(event) {
+      if (event.request) {
+        delete event.request.headers;
+        delete event.request.cookies;
+        delete event.request.query_string;
+      }
+      if (Array.isArray(event.breadcrumbs)) {
+        event.breadcrumbs = event.breadcrumbs.map((crumb) => {
+          if (crumb.category === "console" && typeof crumb.message === "string") {
+            return { ...crumb, message: crumb.message.slice(0, 240) };
+          }
+          return crumb;
+        });
+      }
+      return event;
+    },
   });
   initialized = true;
 

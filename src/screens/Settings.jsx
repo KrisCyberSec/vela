@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import {
   isAnalyticsOptedOut,
   setAnalyticsOptedOut,
+  track,
 } from "../analytics";
 import {
   disableHealthKit,
@@ -52,9 +53,15 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
       if (hkOn) {
         await disableHealthKit();
         setHkOn(false);
+        track("health_sync_disabled", {});
       } else {
         const r = await enableHealthKit();
-        if (r.ok) setHkOn(true);
+        if (r.ok) {
+          setHkOn(true);
+          track("health_sync_enabled", {});
+        } else {
+          track("health_sync_failed", { reason: "permission_or_plugin" });
+        }
       }
     } finally {
       setHkBusy(false);
@@ -389,6 +396,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
           onClick={() => {
             if (!isPremium) { onShowPaywall("doctor_report"); return; }
             generateDoctorReport(logs, profile);
+            track("doctor_report_exported", { source: "settings", uniqueDays: days });
           }}
         >
           <span className="glyph"><UIIcon name="FileText" size={16} /></span>
@@ -400,7 +408,10 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
         </button>
         <button
           className="set-row"
-          onClick={() => exportCSV(logs)}
+          onClick={() => {
+            exportCSV(logs);
+            track("csv_exported", { uniqueDays: days });
+          }}
         >
           <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
           <span className="body">

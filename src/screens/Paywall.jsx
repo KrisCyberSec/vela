@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 
+import { track } from "../analytics";
 import { UIIcon } from "../components/icons";
 import { getPaywallPlans } from "../subscription";
 
@@ -207,7 +208,10 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           <button
             type="button"
             className={`pw-plan ${plan === "annual" ? "on" : ""}`}
-            onClick={() => setPlan("annual")}
+            onClick={() => {
+              setPlan("annual");
+              track("paywall_plan_selected", { plan: "annual" });
+            }}
           >
             <span className="save-badge">Save 35%</span>
             <div className="term">Annual</div>
@@ -217,7 +221,10 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           <button
             type="button"
             className={`pw-plan ${plan === "monthly" ? "on" : ""}`}
-            onClick={() => setPlan("monthly")}
+            onClick={() => {
+              setPlan("monthly");
+              track("paywall_plan_selected", { plan: "monthly" });
+            }}
           >
             <div className="term">Monthly</div>
             <div className="price">{plans.monthly.priceString}<small>/mo</small></div>

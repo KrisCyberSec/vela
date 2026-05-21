@@ -3077,6 +3077,7 @@ export default function App() {
     const newLogs = [logEntry, ...logs];
     setLogs(newLogs);
     // Smart contextual toast messages — personalized by profile
+    const previousUniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
     const uniqueDays = new Set(newLogs.map((l) => l.date.slice(0, 10))).size;
     const streak = getStreak(newLogs);
     track("log_completed", {
@@ -3085,6 +3086,11 @@ export default function App() {
       symptomCount: Object.keys(entry.symptoms || {}).length,
       hasNotes: !!(entry.notes && entry.notes.length > 0),
     });
+    if (uniqueDays !== previousUniqueDays) {
+      if (uniqueDays === 3) track("day_3_reached", { uniqueDays, streak });
+      if (uniqueDays === 7) track("day_7_reached", { uniqueDays, streak });
+      if (uniqueDays === 14) track("day_14_reached", { uniqueDays, streak });
+    }
     const p = getPersonalization(profile);
     const concern = p?.topConcernNames?.[0];
     const symptoms = Object.keys(entry.symptoms || {});
@@ -3114,6 +3120,11 @@ export default function App() {
     setProfile(answers);
     setOnboarded(true);
     setScreen("tracker");
+    track("onboarding_completed", {
+      concernCount: Array.isArray(answers?.[1]) ? answers[1].length : (answers?.[1] != null ? 1 : 0),
+      goalCount: Array.isArray(answers?.[2]) ? answers[2].length : (answers?.[2] != null ? 1 : 0),
+      remindersPreferenceSet: answers?.[3] !== undefined && answers?.[3] !== null,
+    });
     // Schedule reminders based on Q4 preference
     if (answers[3] !== undefined && answers[3] !== null && remindersEnabled) {
       scheduleReminders(answers[3]);
@@ -3265,17 +3276,26 @@ export default function App() {
   }
 
   function openPaywall(trigger) {
+    track("premium_feature_tapped", { trigger });
     track("paywall_shown", { trigger });
     setShowPaywall(true);
   }
 
+  function purchaseFailureReason(result) {
+    if (result.cancelled) return "cancelled";
+    if (["misconfigured", "web_fallback", "no_offering", "no_package"].includes(result.error)) return result.error;
+    return result.error ? "sdk_error" : "unknown";
+  }
+
   async function handleSubscribe(plan) {
+    track("purchase_started", { plan });
     const result = await purchasePlan(plan);
     if (result.isPremium) {
       track("paywall_converted", { plan });
       setIsPremium(true);
       setShowPaywall(false);
     } else if (result.cancelled) {
+      track("purchase_cancelled", { plan, mode: result.mode || "unknown" });
       // user dismissed the native sheet — leave paywall open, no toast
     } else if (result.error === "web_fallback") {
       // Browser dev preview only — no Apple receipt to validate. Unlock locally for testing.
@@ -3283,12 +3303,14 @@ export default function App() {
       setIsPremium(true);
       setShowPaywall(false);
     } else if (result.error === "misconfigured") {
+      track("purchase_failed", { plan, reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
       // Native iOS build is missing the RevenueCat API key — surfaced as a user-friendly error,
       // logged to Sentry inside subscription.js. Critically: do NOT grant premium.
       setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
       setToast(true);
       setTimeout(() => setToast(false), 3500);
     } else {
+      track("purchase_failed", { plan, reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
       // no_offering / no_package / network error / unknown — surface a generic failure
       setToastMsg("Purchase didn't go through. Try again or contact support.");
       setToast(true);
@@ -3297,14 +3319,18 @@ export default function App() {
   }
 
   async function handleRestore() {
+    track("restore_started", {});
     const result = await restorePurchases();
     if (result.isPremium) {
+      track("restore_succeeded", { mode: result.mode || "unknown" });
       setIsPremium(true);
       setShowPaywall(false);
       setToastMsg("Premium restored.");
     } else if (result.error === "misconfigured") {
+      track("restore_failed", { reason: "misconfigured", mode: result.mode || "unknown" });
       setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
     } else {
+      track("restore_failed", { reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
       setToastMsg("No previous purchase found on this Apple ID.");
     }
     setToast(true);
