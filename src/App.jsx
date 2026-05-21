@@ -872,6 +872,14 @@ const css = `
   .av-q { background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink); line-height: 1.4; text-align: left; cursor: pointer; font-family: var(--font-sans); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .av-q em { font-style: italic; color: var(--clay-dark); }
   .av-q .arr { flex-shrink: 0; color: var(--ink-light); }
+  .av-msg { border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink); line-height: 1.45; max-width: 85%; }
+  .av-msg.user { align-self: flex-end; background: var(--clay-light); }
+  .av-msg.assistant { align-self: flex-start; background: rgba(255,255,255,0.55); }
+  .av-msg-text { display: flex; flex-direction: column; gap: 8px; }
+  .av-msg-text p { margin: 0; }
+  .av-msg-text ul { margin: 0; padding-left: 17px; }
+  .av-msg-text li + li { margin-top: 4px; }
+  .av-msg-text em { color: var(--clay-dark); font-style: italic; }
   .av-input { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
   .av-input input { flex: 1; background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-family: var(--font-sans); font-size: 13px; color: var(--ink); outline: none; }
   .av-input input::placeholder { color: var(--ink-light); font-style: italic; }

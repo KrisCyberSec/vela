@@ -16,6 +16,7 @@ import { getAppUserId } from "../subscription";
 import { readJSON as safeReadJSON } from "../safeStorage";
 import { SymptomIcon, UIIcon, MoodFace } from "../components/icons";
 import { CrisisSupportCard } from "../components/CrisisSupportCard";
+import { FormattedAssistantMessage } from "../components/FormattedAssistantMessage";
 import { SYMPTOMS } from "../lib/symptoms";
 import { QUESTIONS } from "../lib/questions";
 import { localDateStr } from "../lib/formatters";
@@ -1063,13 +1064,9 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
                 );
               }
               return (
-                <div key={i} style={{
-                  background: m.role === "user" ? "var(--clay-light)" : "rgba(255,255,255,0.55)",
-                  border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px",
-                  fontSize: 13, color: "var(--ink)", lineHeight: 1.45,
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                }}>{m.text}</div>
+                <div key={i} className={`av-msg ${m.role === "user" ? "user" : "assistant"}`}>
+                  {m.role === "assistant" ? <FormattedAssistantMessage text={m.text} /> : m.text}
+                </div>
               );
             })}
             {isTyping && <div style={{ fontSize: 12, color: "var(--ink-light)", padding: "4px 14px" }}>Vela is thinking…</div>}
