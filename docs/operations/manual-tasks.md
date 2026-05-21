@@ -232,9 +232,9 @@ Sorted by what blocks what. Cross items off as they ship.
   in the three regressions that would hurt most: privacy-promise
   contracts on the two off-device payloads, the doctor-report PDF, the
   perfect-correlation insight, and the App boot path.
-- No CI yet — running them is still a manual `npm test -- --watchAll=false`
-  step. Wire CI (GitHub Actions, Netlify build hook, whatever) so these
-  run on every push before launch.
+- CI now runs smoke tests and the production build for pull requests and
+  pushes to `main`. Run `CI=true npm test -- --watchAll=false` locally
+  before pushing launch-critical changes.
 
 ---
 

@@ -25,17 +25,24 @@ npm run build
 
 ## Documentation
 
-All project documentation lives in [`docs/`](docs/README.md). Start there — it's the single source of truth for the project.
+All project documentation lives in [`docs/`](docs/README.md). For a handoff,
+start with [`docs/HANDOFF.md`](docs/HANDOFF.md), then check
+[`docs/operations/now.md`](docs/operations/now.md) for the freshest launch
+status.
 
 ### Quick links
 
 | I want to… | Read |
 |------------|------|
+| Pick up the project from another engineer | [docs/HANDOFF.md](docs/HANDOFF.md) |
+| See current launch blockers and checkpoints | [docs/operations/now.md](docs/operations/now.md) |
 | Understand what Vela is and where it stands | [docs/product/overview.md](docs/product/overview.md) |
 | Navigate the codebase | [docs/engineering/architecture.md](docs/engineering/architecture.md) |
 | Understand Ask Vela (AI companion) | [docs/engineering/ai-companion.md](docs/engineering/ai-companion.md) |
 | See where things are hosted | [docs/operations/infrastructure.md](docs/operations/infrastructure.md) |
 | Deploy the landing page | [docs/operations/deployment.md](docs/operations/deployment.md) |
+| Follow the App Store launch steps | [docs/operations/launch-walkthrough.md](docs/operations/launch-walkthrough.md) |
+| Check manual account/dashboard tasks | [docs/operations/manual-tasks.md](docs/operations/manual-tasks.md) |
 | Check the waitlist / admin dashboard | [docs/operations/waitlist.md](docs/operations/waitlist.md) |
 | Review the financial model | [docs/business/financial-model.md](docs/business/financial-model.md) |
 

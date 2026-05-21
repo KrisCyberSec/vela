@@ -6,6 +6,21 @@ Single source of truth for everything about the Vela project.
 
 ---
 
+## Start here
+
+If you are new to Vela or picking up a paused session, read in this order:
+
+1. [HANDOFF.md](HANDOFF.md) - executive context, product promises, and current launch handoff.
+2. [operations/now.md](operations/now.md) - freshest operational status and active blockers.
+3. [operations/manual-tasks.md](operations/manual-tasks.md) - account/dashboard tasks only Kris can complete.
+4. [operations/launch-walkthrough.md](operations/launch-walkthrough.md) - App Store launch path.
+5. [engineering/architecture.md](engineering/architecture.md) - codebase map and module boundaries.
+
+If docs disagree, trust `operations/now.md` for current status and update
+the stale document in the same change.
+
+---
+
 ## Product
 
 High-level thinking, positioning, and go-to-market.
@@ -34,6 +49,11 @@ Running and deploying things.
 
 | Doc | What's in it |
 |-----|--------------|
+| [now.md](operations/now.md) | Active weekly focus, latest launch checkpoint, and what is waiting on Kris |
+| [workflow.md](operations/workflow.md) | How work moves from now to shipped to parking lot |
+| [manual-tasks.md](operations/manual-tasks.md) | Human-only account, dashboard, Apple, RevenueCat, and Xcode gates |
+| [launch-walkthrough.md](operations/launch-walkthrough.md) | Day-by-day App Store setup and submission playbook |
+| [launch-cheatsheets/](operations/launch-cheatsheets/) | Paste-ready setup sheets for accounts, ASC, RevenueCat, Netlify, Xcode, screenshots |
 | [infrastructure.md](operations/infrastructure.md) | Every service we use: Netlify, Namecheap, Firebase, domain, DNS records |
 | [deployment.md](operations/deployment.md) | How to deploy the landing page, how to update DNS, redeploy functions |
 | [waitlist.md](operations/waitlist.md) | Admin dashboard, JSON/CSV export, token rotation, viewing emails via CLI |

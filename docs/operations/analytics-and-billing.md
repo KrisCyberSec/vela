@@ -17,7 +17,7 @@ production build. It prints whether PostHog, Sentry, and RevenueCat client
 keys are present locally and embedded in the current `build/` bundle without
 printing secret values.
 
-## Current status (2026-05-20)
+## Current status (2026-05-21)
 
 - PostHog project key is present locally and embedded in the existing
   checked-in build.

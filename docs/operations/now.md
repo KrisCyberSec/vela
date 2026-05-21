@@ -88,8 +88,8 @@ Auto-prune after Friday. See git log for the canonical record.
 - `a34a5db` CI smoke tests + production build on push.
 - `6f14a94` Smoke-test suite — 5 files, 9 tests, locks privacy
   contracts, doctor-report PDF, perfect-correlation insight, and the
-  App boot path. `npm test` passes in ~1.6s. (Landed via Cowork; flagged
-  follow-up: wire CI so it runs on push.)
+  App boot path. `npm test` passes in ~1.6s. Follow-up CI wiring shipped
+  in `a34a5db`.
 - `c124ad3` Workflow scaffolding — workflow.md, now.md, parking-lot.md,
   cowork-prompts/ template directory
 - `678c4fc` Sentry coverage expansion (window handlers, user context,

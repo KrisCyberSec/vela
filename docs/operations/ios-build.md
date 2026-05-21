@@ -126,9 +126,11 @@ Apps installed this way expire after 7 days and must be re-deployed. Fine for te
 
 5. **Wire RevenueCat**:
    - Create an app in RevenueCat
-   - Paste the App Store Connect shared secret
-   - Copy the RevenueCat public API key
-   - Replace the no-op `handleSubscribe` / `handleRestore` in `src/App.jsx` (~line 7554) with the RevenueCat SDK calls
+   - Paste the App Store Connect shared secret and In-App Purchase API key
+   - Copy the RevenueCat Apple public API key into
+     `REACT_APP_REVENUECAT_IOS_API_KEY`
+   - The app-side purchase and restore handlers already call
+     `src/subscription.js`; no additional RevenueCat code swap is needed
 6. **Archive in Xcode**:
    - Product → Archive
    - Window → Organizer → Distribute App → App Store Connect → Upload
