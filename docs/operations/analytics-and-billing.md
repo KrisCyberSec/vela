@@ -17,6 +17,20 @@ production build. It prints whether PostHog, Sentry, and RevenueCat client
 keys are present locally and embedded in the current `build/` bundle without
 printing secret values.
 
+## Current status (2026-05-20)
+
+- PostHog project key is present locally and embedded in the existing
+  checked-in build.
+- Sentry account/project exists and the DSN is present locally. The
+  existing checked-in build was created before the DSN was pasted, so
+  rebuild before verifying Sentry in the bundle or dashboard.
+- RevenueCat project exists and the entitlement was corrected to exactly
+  `premium`. Real App Store configuration is blocked until Apple
+  Developer Program enrollment/payment is complete and App Store Connect
+  can generate the In-App Purchase API key fields RevenueCat requires.
+- Local `npm run verify:observability` currently reports one launch
+  blocker: missing `REACT_APP_REVENUECAT_IOS_API_KEY`.
+
 ---
 
 ## Events instrumented (v1)

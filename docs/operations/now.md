@@ -1,6 +1,6 @@
 # Now
 
-Active focus. Things being worked on this week (Kris + Claude sessions).
+Active focus. Things being worked on this week (Kris + assistant sessions).
 Format: name + "done means" criterion. Keep this short — if it's more
 than 5 items, you're not focused.
 
@@ -13,6 +13,13 @@ flow.
 ## In flight
 
 ### App Store submission readiness
+- **Current checkpoint (2026-05-20): paused on purpose.**
+  - Apple Developer Program enrollment/payment is not done yet.
+  - App Store Connect cannot proceed for this app owner yet, so no App
+    Store Connect API key can be created.
+  - RevenueCat real App Store configuration is blocked until ASC provides
+    the In-App Purchase `.p8` key, Key ID, and Issuer ID.
+  - Resume phrase: "continue App Store setup."
 - **Mission-critical path** (full recipe in `manual-tasks.md`):
   1. Apple Developer Program enrollment
   2. Code signing + 1024×1024 icon + HealthKit capability in Xcode
@@ -31,17 +38,22 @@ flow.
 ### Sentry DSN wire-up
 - **Code-side done** (commit `678c4fc`). Window-level handlers, user
   context, release tagging, error sinks all in place.
-- **Done means:** Kris pastes a real DSN into `.env.local` + Netlify
-  env, throws a smoke test from DevTools, sees it land in the Sentry
-  dashboard tagged `vela@1.0.0`. Recipe in
-  `docs/operations/manual-tasks.md` under "Create Sentry account."
+- **Local status (2026-05-20):** Sentry account exists and a real DSN is
+  saved in `.env.local`. The current checked-in `build/` bundle predates
+  that local paste, so `npm run verify:observability` still reports the
+  build bundle missing Sentry until the next production rebuild.
+- **Done means:** DSN is also in Netlify env, a rebuilt bundle embeds it,
+  and a smoke-test error appears in Sentry tagged `vela@1.0.0`.
 
-### Push local main to origin
-- **Local main** is 18 commits ahead of `origin/main` (the entire
-  refactor + workflow + smoke tests). Cowork updated local main but
-  didn't push. Decision pending.
-- **Done means:** `git push origin main` runs clean (it's a
-  fast-forward, no rebase needed), `origin/main` now at `6f14a94`.
+### Observability / billing envs
+- **Local status:** `REACT_APP_POSTHOG_KEY` and `REACT_APP_SENTRY_DSN`
+  are present in `.env.local`; `REACT_APP_REVENUECAT_IOS_API_KEY` is
+  missing until Apple/RevenueCat setup resumes.
+- **Server-side status:** Netlify still needs `ANTHROPIC_API_KEY`,
+  `REVENUECAT_REST_KEY`, and `NETLIFY_BLOBS_TOKEN` verified in production.
+- **Done means:** `npm run verify:observability` passes after rebuild,
+  Netlify has all required env vars, and Sentry/PostHog dashboards show
+  at least one intentional smoke event.
 
 ---
 
@@ -51,7 +63,10 @@ Things blocked on a dashboard click or account creation. Full inventory
 in `docs/operations/manual-tasks.md` — this is just the "this week"
 slice.
 
-- [ ] Sentry account + DSN paste (see above)
+- [ ] Apple Developer Program enrollment/payment (paused until funds are
+  available)
+- [ ] Netlify env var paste/verification for Sentry, Anthropic,
+  RevenueCat REST, and Blobs
 - [ ] Verify PostHog Live Events actually fires when the iOS app sends
   an event — wired since `216c604` but never seen end-to-end.
 
@@ -61,6 +76,11 @@ slice.
 
 Auto-prune after Friday. See git log for the canonical record.
 
+- `bfb6061` Launch observability funnel — PostHog funnel events, Sentry
+  privacy hardening, RevenueCat/Sentry/PostHog verifier, and docs.
+- `870ae23` Launch readiness release candidate — app-store prep,
+  RevenueCat/paywall trial handling, legal/privacy docs, and iOS sync.
+- `a34a5db` CI smoke tests + production build on push.
 - `6f14a94` Smoke-test suite — 5 files, 9 tests, locks privacy
   contracts, doctor-report PDF, perfect-correlation insight, and the
   App boot path. `npm test` passes in ~1.6s. (Landed via Cowork; flagged

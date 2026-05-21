@@ -33,10 +33,12 @@ locally + landing page live at velahealth.health.
 - jsPDF for doctor reports
 - Phosphor Icons (duotone) — no emoji in UI ever
 - Apple HealthKit via custom Capacitor plugin (`ios/App/App/Plugins/`)
-- Sentry pre-wired (DSN paste pending), PostHog wired (live on landing,
-  pending end-to-end verify on iOS)
+- Sentry pre-wired with local DSN saved in `.env.local`; PostHog wired
+  with local key present. RevenueCat real iOS key is still blocked by
+  Apple Developer/App Store Connect setup.
 
-**Repo**: github.com/KrisCyberSec/vela on `main` branch.
+**Repo**: github.com/KrisCyberSec/vela. Active launch-readiness work is
+on branch `codex/launch-readiness` with PR #4 open against `main`.
 
 ## Where we are right now
 
@@ -50,6 +52,9 @@ locally + landing page live at velahealth.health.
   sessions on recurring work
 
 Latest commits (full history via `git log --oneline`):
+- `bfb6061` Wire launch observability funnel
+- `870ae23` Prepare launch readiness release candidate
+- `a34a5db` Wire CI: smoke tests + build on every push
 - `678c4fc` Sentry coverage expansion (window handlers, user context,
   release tagging, fetch error sinks)
 - `ce2b22a` Phase 2 refactor — 8 screens into src/screens/
@@ -62,7 +67,8 @@ Latest commits (full history via `git log --oneline`):
 - `b547890` Sweep landing + app copy for claims the code can't back
 - `324ea9c` Match privacy copy to what the code actually does
 
-Working tree clean. All pushed to origin/main.
+Before making changes, check `git status`. The launch-readiness branch
+has been pushed to origin and is the current place for launch fixes.
 
 ## How the user wants to work
 
@@ -189,8 +195,28 @@ Full list in `docs/operations/manual-tasks.md`. Top blockers:
    - `ANTHROPIC_API_KEY` — powers both AI functions
    - `REVENUECAT_REST_KEY` — premium verification (starts `sk_`)
    - `NETLIFY_BLOBS_TOKEN` — required by ALL four functions (waitlist + waitlist-export + ask-vela + daily-brief). Site runtime doesn't auto-inject `NETLIFY_BLOBS_CONTEXT`, so this PAT is the only path.
-5. **RevenueCat dashboard** wiring after IAPs exist
-6. **PostHog + Sentry** account creation (code-side wiring done, just need keys)
+5. **RevenueCat dashboard** wiring after IAPs exist. Current checkpoint:
+   RevenueCat project exists, entitlement is `premium`, but the App Store
+   app configuration could not be saved because ASC In-App Purchase API
+   key fields are required.
+6. **Sentry/PostHog verification**: local keys are present, but Netlify
+   env and dashboard smoke tests still need to be completed.
+
+## Current App Store / RevenueCat bookmark
+
+Paused intentionally on 2026-05-20 because Apple Developer Program
+enrollment/payment is not available yet.
+
+Resume steps:
+1. Enroll/pay for Apple Developer Program using the business Apple ID.
+2. Sign into App Store Connect.
+3. Generate an In-App Purchase API key for RevenueCat: `.p8` file, Key
+   ID, and Issuer ID.
+4. Return to RevenueCat project `Vela`, app `Vela (App Store)`, bundle
+   ID `com.velahealth.app`, and paste/upload the Apple credentials.
+5. Copy the RevenueCat Apple public key starting `appl_` into
+   `.env.local` as `REACT_APP_REVENUECAT_IOS_API_KEY`.
+6. Rebuild, run `npm run verify:observability`, then `npx cap sync ios`.
 
 ## Cost math (verified)
 
