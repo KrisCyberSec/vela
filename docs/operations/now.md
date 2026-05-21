@@ -39,11 +39,10 @@ flow.
 - **Code-side done** (commit `678c4fc`). Window-level handlers, user
   context, release tagging, error sinks all in place.
 - **Local status (2026-05-20):** Sentry account exists and a real DSN is
-  saved in `.env.local`. The current checked-in `build/` bundle predates
-  that local paste, so `npm run verify:observability` still reports the
-  build bundle missing Sentry until the next production rebuild.
-- **Done means:** DSN is also in Netlify env, a rebuilt bundle embeds it,
-  and a smoke-test error appears in Sentry tagged `vela@1.0.0`.
+  saved in `.env.local`. Local production rebuild embeds the DSN, and a
+  synthetic smoke event appeared in Sentry Issues tagged `vela@1.0.0`.
+- **Done means:** DSN is also in Netlify env and a deployed-app smoke
+  test appears in Sentry after production deploy.
 
 ### Observability / billing envs
 - **Local status:** `REACT_APP_POSTHOG_KEY` and `REACT_APP_SENTRY_DSN`
@@ -51,9 +50,9 @@ flow.
   missing until Apple/RevenueCat setup resumes.
 - **Server-side status:** Netlify still needs `ANTHROPIC_API_KEY`,
   `REVENUECAT_REST_KEY`, and `NETLIFY_BLOBS_TOKEN` verified in production.
-- **Done means:** `npm run verify:observability` passes after rebuild,
-  Netlify has all required env vars, and Sentry/PostHog dashboards show
-  at least one intentional smoke event.
+- **Done means:** `npm run verify:observability` passes after RevenueCat
+  is unblocked, Netlify has all required env vars, and Sentry/PostHog
+  dashboards show at least one intentional production event.
 
 ---
 

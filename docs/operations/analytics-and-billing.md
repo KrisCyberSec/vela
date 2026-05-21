@@ -22,8 +22,8 @@ printing secret values.
 - PostHog project key is present locally and embedded in the existing
   checked-in build.
 - Sentry account/project exists and the DSN is present locally. The
-  existing checked-in build was created before the DSN was pasted, so
-  rebuild before verifying Sentry in the bundle or dashboard.
+  local production build embeds the DSN, and a synthetic smoke event was
+  accepted by Sentry and appeared in Issues tagged `vela@1.0.0`.
 - RevenueCat project exists and the entitlement was corrected to exactly
   `premium`. Real App Store configuration is blocked until Apple
   Developer Program enrollment/payment is complete and App Store Connect
