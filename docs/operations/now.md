@@ -41,18 +41,24 @@ flow.
 - **Local status (2026-05-20):** Sentry account exists and a real DSN is
   saved in `.env.local`. Local production rebuild embeds the DSN, and a
   synthetic smoke event appeared in Sentry Issues tagged `vela@1.0.0`.
-- **Done means:** DSN is also in Netlify env and a deployed-app smoke
-  test appears in Sentry after production deploy.
+- **Production status (2026-05-21):** DSN is set in Netlify as a secret
+  env var and production redeploy `6a0e5921b228037c89395de0` completed.
+- **Done means:** A real iOS/TestFlight build smoke appears in Sentry
+  after Apple/TestFlight is available.
 
 ### Observability / billing envs
 - **Local status:** `REACT_APP_POSTHOG_KEY` and `REACT_APP_SENTRY_DSN`
   are present in `.env.local`; `REACT_APP_REVENUECAT_IOS_API_KEY` is
   missing until Apple/RevenueCat setup resumes.
-- **Server-side status:** Netlify still needs `ANTHROPIC_API_KEY`,
-  `REVENUECAT_REST_KEY`, and `NETLIFY_BLOBS_TOKEN` verified in production.
+- **Server-side status:** Netlify has `ANTHROPIC_API_KEY`,
+  `REVENUECAT_REST_KEY`, `NETLIFY_BLOBS_TOKEN`, and
+  `REACT_APP_SENTRY_DSN`; production redeploy completed. Empty POST
+  checks now return `Question required` / `Summary required`, which means
+  the functions are past missing-env guards.
+- **PostHog status:** Production app bundle fired `onboarding_completed`
+  and the event appeared in PostHog Activity.
 - **Done means:** `npm run verify:observability` passes after RevenueCat
-  is unblocked, Netlify has all required env vars, and Sentry/PostHog
-  dashboards show at least one intentional production event.
+  iOS public key is unblocked by Apple/App Store Connect.
 
 ---
 
@@ -64,10 +70,6 @@ slice.
 
 - [ ] Apple Developer Program enrollment/payment (paused until funds are
   available)
-- [ ] Netlify env var paste/verification for Sentry, Anthropic,
-  RevenueCat REST, and Blobs
-- [ ] Verify PostHog Live Events actually fires when the iOS app sends
-  an event — wired since `216c604` but never seen end-to-end.
 
 ---
 

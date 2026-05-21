@@ -127,17 +127,21 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ## Blocking real Ask Vela + Daily Brief in production
 
-### [ ] Set `ANTHROPIC_API_KEY` in Netlify
+### [x] ~~Set `ANTHROPIC_API_KEY` in Netlify~~ (done 2026-05-21)
 - Site Settings → Environment variables → Add a variable
 - Get the key from [console.anthropic.com](https://console.anthropic.com/settings/keys)
 - Powers BOTH `/api/ask-vela` AND `/api/daily-brief`. Until set, both
   return 503 with explainers and the client falls back to canned text.
+- Verified after production deploy `6a0e5921b228037c89395de0`: empty
+  `/api/ask-vela` returns `Question required` instead of missing-env.
 
-### [ ] Set `REVENUECAT_REST_KEY` in Netlify
+### [x] ~~Set `REVENUECAT_REST_KEY` in Netlify~~ (done 2026-05-21)
 - Get the **secret** REST API key (starts with `sk_`) from
   [app.revenuecat.com](https://app.revenuecat.com) → Project Settings → API Keys
 - Both AI functions verify against this before spending tokens
 - Without it, both return 403 to all premium-gated callers
+- Secret V1 key created in RevenueCat as `netlify-premium-verification`
+  and pasted into Netlify as a secret env var.
 
 ### [ ] (Optional) Tune `ASK_VELA_DAILY_USD` in Netlify
 - Default is $50/day SHARED budget across both ask-vela + daily-brief
@@ -171,9 +175,10 @@ Sorted by what blocks what. Cross items off as they ship.
 ### [x] ~~Create PostHog account + paste public key~~ (done 2026-05-08)
 - US Cloud project. Key (`phc_...`) set in `.env.local` AND Netlify env vars.
 - `REACT_APP_POSTHOG_HOST` not set — code defaults to `https://us.i.posthog.com` which matches the project, so no override needed.
-- Verification still pending: run `netlify dev`, fire a tracked event (e.g. open the daily log → `log_started`, or hit the paywall → `paywall_shown`), then check the PostHog "Live events" view.
+- Verified 2026-05-21: production app bundle fired
+  `onboarding_completed`, and it appeared in PostHog Activity.
 
-### [ ] Create Sentry account + paste DSN
+### [x] ~~Create Sentry account + paste DSN~~ (done 2026-05-21)
 - [sentry.io](https://sentry.io) → free Developer plan covers 5k errors/mo
   (plenty for v1 — Vela is client-side-error-light by design).
 - Create a project, platform: **React**. Name suggestion: `vela-ios`.
@@ -189,6 +194,9 @@ Sorted by what blocks what. Cross items off as they ship.
      `setTimeout(() => { throw new Error('sentry-smoke-test'); }, 0)`.
   4. Within ~10s, the error should appear in Sentry under
      **Issues** with the release tag `vela@1.0.0`.
+- Verified 2026-05-21: DSN is in `.env.local` and Netlify env, local
+  production bundle embeds it, and a synthetic smoke event appeared in
+  Sentry Issues tagged `vela@1.0.0`.
 - Code-side wiring (all done):
   - `src/errorReporting.js` — init, `reportError()`, `identifyUser()`,
     `clearUser()`. Adds `window.onerror` + `unhandledrejection` handlers

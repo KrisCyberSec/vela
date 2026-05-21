@@ -199,9 +199,11 @@ Full list in `docs/operations/manual-tasks.md`. Top blockers:
    RevenueCat project exists, entitlement is `premium`, but the App Store
    app configuration could not be saved because ASC In-App Purchase API
    key fields are required.
-6. **Sentry/PostHog verification**: local keys are present. Sentry DSN
-   and dashboard ingest are verified; Netlify env, deployed-app Sentry
-   smoke, and PostHog live-event verification still need to be completed.
+6. **Sentry/PostHog/Netlify verification**: local keys are present.
+   Sentry DSN and dashboard ingest are verified. Netlify production env
+   has Anthropic, RevenueCat REST, Blobs, Sentry, and PostHog keys, with
+   deploy `6a0e5921b228037c89395de0` live. PostHog received a real
+   `onboarding_completed` event from the production app bundle.
 
 ## Current App Store / RevenueCat bookmark
 

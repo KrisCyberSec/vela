@@ -24,6 +24,14 @@ printing secret values.
 - Sentry account/project exists and the DSN is present locally. The
   local production build embeds the DSN, and a synthetic smoke event was
   accepted by Sentry and appeared in Issues tagged `vela@1.0.0`.
+- Netlify production env now has `ANTHROPIC_API_KEY`,
+  `REVENUECAT_REST_KEY`, `NETLIFY_BLOBS_TOKEN`, `REACT_APP_SENTRY_DSN`,
+  and `REACT_APP_POSTHOG_KEY`. Production deploy
+  `6a0e5921b228037c89395de0` completed after the env update, and empty
+  function POST checks return validation errors instead of missing-env
+  errors.
+- PostHog Activity shows a real `onboarding_completed` event fired from
+  the production app bundle served locally.
 - RevenueCat project exists and the entitlement was corrected to exactly
   `premium`. Real App Store configuration is blocked until Apple
   Developer Program enrollment/payment is complete and App Store Connect
