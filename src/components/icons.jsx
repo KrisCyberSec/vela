@@ -1,12 +1,12 @@
 // Phosphor icon registry + the four React components that wrap them.
 //
-// SymptomIcon — symptom tiles. Duotone weight by default. Falls back to
+// SymptomIcon - symptom tiles. Duotone weight by default. Falls back to
 // rendering the raw glyph string for user-defined custom symptoms.
-// UIIcon       — generic Phosphor wrapper used by settings rows, energy
+// UIIcon       - generic Phosphor wrapper used by settings rows, energy
 // chips, the reveal carousel, the theme toggle, etc.
-// MoodFace     — hand-drawn SVG face that follows currentColor.
-// EnergyGlyph  — five ascending bars; filled count = level.
-// RevealChart  — 7-day mini bar chart used in the reveal carousel.
+// MoodFace     - hand-drawn SVG face that follows currentColor.
+// EnergyGlyph  - five ascending bars; filled count = level.
+// RevealChart  - 7-day mini bar chart used in the reveal carousel.
 
 import {
   // Symptom-tile icons
@@ -42,7 +42,7 @@ export function SymptomIcon({ name, size = 24, weight = "duotone", style }) {
 
 // UI icons (settings rows, energy chips, reveal carousel, theme toggle, etc.)
 // Same Phosphor duotone treatment as SymptomIcon. We bundle every imported
-// Phosphor name here so any UIIcon name="…" call resolves — the redesign
+// Phosphor name here so any UIIcon name="…" call resolves - the redesign
 // refactor introduced new call sites (ArrowRight chevrons, pattern cards
 // referencing Bed/Wind, onboarding chip icons) that previously rendered as
 // empty squares because the registry was symptom-only.
@@ -69,7 +69,7 @@ export function UIIcon({ name, size = 22, weight = "duotone", style }) {
   return <Cmp size={size} weight={weight} style={style} />;
 }
 
-// Hand-drawn mood face — single SVG follows currentColor so the active state
+// Hand-drawn mood face - single SVG follows currentColor so the active state
 // lights up in clay just like the rest of the system. Five expressive levels
 // instead of system emojis (which look childish for the audience).
 export function MoodFace({ kind, size = 30 }) {
@@ -95,7 +95,7 @@ export function MoodFace({ kind, size = 30 }) {
   );
 }
 
-// Energy glyph — five ascending bars, filled count = level. Replaces the
+// Energy glyph - five ascending bars, filled count = level. Replaces the
 // emoji battery progression with something that follows currentColor and
 // scales cleanly at any size.
 export function EnergyGlyph({ level, size = 30 }) {
@@ -127,7 +127,7 @@ export function EnergyGlyph({ level, size = 30 }) {
 }
 
 // Mini bar chart for the reveal card. Pure SVG, brand-tinted via currentColor.
-// Bars are derived from the user's real logs — never fabricated. For
+// Bars are derived from the user's real logs - never fabricated. For
 // "building" state the past 7 days show actual symptom counts (height
 // scales to the local max), and any future days within the week render
 // as dimmed empty bars. Past days with no log render as dim too, so

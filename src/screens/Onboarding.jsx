@@ -104,7 +104,7 @@ export default function OnboardingScreen({ onComplete }) {
   if (step === 5) {
     const stageOpt = QUESTIONS[0].opts[answers[0]];
     const stageLabel = stageOpt?.label || "your stage";
-    // Stage labels read like "Periods are irregular (perimenopause)" — for
+    // Stage labels read like "Periods are irregular (perimenopause)" - for
     // sentence usage ("Track signals that matter for X", "X, focused on Y")
     // we prefer the parenthetical short form when present, falling back to
     // the full label so the copy stays readable.

@@ -43,9 +43,9 @@ Sidebar → **App Information**.
 |---|---|
 | Subtitle | `Track symptoms. See patterns.` |
 | Privacy Policy URL | `https://velahealth.health/privacy.html` |
-| Category — Primary | Health & Fitness |
-| Category — Secondary | Leave blank |
-| Content Rights — Third-party content? | No |
+| Category - Primary | Health & Fitness |
+| Category - Secondary | Leave blank |
+| Content Rights - Third-party content? | No |
 
 Click **Save** (top right).
 
@@ -76,7 +76,7 @@ Review Screenshot for each: upload one of the paywall screenshots from
 `screenshot-script.md`. Review Notes for each:
 `Tap the Annual purchase button on the paywall. If the sandbox Apple ID is eligible for the introductory offer, the button says "Start 14 days free · then $69.99/yr"; otherwise it says "Continue with Annual · $69.99/yr". Sandbox tester accounts work normally.`
 
-Both end at "Ready to Submit" (yellow) — turns green after first build
+Both end at "Ready to Submit" (yellow) - turns green after first build
 ships alongside them.
 
 ## Page: App Privacy - highest rejection risk
@@ -84,10 +84,10 @@ ships alongside them.
 Sidebar → **App Privacy** → **Get Started** (or **Edit**). Sequence:
 
 1. **"Do you or your third-party partners collect data?"** → **Yes**.
-   Counter-intuitive but correct — Ask Vela sends an anonymized
+   Counter-intuitive but correct - Ask Vela sends an anonymized
    summary to our Netlify proxy → Anthropic, which counts as
    collection (even with notes / custom names / exact dates stripped).
-2. **Data Type screen** — check:
+2. **Data Type screen** - check:
    - ☑ **Health & Fitness → Health**
    - ☑ **Purchases → Purchase History**
    - ☑ **Identifiers → User ID**
@@ -109,7 +109,7 @@ Sidebar → **App Privacy** → **Get Started** (or **Edit**). Sequence:
    identity, and the selected categories under "Data Not Linked to You."
 
 If a reviewer rejects, re-verify this list against `landing/privacy.html`
-and `ios/App/App/PrivacyInfo.xcprivacy` — they must match.
+and `ios/App/App/PrivacyInfo.xcprivacy` - they must match.
 
 ## Page: 1.0 Prepare for Submission
 
@@ -122,7 +122,7 @@ Same for **iPhone 6.5" Display** with `screenshots/65/*.png`.
 
 | Field | Value |
 |---|---|
-| Promotional Text | `Track perimenopause and menopause symptoms in seconds. Spot patterns, ask AI grounded in your own data, and bring the picture to your doctor.` |
+| Promotional Text | `Track perimenopause and menopause symptoms in seconds. Spot patterns, ask Vela about your data, and bring a clearer picture to your doctor.` |
 | Description | Paste the block under `## Description` in `appstore-metadata.md` (starts "Your body is changing.", ends "Always consult your healthcare provider.") |
 | Keywords | `perimenopause,hot flashes,night sweats,HRT,estrogen,hormones,cycle,brain fog,mood,tracker,log` |
 | Support URL | `https://velahealth.health/support.html` |
@@ -140,12 +140,12 @@ Same scroll, lower. Sign-In Required **No**. Contact: name, phone,
 
 **Save**. The Build slot stays empty until Xcode (see `xcode-build.md`).
 
-## After approval — public-listing verification
+## After approval - public-listing verification
 
 Visit `https://apps.apple.com/us/app/vela-menopause-companion/id<APP_ID>`
 (App ID from ASC → App Information). Confirm the public listing shows:
 subtitle "Track symptoms. See patterns.", description starting with
-"Your body is changing.", privacy "Health & Fitness — Not Linked to
+"Your body is changing.", privacy "Health & Fitness - Not Linked to
 You", IAP prices $69.99/yr + $8.99/mo, screenshots in the right
 carousel order. If anything drifted, edit in ASC → Save → metadata-only
 update (no re-review).

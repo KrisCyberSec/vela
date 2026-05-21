@@ -33,8 +33,8 @@ SEE YOUR PATTERNS
 - Weekly summary with top symptoms and what shifted
 - Tomorrow forecast based on recent days and cycle context
 
-PREMIUM: UNLOCK THE FULL PICTURE
-- Ask Vela: an AI companion grounded in your own anonymized data, not generic web advice
+PREMIUM: UNDERSTAND YOUR PATTERNS
+- Ask Vela: thoughtful answers based on your anonymized pattern summary, not generic web advice
 - Daily brief: a 2-3 sentence morning read on your last week
 - Doctor-ready PDF report covering 12 weeks of trends with charts for your top symptoms, mood, and sleep
 - Personalized experiments tied to the patterns Vela actually finds
@@ -57,7 +57,7 @@ Vela is not medical advice. Always consult your healthcare provider.
 perimenopause,hot flashes,night sweats,HRT,estrogen,hormones,cycle,brain fog,mood,tracker,log
 
 ## Promotional Text (170 chars max)
-Track perimenopause and menopause symptoms in seconds. Spot patterns, ask AI grounded in your own data, and bring the picture to your doctor.
+Track perimenopause and menopause symptoms in seconds. Spot patterns, ask Vela about your data, and bring a clearer picture to your doctor.
 
 ## What's New (for v1.0)
 Hello. This is the first release of Vela, built for women in perimenopause and menopause. Track what's happening, see the patterns, and walk into your next appointment prepared.

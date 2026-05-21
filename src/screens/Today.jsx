@@ -1,8 +1,8 @@
 // Today (formerly Tracker) screen. The primary daily-logging surface
 // where users record mood, energy, symptoms, severity, and contextual
 // triggers (sleep / stress / period / caffeine / alcohol / exercise).
-// It also hosts the morning "reveal" card and — for Premium users with
-// at least seven days of data — the AI-generated daily brief.
+// It also hosts the morning "reveal" card and - for Premium users with
+// at least seven days of data - the Daily Brief.
 
 import { useState, useEffect } from "react";
 
@@ -47,7 +47,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
   const [periodFlow, setPeriodFlow] = useState(null);
   const [energy, setEnergy] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
-  // HealthKit auto-fill — pulls yesterday's sleep when permission's been
+  // HealthKit auto-fill - pulls yesterday's sleep when permission's been
   // granted. Sets a flag so the UI can show "Synced from Apple Health"
   // and the user can override by tapping the +/- buttons.
   const [hkSyncedSleep, setHkSyncedSleep] = useState(false);
@@ -66,7 +66,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
   // ─── Daily brief (Premium) ──────────────────────────────────────────
   // Fetches today's brief once per day through the API helper (server
   // caches per appUserId+date so repeat opens are free). Only runs for
-  // premium users with at least 7 days of data — anything earlier and
+  // premium users with at least 7 days of data - anything earlier and
   // there's not enough signal for the brief to be worth reading.
   const [dailyBrief, setDailyBrief] = useState(() => {
     try { return JSON.parse(localStorage.getItem("vela_daily_brief") || "null"); }
@@ -374,7 +374,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         <p className="meta">{today}{journeyStage ? <> <span className="dot">·</span> {journeyStage}</> : null}</p>
       </section>
 
-      {/* CRISIS PRECONDITION — if the user has logged sustained low
+      {/* CRISIS PRECONDITION - if the user has logged sustained low
           mood (avg ≤ 1 over the last 5 days with ≥ 3 entries), suppress
           the cheerful AI brief and surface the support card instead.
           This is the highest-priority "do no harm" check on Today. */}
@@ -392,7 +392,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         return null;
       })()}
 
-      {/* Daily AI brief (Premium) — when present, replaces the static
+      {/* Daily AI brief (Premium) - when present, replaces the static
           reveal card. This is the proactive Vela voice: a fresh 2-3
           sentence read on yesterday + the past week, generated each
           morning by Claude grounded in anonymized data. */}
@@ -438,7 +438,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         </section>
       )}
 
-      {/* Forecast — Premium. Bayesian-flavored "what tomorrow may
+      {/* Forecast - Premium. Bayesian-flavored "what tomorrow may
           look like" based on cycle phase + recency + recent triggers.
           Quietly hides if confidence is too low or data is too thin. */}
       {(() => {
@@ -642,8 +642,8 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
           </div>
         </div>
 
-        {/* Triggers — caffeine / alcohol / exercise (full width).
-            Critical for analyzeCorrelations() — kept as toggle chips. */}
+        {/* Triggers - caffeine / alcohol / exercise (full width).
+            Critical for analyzeCorrelations() - kept as toggle chips. */}
         <div className="context-card" style={{ gridColumn: "1 / -1" }}>
           <div className="label"><UIIcon name="Sparkle" size={13} /> Today's triggers</div>
           <div className="period-chips">
@@ -668,7 +668,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
       {/* Cross-screen nudge: when the user is logging a symptom AND a
           trigger that already correlates in their history, surface a
           one-tap experiment offer right inline. Only fires when there's
-          a real correlation in the data — not at random. */}
+          a real correlation in the data - not at random. */}
       {(() => {
         // What did the user just log this session?
         const activeSymList = Object.keys(activeSymptoms || {}).filter((s) => activeSymptoms[s]);
@@ -715,7 +715,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
               className={`trigger-nudge-cta${!isPremium ? " locked" : ""}`}
               onClick={() => {
                 if (!isPremium) { onShowPaywall("trigger_nudge"); return; }
-                // Inline-start the experiment — same shape as the
+                // Inline-start the experiment - same shape as the
                 // Insights startExperiment, kept here so this Today
                 // surface doesn't depend on a sibling component.
                 const newExp = {
@@ -764,7 +764,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         <span>Your data stays on this device.</span>
       </div>
 
-      {/* Sticky glass save bar — copy adapts:
+      {/* Sticky glass save bar - copy adapts:
           - In progress (something in form) → live preview
           - Empty + already logged today → confirmation chip
           - Empty + nothing logged today → invitation */}

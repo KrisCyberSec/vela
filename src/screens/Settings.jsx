@@ -81,7 +81,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
   const streak = stats.streak;
   const entries = logs.length;
 
-  // First log date for "Tracking since" — null when no logs (we hide
+  // First log date for "Tracking since" - null when no logs (we hide
   // the line in the JSX rather than print "Tracking since today").
   const trackingSince = (() => {
     if (logs.length === 0) return null;
@@ -93,7 +93,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
   // Position the marker on a 5-stage arc (Regular cycles → Perimenopause → Postmenopause → Surgical)
   const stagePosition = profile && profile[0] !== undefined ? [0.10, 0.45, 0.85, 0.65][profile[0]] || 0.45 : 0.45;
 
-  // Recent quote — pull from the strongest correlation if we have one.
+  // Recent quote - pull from the strongest correlation if we have one.
   // Empty-state copy avoids "journey" (banned brand-voice word).
   const correlations = analyzeCorrelations(logs);
   const journeyQuote = correlations[0]?.text

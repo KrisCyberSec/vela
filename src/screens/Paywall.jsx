@@ -2,7 +2,7 @@
 // each pillar maps to a real, wired feature (Ask Vela, daily brief,
 // doctor report, experiments, cycle prediction, etc.). Renders monthly
 // vs annual plan toggle and calls back into the App-level subscribe /
-// restore handlers via props. No localStorage of its own — the parent
+// restore handlers via props. No localStorage of its own - the parent
 // owns subscription state.
 
 import { useEffect, useState } from "react";
@@ -58,14 +58,14 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   //
   // Order matters: Ask Vela + personalized suggestions lead because
   // they're the differentiation tier vs Caria/Balance/Flo. Doctor PDF
-  // (the original hero) sits at #3 — still the most concrete benefit
+  // (the original hero) sits at #3 - still the most concrete benefit
   // for the doctor-prep persona, but no longer carries the whole pitch.
   const pillars = [
     {
       icon: "ChatCircle",
       tone: "sage",
       title: "Ask Vela",
-      body: "Real AI grounded in your data. Not generic web advice. Ask anything about your symptoms, sleep, cycle, or what to bring to your next appointment.",
+      body: "Ask about your symptoms, sleep, cycle, or what to bring to your next appointment. Vela answers from the pattern summary your own logs create.",
     },
     {
       icon: "SunHorizon",
@@ -153,7 +153,7 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           Make sense of it. <em>Out loud.</em>
         </h1>
         <p className="pw-sub">
-          Real AI grounded in your data, personalized experiments from your patterns, and a doctor-ready report. Built for the years between.
+          Ask Vela about your patterns, run experiments from what you log, and build a doctor-ready report. Built for the years between.
         </p>
 
         {/* Hero. Doctor report preview */}

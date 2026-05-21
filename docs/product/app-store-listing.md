@@ -7,7 +7,7 @@
 **Track symptoms. See patterns.**
 
 ## Promotional Text (170 characters, can be updated without review)
-Track perimenopause and menopause symptoms in seconds. Spot patterns, ask AI grounded in your own data, and bring the picture to your doctor.
+Track perimenopause and menopause symptoms in seconds. Spot patterns, ask Vela about your data, and bring a clearer picture to your doctor.
 
 ## Description
 
@@ -26,8 +26,8 @@ SEE YOUR PATTERNS
 - Weekly summary with top symptoms and what shifted
 - Tomorrow forecast based on recent days and cycle context
 
-PREMIUM: UNLOCK THE FULL PICTURE
-- Ask Vela: an AI companion grounded in your own anonymized data, not generic web advice
+PREMIUM: UNDERSTAND YOUR PATTERNS
+- Ask Vela: thoughtful answers based on your anonymized pattern summary, not generic web advice
 - Daily brief: a 2-3 sentence morning read on your last week
 - Doctor-ready PDF report covering 12 weeks of trends with charts for your top symptoms, mood, and sleep
 - Personalized experiments tied to the patterns Vela actually finds
@@ -79,7 +79,7 @@ Hello. This is the first release of Vela, built for women in perimenopause and m
 "Walk into your doctor's office prepared"
 *Show doctor prep section or PDF preview*
 
-**Screenshot 5 (AI Companion):**
+**Screenshot 5 (Ask Vela):**
 "Ask Vela anything about your patterns"
 *Show companion chat with response*
 
@@ -94,25 +94,25 @@ Hello. This is the first release of Vela, built for women in perimenopause and m
 ### vs. Midday
 - Midday is B2B (sold to employers). Vela is direct-to-consumer.
 - Midday requires account creation and cloud sync. Vela has no account and keeps the core health log on device.
-- Vela offers AI answers grounded in anonymized summaries of the user's own data.
+- Vela offers Ask Vela answers based on anonymized summaries of the user's own data.
 
-### vs. Caria (developer: Chorus Health Inc., 4.6★ × 1,400 reviews as of Feb 2026)
-- Caria's annual is $59.99, monthly $9.99. Vela's annual is $69.99 (+$10), monthly $8.99 (−$1). **Don't claim a price advantage** — claim a capability advantage.
+### vs. Caria (developer: Chorus Health Inc., 4.6 stars x 1,400 reviews as of Feb 2026)
+- Caria's annual is $59.99, monthly $9.99. Vela's annual is $69.99 (+$10), monthly $8.99 (-$1). **Don't claim a price advantage** - claim a capability advantage.
 - Caria positions on comprehensive lifestyle support: audio courses, guided meditations, nutritionist recipes/meal plans, community shop.
-- Vela positions on data + autonomy + intelligence: pattern detection on YOUR logs, real Anthropic-backed Ask Vela that grounds answers in your data, personalized experiments tied to detected patterns, doctor-ready PDF reports, no account required.
-- Real Ask Vela (Claude-backed, grounded in user data) and personalized experiments are Vela-only — Caria has no equivalent.
-- Doctor PDF reports remain unique to Vela — Caria doesn't offer this.
+- Vela positions on data + autonomy + intelligence: pattern detection on YOUR logs, real Ask Vela answers based on the user's data summary, personalized experiments tied to detected patterns, doctor-ready PDF reports, no account required.
+- Real Ask Vela and personalized experiments are Vela-only - Caria has no equivalent.
+- Doctor PDF reports remain unique to Vela - Caria doesn't offer this.
 - Caria has been in maintenance-only mode since v1.9.16 (August 2025); no new features in ~6 months. Strategic launch window.
 
 ### vs. Balance
 - Balance is broader health content. Vela is laser-focused on menopause.
-- Vela's doctor report PDF is unique — no competitor offers this.
+- Vela's doctor report PDF is unique - no competitor offers this.
 - Vela's CBT programs are evidence-based and integrated with tracking.
 
 ### vs. Generic Period Trackers (Flo, Clue)
-- Period trackers aren't built for menopause — they assume regular cycles.
+- Period trackers aren't built for menopause - they assume regular cycles.
 - Vela understands perimenopause's unpredictability.
 - Vela tracks menopause-specific symptoms (44 total) that period apps ignore.
 
 ### Our Wedge
-**Local-first privacy + doctor-ready reports + AI pattern analysis = the only menopause app built around making your own data usable.**
+**Local-first privacy + doctor-ready reports + Ask Vela = a menopause app built around making your own data usable.**

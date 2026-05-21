@@ -37,7 +37,7 @@ import {
   LEVELS,
 } from "./lib/gamification";
 
-// Screen components (Phase 2 refactor — these used to be inline below
+// Screen components (Phase 2 refactor - these used to be inline below
 // alongside the styles block, but ESLint's `import/first` rule trips
 // `npm run build` when any import appears after a non-import statement).
 import OnboardingScreen from "./screens/Onboarding";
@@ -93,7 +93,7 @@ const css = `
     --glass-blur-soft:    blur(20px) saturate(150%);   /* for subtle accent cards */
   }
 
-  /* Dark theme overrides — activated by data-theme="dark" on <html>.
+  /* Dark theme overrides - activated by data-theme="dark" on <html>.
      src/theme.js sets the attribute synchronously based on user pref
      (light/dark/system) and watches matchMedia for system changes. */
   [data-theme="dark"] {
@@ -210,7 +210,7 @@ const css = `
   }
   .nav-logo em { color: var(--clay); font-style: italic; }
 
-  /* Floating pill-dock at bottom — Liquid Glass material.
+  /* Floating pill-dock at bottom - Liquid Glass material.
      Translucent sage-cream over content with backdrop blur + saturation
      boost (Apple's iOS 26 tab-bar approach). Inset top edge highlight
      gives the surface a "lift" against whatever scrolls behind it. */
@@ -266,12 +266,12 @@ const css = `
      energy bars, severity strip, context grid, sticky save bar.
      ════════════════════════════════════════════════════════════════════════ */
 
-  /* Today screen wrapper — extra bottom padding so content clears both
+  /* Today screen wrapper - extra bottom padding so content clears both
      the sticky save bar (~50px tall, floating ~80px from bottom) AND the
      bottom nav dock. Total clearance needed: ~180px. */
   .screen.vela-app { padding-bottom: 180px; padding-top: 0; }
 
-  /* Sticky glass header on Today — bleeds back to viewport edges using
+  /* Sticky glass header on Today - bleeds back to viewport edges using
      negative margin to counter the .screen 16px gutter. */
   .vela-header {
     position: sticky; top: 0; z-index: 10;
@@ -323,7 +323,7 @@ const css = `
   }
 
   /* Reveal card. Sage glass with radial gradient overlay */
-  /* Forecast card — light surface, list of probabilities + reason.
+  /* Forecast card - light surface, list of probabilities + reason.
      Locked variant uses the gold gating accent. */
   .forecast-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
   .forecast-card.locked { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.06)); border-color: rgba(212,168,83,0.26); }
@@ -338,7 +338,7 @@ const css = `
   .forecast-card .forecast-teaser { font-size: 13px; color: var(--ink-mid); line-height: 1.5; margin: 0 0 12px; }
   .forecast-card .forecast-unlock { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
 
-  /* Daily AI brief card — sage-tinted glass surface. Distinct from
+  /* Daily AI brief card - sage-tinted glass surface. Distinct from
      the static reveal card so users learn "this is the live AI read,
      not the same dashboard text I see every day." */
   .brief-card { background: linear-gradient(135deg, rgba(143,184,155,0.18), rgba(212,168,83,0.06)); border: 1px solid rgba(143,184,155,0.32); border-radius: var(--radius); padding: 18px; }
@@ -664,7 +664,7 @@ const css = `
   .pattern-card .pattern-exp-btn:active { transform: scale(0.98); }
   .pattern-card .pattern-exp-running { display: inline-block; margin-top: 8px; font-size: 11.5px; color: var(--ink-light); font-style: italic; }
 
-  /* Anomaly cards — quieter than pattern cards (no confidence dots, no
+  /* Anomaly cards - quieter than pattern cards (no confidence dots, no
      correlation framing). They say "I'm noticing something different
      about THIS week vs your normal." */
   .anomaly-list { display: flex; flex-direction: column; gap: 8px; }
@@ -782,7 +782,7 @@ const css = `
   .exp-card .exp-btn.primary { background: var(--clay); color: #fff; border-color: var(--clay); }
   .exp-card .exp-btn.secondary:hover { background: var(--card-bg-soft, rgba(0,0,0,0.04)); }
 
-  /* Personalized experiment suggestions — premium, derived from
+  /* Personalized experiment suggestions - premium, derived from
      correlations + top symptoms. Reason headline reads first so the
      user understands why this suggestion appeared. */
   .suggest-list { display: flex; flex-direction: column; gap: 10px; }
@@ -830,7 +830,7 @@ const css = `
   .shelf-card .desc { font-size: 12px; color: var(--ink-mid); line-height: 1.4; }
   .shelf-card .mins { font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; margin-top: auto; }
 
-  /* Ask Vela floating button — discrete pill in the corner. Avatar carries
+  /* Ask Vela floating button - discrete pill in the corner. Avatar carries
      the brand (gold = premium upgrade, clay = active premium); the label
      stays tight ("Ask Vela") so the FAB never dominates the viewport like
      the original Premium · 7 Questions variant. */
@@ -854,7 +854,7 @@ const css = `
   .av-sub { font-size: 11px; color: var(--ink-light); margin-top: 2px; display: inline-flex; gap: 5px; align-items: center; }
   .av-q-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding: 4px 0; }
 
-  /* Crisis support card — appears in two places (Ask Vela sheet inline,
+  /* Crisis support card - appears in two places (Ask Vela sheet inline,
      Today screen when sustained mood crash detected). Same surface in
      both so the user recognizes the safety affordance wherever it
      shows up. Soft sage to read as care, not alarm. */
@@ -941,7 +941,7 @@ const css = `
   .set-premium-row .body small { display: block; font-size: 12px; color: var(--ink-mid); margin-top: 2px; line-height: 1.4; }
   .set-premium-row .cta { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--clay-dark); text-transform: uppercase; }
 
-  /* "Patterns you've marked helpful" — Settings card pulling thumbs-up'd
+  /* "Patterns you've marked helpful" - Settings card pulling thumbs-up'd
      correlations from Insights, so the user can see validated patterns
      still surface. Tap to jump to Insights. Hidden when none. */
   .set-recent { display: block; width: 100%; text-align: left; background: linear-gradient(135deg, rgba(143,184,155,0.10), rgba(212,168,83,0.05)); border: 1px solid rgba(143,184,155,0.26); border-radius: 16px; padding: 14px 16px; cursor: pointer; font-family: inherit; }
@@ -1286,7 +1286,7 @@ const css = `
   .cir-privacy .body { font-size: 12px; line-height: 1.5; color: var(--sage-dark); }
   .cir-privacy .body strong { display: block; font-size: 12.5px; font-weight: 600; color: var(--sage-dark); margin-bottom: 2px; }
 
-  /* First-time welcome card — uses translucent surface tokens that adapt
+  /* First-time welcome card - uses translucent surface tokens that adapt
      to light/dark theme instead of a hardcoded cream gradient (the
      hardcoded gradient + var(--ink) text rendered as white-on-cream in
      dark mode and was unreadable). */
@@ -2280,7 +2280,7 @@ const css = `
   }
 
   /* ── TOAST ── */
-  /* Toast — Liquid Glass with sage tint. Floats above the bottom dock,
+  /* Toast - Liquid Glass with sage tint. Floats above the bottom dock,
      translucent so the user still feels grounded in the screen. */
   .toast {
     position: fixed;
@@ -2698,7 +2698,7 @@ const css = `
     background: var(--border); transition: all 0.3s ease;
   }
   .reveal-dot.active { background: var(--sage); width: 20px; border-radius: 4px; }
-  /* Prominent secondary action — present on every reveal step so users
+  /* Prominent secondary action - present on every reveal step so users
      never feel trapped in the ceremony. Goes TO patterns, not away from them. */
   .reveal-skip {
     margin-top: 20px; padding: 12px 24px; font-size: 14px; font-weight: 500;
@@ -2925,7 +2925,7 @@ const css = `
 `;
 
 // Screen components + lib helpers (doctorReport, csv) imported at the
-// top of this file — see the block right after the gamification import.
+// top of this file - see the block right after the gamification import.
 
 export default function App() {
   // App-init reads use safeReadJSON: a localStorage exception (e.g. Safari private mode,
@@ -3026,7 +3026,7 @@ export default function App() {
       const { isPremium: livePremium } = await checkSubscription();
       if (livePremium) setIsPremium(true);
       // Set Sentry user context so errors group by user. We use the
-      // anonymous RevenueCat appUserId — never PII.
+      // anonymous RevenueCat appUserId - never PII.
       try {
         const uid = await getAppUserId();
         if (uid) identifyUser(uid);
@@ -3078,13 +3078,13 @@ export default function App() {
   function handleLog(entry) {
     // Stamp the log with a LOCAL-time ISO string. new Date().toISOString()
     // returns UTC, so a user logging at 8pm ET (= 12am UTC the next day)
-    // would see the entry land on tomorrow's date in History — broke the
+    // would see the entry land on tomorrow's date in History - broke the
     // calendar highlight and "newest first" ordering. Computing the local
     // ISO keeps `date.slice(0, 10)` aligned with the user's local day.
     const logEntry = { ...entry, date: localISOString(new Date()) };
     const newLogs = [logEntry, ...logs];
     setLogs(newLogs);
-    // Smart contextual toast messages — personalized by profile
+    // Smart contextual toast messages - personalized by profile
     const previousUniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
     const uniqueDays = new Set(newLogs.map((l) => l.date.slice(0, 10))).size;
     const streak = getStreak(newLogs);
@@ -3200,7 +3200,7 @@ export default function App() {
         // Nudges (per-row dismissals)
         "vela_insights_nudge_dismissed", "vela_doctor_nudge_dismissed",
         "vela_community_nudge_dismissed", "vela_relief_nudge_dismissed",
-        // Aesthetic — debatable, but Reset means reset
+        // Aesthetic - debatable, but Reset means reset
         "vela_theme_pref",
       ];
       knownKeys.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
@@ -3229,7 +3229,7 @@ export default function App() {
   // onboarding + logging dozens of entries. Surface from the hidden debug
   // screen (Settings → tap version number 5×). Pattern: caffeine days have
   // worse hot flashes / insomnia / mood; non-caffeine days correlate with
-  // exercise + better sleep — produces real correlations in Insights.
+  // exercise + better sleep - produces real correlations in Insights.
   function seedDemoData() {
     if (!window.confirm("Replace your current data with 30 days of demo content? This is intended for App Store screenshots.")) return;
     const demoProfile = [1, [0, 1, 2], 4, "sometimes"]; // perimenopause; concerns: hot flashes/sleep/mood
@@ -3304,22 +3304,22 @@ export default function App() {
       setShowPaywall(false);
     } else if (result.cancelled) {
       track("purchase_cancelled", { plan, mode: result.mode || "unknown" });
-      // user dismissed the native sheet — leave paywall open, no toast
+      // user dismissed the native sheet - leave paywall open, no toast
     } else if (result.error === "web_fallback") {
-      // Browser dev preview only — no Apple receipt to validate. Unlock locally for testing.
+      // Browser dev preview only - no Apple receipt to validate. Unlock locally for testing.
       // This branch is unreachable in production iOS builds (mode would be 'native' or 'misconfigured').
       setIsPremium(true);
       setShowPaywall(false);
     } else if (result.error === "misconfigured") {
       track("purchase_failed", { plan, reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
-      // Native iOS build is missing the RevenueCat API key — surfaced as a user-friendly error,
+      // Native iOS build is missing the RevenueCat API key - surfaced as a user-friendly error,
       // logged to Sentry inside subscription.js. Critically: do NOT grant premium.
       setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
       setToast(true);
       setTimeout(() => setToast(false), 3500);
     } else {
       track("purchase_failed", { plan, reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
-      // no_offering / no_package / network error / unknown — surface a generic failure
+      // no_offering / no_package / network error / unknown - surface a generic failure
       setToastMsg("Purchase didn't go through. Try again or contact support.");
       setToast(true);
       setTimeout(() => setToast(false), 3500);
@@ -3368,7 +3368,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Slim top header — wordmark only. Hidden on Today (which has its
+      {/* Slim top header - wordmark only. Hidden on Today (which has its
           own sticky glass header per the redesign) and Onboarding (which
           renders its own giant Vela mark in the welcome screen and needs
           full-bleed height for the welcome → questions → summary flow). */}
@@ -3539,7 +3539,7 @@ export default function App() {
             <div className="settings-card" style={{ padding: 16 }}>
               {LEVELS.map((lvl, i) => {
                 const next = LEVELS[i + 1];
-                const range = next ? `${lvl.xpNeeded} – ${next.xpNeeded - 1} XP` : `${lvl.xpNeeded}+ XP`;
+                const range = next ? `${lvl.xpNeeded} - ${next.xpNeeded - 1} XP` : `${lvl.xpNeeded}+ XP`;
                 return (
                   <div key={lvl.level} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < LEVELS.length - 1 ? "1px solid var(--border)" : "none", fontSize: 13 }}>
                     <div>

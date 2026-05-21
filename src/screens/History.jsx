@@ -1,4 +1,4 @@
-// History (Journal) screen. The user's chronological record — a stat
+// History (Journal) screen. The user's chronological record - a stat
 // strip, a per-day calendar heatmap, optional filter chips, and a
 // newest-first entries feed with a tap-to-expand day-detail sheet.
 // Non-premium users see the last seven days plus a locked-history banner.
@@ -15,14 +15,14 @@ export default function HistoryScreen({ logs, isPremium, onShowPaywall, onNaviga
   const [monthOffset, setMonthOffset] = useState(0);
   const [filter, setFilter] = useState(null);
   const [openDay, setOpenDay] = useState(null);
-  // Entries feed cap — show recent N days by default. The calendar above
+  // Entries feed cap - show recent N days by default. The calendar above
   // already gives the spatial overview, so the textual feed can be tighter.
   // Filter implies a search across all data, so it disables the cap.
   const FEED_CAP_DAYS = 14;
   const [showAllEntries, setShowAllEntries] = useState(false);
 
   const TODAY = new Date();
-  // MoodFace replaces system emoji here (same reason as Today/Insights —
+  // MoodFace replaces system emoji here (same reason as Today/Insights -
   // emoji yellow smileys read childish for the 45-55 audience).
   const MOOD_KIND_HX = ["rough", "low", "okay", "good", "great"];
   const MOOD_LABEL_HX = ["Rough", "Low", "Okay", "Good", "Great"];
