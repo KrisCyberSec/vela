@@ -13,7 +13,7 @@ Track perimenopause & menopause symptoms, discover personal patterns, and walk i
 
 Your body is changing. Vela helps you understand why.
 
-Vela is a personal menopause and perimenopause companion that turns your daily symptoms into clear, actionable patterns. No cloud uploads. No data sharing. Everything stays on your device.
+Vela is a personal menopause and perimenopause companion that turns your daily symptoms into clear, actionable patterns. Your detailed health log stays on your device. Premium AI features use anonymized summaries, not your notes, name, email, or exact dates.
 
 WHY WOMEN LOVE VELA
 
@@ -39,29 +39,29 @@ WALK INTO YOUR DOCTOR'S OFFICE PREPARED
 - Symptom frequency, severity trends, and trigger analysis
 - Turn "I've been feeling bad" into "Here's exactly what's happening"
 
-DESIGNED FOR YOUR JOURNEY
+BUILT FOR THE CHANGE
 - Personalized for perimenopause, postmenopause, or surgical menopause
 - CBT-based programs for hot flashes, sleep, and anxiety
 - Self-experiments to test what helps YOU
 - 60 evidence-based daily lessons
 
 VELA PREMIUM
-- AI-powered symptom predictions for each day
-- Ask Vela — your on-device health companion
+- Ask Vela, Claude-backed answers grounded in your data
+- Daily brief and tomorrow forecast
 - Smart weekly digest with pattern spotlights
 - Deep trend analysis and visual charts
 - Doctor visit PDF reports
 - 14-day free trial
 
 YOUR DATA. YOUR DEVICE. PERIOD.
-Vela stores everything locally on your device. We never see, upload, or share your health data. No account required. No cloud. No exceptions.
+Vela stores your detailed health log locally on your device. Ask Vela and Daily Brief send anonymized summaries when you use them. No account required.
 
 Vela is not medical advice. Always consult your healthcare provider for medical decisions.
 
 ---
 
 ## Keywords (100 characters max, comma-separated)
-menopause,perimenopause,symptom tracker,hot flashes,hormone,health,wellness,mood,sleep,women,cycle
+menopause,perimenopause,symptom tracker,hot flashes,hormone,health,mood,sleep,women,cycle
 
 ## Category
 Primary: Health & Fitness
@@ -104,7 +104,7 @@ Secondary: Medical
 *Show companion chat with response*
 
 **Screenshot 6 (Privacy):**
-"Your data never leaves your device"
+"Your detailed log stays on your device"
 *Show settings with "On-device only" visible*
 
 ---
@@ -113,8 +113,8 @@ Secondary: Medical
 
 ### vs. Midday
 - Midday is B2B (sold to employers). Vela is direct-to-consumer.
-- Midday requires account creation and cloud sync. Vela is fully on-device.
-- Vela offers deeper on-device AI analysis.
+- Midday requires account creation and cloud sync. Vela has no account and keeps the core health log on device.
+- Vela offers AI answers grounded in anonymized summaries of the user's own data.
 
 ### vs. Caria (developer: Chorus Health Inc., 4.6★ × 1,400 reviews as of Feb 2026)
 - Caria's annual is $59.99, monthly $9.99. Vela's annual is $69.99 (+$10), monthly $8.99 (−$1). **Don't claim a price advantage** — claim a capability advantage.
@@ -125,7 +125,7 @@ Secondary: Medical
 - Caria has been in maintenance-only mode since v1.9.16 (August 2025); no new features in ~6 months. Strategic launch window.
 
 ### vs. Balance
-- Balance is broader wellness. Vela is laser-focused on menopause.
+- Balance is broader health content. Vela is laser-focused on menopause.
 - Vela's doctor report PDF is unique — no competitor offers this.
 - Vela's CBT programs are evidence-based and integrated with tracking.
 
@@ -135,4 +135,4 @@ Secondary: Medical
 - Vela tracks menopause-specific symptoms (44 total) that period apps ignore.
 
 ### Our Wedge
-**On-device privacy + doctor-ready reports + AI pattern analysis = the only menopause app that makes you your own best advocate.**
+**Local-first privacy + doctor-ready reports + AI pattern analysis = the only menopause app built around making your own data usable.**

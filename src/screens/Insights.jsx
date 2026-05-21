@@ -1,7 +1,7 @@
 // Insights / patterns screen. Surfaces the weekly hero, correlation findings,
 // anomalies, cycle prediction, weekly summary, and experiments — plus the
-// floating Ask Vela chat sheet (Claude-backed via /api/ask-vela with a canned
-// fallback) and the doctor-report export trigger. All analytics run on-device
+// floating Ask Vela chat sheet (Claude-backed through the API helper with a
+// canned fallback) and the doctor-report export trigger. All analytics run on-device
 // from the logs prop; the screen is gated by uniqueDays (locked < 7) and
 // further sub-gates Premium-only modules (cycle prediction, anomalies,
 // experiments, Ask Vela). Persists chat history, experiments, and reveal
@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 
 import { track } from "../analytics";
+import { apiHeaders, apiUrl } from "../api";
 import { reportError } from "../errorReporting";
 import { getAppUserId } from "../subscription";
 import { readJSON as safeReadJSON } from "../safeStorage";
@@ -195,16 +196,9 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
       const appUserId = await getAppUserId();
       // Try the real API first; fall back to the canned response engine
       // if the function returns 5xx (key missing, model unreachable, etc.)
-      const headers = { "Content-Type": "application/json" };
-      // Local dev only: send the dev-bypass header so the function skips
-      // RevenueCat verification (no Apple receipts on web). The token must
-      // match ASK_VELA_DEV_TOKEN in .env.local — both default to "dev".
-      if (process.env.NODE_ENV === "development" && process.env.REACT_APP_ASK_VELA_DEV_TOKEN) {
-        headers["x-dev-token"] = process.env.REACT_APP_ASK_VELA_DEV_TOKEN;
-      }
-      const r = await fetch("/api/ask-vela", {
+      const r = await fetch(apiUrl("/api/ask-vela"), {
         method: "POST",
-        headers,
+        headers: apiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ question: text.trim(), summary, profile: profilePayload, appUserId }),
       });
       let answer;

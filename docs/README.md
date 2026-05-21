@@ -28,6 +28,8 @@ High-level thinking, positioning, and go-to-market.
 | Doc | What's in it |
 |-----|--------------|
 | [overview.md](product/overview.md) | What Vela is, who it's for, feature list, current stage, roadmap |
+| [ceo-priorities.md](product/ceo-priorities.md) | CEO operating priorities for launch sequencing and scope control |
+| [first-user-walkthrough-2026-05-21.md](product/first-user-walkthrough-2026-05-21.md) | First-user walkthrough findings, Ask Vela value assessment, and resulting fixes |
 | [app-store-listing.md](product/app-store-listing.md) | App Store metadata, keywords, screenshots plan, competitive positioning |
 | [launch-strategy.md](product/launch-strategy.md) | Pre-launch checklist, launch-week plan, 90-day growth calendar |
 | [community-outreach-drafts.md](product/community-outreach-drafts.md) | Reddit / community post drafts (not yet posted); tone guidance per subreddit |

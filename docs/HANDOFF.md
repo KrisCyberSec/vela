@@ -184,6 +184,7 @@ src/App.jsx              App shell, routing, persistence, global CSS
 src/screens/             Main product surfaces
 src/lib/                 Pure analysis, summaries, PDF, storage helpers
 src/components/          Shared UI components and icon wrappers
+src/api.js               API URL/header helper for native vs local calls
 src/healthkit.js         Capacitor wrapper for VelaHealth native plugin
 src/subscription.js      RevenueCat wrapper, native/web/misconfigured modes
 src/analytics.js         PostHog wrapper, live production event verified

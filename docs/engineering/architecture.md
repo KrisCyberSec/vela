@@ -88,7 +88,8 @@ Network path:
 ```text
 Insights/Today
   -> buildAskVelaSummary or buildDailyBriefSummary
-  -> /api/ask-vela or /api/daily-brief
+  -> apiUrl("/api/ask-vela") or apiUrl("/api/daily-brief")
+  -> https://velahealth.health/api/... in native/production builds
   -> RevenueCat premium verification
   -> Netlify Blobs rate/cost/cache records
   -> Anthropic Claude API
@@ -98,6 +99,11 @@ Server code lives in:
 
 - `netlify/functions/ask-vela.js`
 - `netlify/functions/daily-brief.js`
+
+Client URL/header resolution lives in `src/api.js`. Local development keeps
+relative `/api/...` paths unless `REACT_APP_API_BASE_URL` is set. Capacitor
+and production builds default to `https://velahealth.health` so the iOS bundle
+does not try to call `capacitor://localhost/api/...`.
 
 ### Legal pages
 
@@ -124,10 +130,12 @@ Server code lives in:
 
 Client-side env vars:
 
+- `REACT_APP_API_BASE_URL` (optional local override)
 - `REACT_APP_REVENUECAT_IOS_API_KEY`
 - `REACT_APP_POSTHOG_KEY`
 - `REACT_APP_POSTHOG_HOST`
 - `REACT_APP_SENTRY_DSN`
+- `REACT_APP_ASK_VELA_DEV_TOKEN` (local testing only)
 
 Server-side Netlify env vars:
 

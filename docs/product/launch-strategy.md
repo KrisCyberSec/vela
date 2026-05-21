@@ -16,7 +16,7 @@
 Essential elements:
 1. Hero: "Your body, finally understood." + app mockup
 2. 3 value props with icons (Track / Understand / Advocate)
-3. Privacy callout: "Your data never leaves your device"
+3. Privacy callout: "Your detailed log stays on your device"
 4. Email signup: "Get notified when Vela launches"
 5. App Store badge (once live)
 

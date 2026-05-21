@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 
 import { track } from "../analytics";
+import { apiHeaders, apiUrl } from "../api";
 import { reportError } from "../errorReporting";
 import { getAppUserId } from "../subscription";
 import { isHealthKitEnabled, fetchYesterdaySleep } from "../healthkit";
@@ -63,7 +64,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
   }, []);
 
   // ─── Daily brief (Premium) ──────────────────────────────────────────
-  // Fetches today's brief from /api/daily-brief once per day (server
+  // Fetches today's brief once per day through the API helper (server
   // caches per appUserId+date so repeat opens are free). Only runs for
   // premium users with at least 7 days of data — anything earlier and
   // there's not enough signal for the brief to be worth reading.
@@ -96,9 +97,9 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
           goal: goalIdxs.length ? QUESTIONS[2].opts[goalIdxs[0]]?.label : null,
         };
         const appUserId = await getAppUserId();
-        const r = await fetch("/api/daily-brief", {
+        const r = await fetch(apiUrl("/api/daily-brief"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: apiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ summary, profile: profilePayload, appUserId }),
         });
         if (!cancelled && r.ok) {
