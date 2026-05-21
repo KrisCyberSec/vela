@@ -150,6 +150,7 @@ Before clicking "Submit for Review", verify:
 - [ ] Paywall subscription + restore flows work
 - [ ] Privacy policy URL is live: `velahealth.health/privacy.html`
 - [ ] Terms URL is live: `velahealth.health/terms.html`
+- [ ] Support URL is live: `velahealth.health/support.html`
 - [ ] App icon is the Vela icon (not the default Capacitor icon)
 - [ ] Launch screen doesn't show a spinner or blank state
 - [ ] No console errors in the WebView (check via Safari → Develop → connected device)

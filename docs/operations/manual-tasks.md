@@ -17,10 +17,11 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ### [ ] Create the App in App Store Connect
 - Bundle ID: `com.velahealth.app`
-- Name: `Vela`
+- Name: `Vela - Menopause Companion`
 - Category: Health & Fitness
 - Primary language: English (US)
 - Privacy policy URL: `https://velahealth.health/privacy.html`
+- Support URL: `https://velahealth.health/support.html`
 
 ### [ ] Create the two IAP products in App Store Connect
 | Product ID | Type | Price | Trial |
@@ -101,13 +102,16 @@ Sorted by what blocks what. Cross items off as they ship.
 ### [ ] App Review Information (reviewer notes + contact)
 - ASC → App Information → App Review Information.
 - Reviewer notes (paste verbatim, adjust as needed):
-  > Vela has no login or account. Tap "Begin" to start the 90-second
-  > onboarding. To exercise premium features without a real
-  > subscription, the reviewer can use the App Store sandbox tester
-  > flow against the in-app paywall. The "Ask Vela" feature sends an
-  > anonymized summary of symptom data (no notes, no custom names, no
-  > exact dates) to Anthropic's Claude API via our Netlify proxy.
-  > Disclosure in Settings → Privacy & Data and in our privacy policy.
+  > Vela has no login or account. Tap "Begin" on the welcome screen to
+  > start onboarding. To exercise premium features, use the App Store
+  > sandbox tester flow against the in-app paywall. Ask Vela and Daily
+  > Brief send anonymized summaries of symptom data through Vela's
+  > Netlify API to Anthropic's Claude API. The summaries exclude notes,
+  > custom symptom names, exact dates, name, email, and advertising
+  > identifiers. Apple Health is optional and reads sleep hours only
+  > after the user enables it in Settings. Vela is informational and not
+  > medical advice. Backend services are live at
+  > `https://velahealth.health/api/*`.
 - Contact email: `support@velahealth.health`
 - Sign-in required: No.
 

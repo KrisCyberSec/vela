@@ -1,9 +1,9 @@
 # Vela. App Store Metadata
 
-Last paste-ready review: 2026-05-13 (commit 5097125)
+Last paste-ready review: 2026-05-21
 
 ## App Name
-Vela: Menopause Companion
+Vela - Menopause Companion
 
 ## Subtitle (30 chars max)
 Track symptoms. See patterns.
@@ -20,7 +20,7 @@ Free (with in-app subscription: $8.99/month or $69.99/year)
 
 Your body is changing. Vela helps you understand it.
 
-Vela is a private symptom companion built for women navigating perimenopause and menopause. Log your daily symptoms, mood, and notes in seconds, then let Vela surface the patterns your doctor needs to see.
+Vela is a private symptom companion built for women navigating perimenopause and menopause. Log your daily symptoms, mood, and notes in seconds, then let Vela surface patterns you can use for better questions and better doctor visits.
 
 TRACK WHAT MATTERS
 - 44 menopause-specific symptoms across hot flashes, sleep, mood, cognitive, physical, intimate, and digestive categories
@@ -29,9 +29,9 @@ TRACK WHAT MATTERS
 - Optional free-text notes for context
 
 SEE YOUR PATTERNS
-- Pattern detection across triggers, sleep, mood, and cycle
+- Pattern detection across triggers, sleep, mood, and cycle context
 - Weekly summary with top symptoms and what shifted
-- Tomorrow forecast based on your cycle phase and recent days
+- Tomorrow forecast based on recent days and cycle context
 
 PREMIUM: UNLOCK THE FULL PICTURE
 - Ask Vela: an AI companion grounded in your own anonymized data, not generic web advice
@@ -44,8 +44,8 @@ PREMIUM: UNLOCK THE FULL PICTURE
 - CSV data export
 
 BUILT FOR PRIVACY
-- Your symptom log is stored on your device only. We never see, upload, or share it.
-- The one exception, by your tap: Ask Vela sends an anonymized summary (counts and averages, no notes, no custom-symptom names, no exact dates) to answer your question
+- Your detailed symptom log is stored on your device only.
+- Ask Vela and Daily Brief use anonymized summaries only. No notes, no custom-symptom names, no exact dates, no name, no email.
 - No account, no sign-up
 - No advertising trackers
 
@@ -68,10 +68,10 @@ Hello. This is the first release of Vela, built for women in perimenopause and m
 https://velahealth.health/privacy.html
 
 ## Support URL
-mailto:support@velahealth.health
+https://velahealth.health/support.html
 
 ## App Rating
-4+ (No objectionable content)
+Let App Store Connect calculate from the age-rating questionnaire. Expected result may be 12+ if ASC classifies Vela's menopause education as Medical/Treatment Information.
 
 ## Export Compliance
 Uses HTTPS only (exempt from export compliance documentation)

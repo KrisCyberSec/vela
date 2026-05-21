@@ -292,7 +292,7 @@ your green light for this phase.
 1. Click the blue **+** button → **New App**.
 2. A dialog appears. Fill in:
    - **Platforms**: ☑ iOS
-   - **Name**: `Vela: Menopause Companion` (this is what shows in the
+   - **Name**: `Vela - Menopause Companion` (this is what shows in the
      App Store; don't include "Vela" twice — Apple counts the App Name
      toward the 30-char limit)
    - **Primary Language**: English (U.S.)
@@ -437,8 +437,7 @@ On the same **1.0 Prepare for Submission** page, fill in:
   section
 - **Keywords**: paste from `appstore-metadata.md` "Keywords" section
   (`perimenopause,hot flashes,night sweats,HRT,estrogen,hormones,cycle,brain fog,mood,tracker,log`)
-- **Support URL**: `https://velahealth.health` (or specifically
-  `mailto:support@velahealth.health` if asked for a contact link)
+- **Support URL**: `https://velahealth.health/support.html`
 - **Marketing URL**: `https://velahealth.health` (optional but nice)
 - **Version**: `1.0.0`
 - **Copyright**: `© 2026 [your name]`

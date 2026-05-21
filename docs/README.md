@@ -55,6 +55,7 @@ Running and deploying things.
 | [workflow.md](operations/workflow.md) | How work moves from now to shipped to parking lot |
 | [manual-tasks.md](operations/manual-tasks.md) | Human-only account, dashboard, Apple, RevenueCat, and Xcode gates |
 | [launch-walkthrough.md](operations/launch-walkthrough.md) | Day-by-day App Store setup and submission playbook |
+| [app-store-trust-packet.md](operations/app-store-trust-packet.md) | Review-safe App Store metadata, privacy label, HealthKit, AI, and subscription packet |
 | [launch-cheatsheets/](operations/launch-cheatsheets/) | Paste-ready setup sheets for accounts, ASC, RevenueCat, Netlify, Xcode, screenshots |
 | [infrastructure.md](operations/infrastructure.md) | Every service we use: Netlify, Namecheap, Firebase, domain, DNS records |
 | [deployment.md](operations/deployment.md) | How to deploy the landing page, how to update DNS, redeploy functions |

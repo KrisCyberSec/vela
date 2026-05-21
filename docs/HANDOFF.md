@@ -33,10 +33,12 @@ update the stale one in the same commit.
 
 1. `docs/operations/now.md` - current in-flight work and blockers.
 2. `docs/operations/manual-tasks.md` - dashboard/account tasks only Kris can do.
-3. `docs/operations/launch-walkthrough.md` - step-by-step App Store path.
-4. `docs/operations/analytics-and-billing.md` - RevenueCat, PostHog, Sentry state.
-5. `docs/engineering/architecture.md` - codebase map and module boundaries.
-6. This file - executive context, product promises, and handoff notes.
+3. `docs/operations/app-store-trust-packet.md` - App Store privacy,
+   HealthKit, AI, subscription, and reviewer-note source of truth.
+4. `docs/operations/launch-walkthrough.md` - step-by-step App Store path.
+5. `docs/operations/analytics-and-billing.md` - RevenueCat, PostHog, Sentry state.
+6. `docs/engineering/architecture.md` - codebase map and module boundaries.
+7. This file - executive context, product promises, and handoff notes.
 
 ## Current checkpoint
 
@@ -57,6 +59,9 @@ As of 2026-05-21:
 - RevenueCat's real iOS public key is still blocked until Apple Developer
   Program/App Store Connect setup creates the required App Store
   credentials.
+- App Store trust packet is locked in
+  `docs/operations/app-store-trust-packet.md`; Support URL should be
+  `https://velahealth.health/support.html`, not a `mailto:` link.
 
 Latest launch-readiness commits (full history via `git log --oneline`):
 
@@ -211,6 +216,8 @@ ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 docs/operations/now.md                  Current operational status
 docs/operations/manual-tasks.md         Manual account/dashboard gates
+docs/operations/app-store-trust-packet.md
+                                        ASC privacy/reviewer trust packet
 docs/operations/launch-walkthrough.md   App Store launch playbook
 docs/operations/analytics-and-billing.md RevenueCat/PostHog/Sentry state
 docs/operations/ios-build.md            Native build and TestFlight flow

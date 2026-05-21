@@ -5,10 +5,11 @@ text from `appstore-metadata.md`. Open this side-by-side with
 <https://appstoreconnect.apple.com>.
 
 Narrative source: `docs/operations/launch-walkthrough.md` § Phase 4.
-Metadata source of truth: `appstore-metadata.md` (last polish:
-2026-05-13, commit `d9d5b67`).
+Trust source of truth: `docs/operations/app-store-trust-packet.md`.
+Metadata source of truth: `appstore-metadata.md` (last review:
+2026-05-21).
 
-🤝 **Working together.** ASC sign-in needs your Apple ID, so the
+**Working together.** ASC sign-in needs your Apple ID, so the
 clicking is yours. I'll be on standby for: (a) reading any paste-ready
 string out of `appstore-metadata.md` if you'd rather not switch
 windows, (b) decoding any reviewer-rejection email Apple sends, (c)
@@ -24,7 +25,7 @@ fetch `apps.apple.com/.../id<APP_ID>` from Chrome and diff against
 | Field | Value |
 |---|---|
 | Platforms | ☑ iOS |
-| Name | `Vela: Menopause Companion` |
+| Name | `Vela - Menopause Companion` |
 | Primary Language | English (U.S.) |
 | Bundle ID | `com.velahealth.app` (from dropdown) |
 | SKU | `vela-ios-001` |
@@ -43,7 +44,7 @@ Sidebar → **App Information**.
 | Subtitle | `Track symptoms. See patterns.` |
 | Privacy Policy URL | `https://velahealth.health/privacy.html` |
 | Category — Primary | Health & Fitness |
-| Category — Secondary | (leave blank) |
+| Category — Secondary | Leave blank |
 | Content Rights — Third-party content? | No |
 
 Click **Save** (top right).
@@ -78,7 +79,7 @@ Review Screenshot for each: upload one of the paywall screenshots from
 Both end at "Ready to Submit" (yellow) — turns green after first build
 ships alongside them.
 
-## Page: App Privacy ⚠ HIGHEST REJECTION RISK
+## Page: App Privacy - highest rejection risk
 
 Sidebar → **App Privacy** → **Get Started** (or **Edit**). Sequence:
 
@@ -104,7 +105,7 @@ Sidebar → **App Privacy** → **Get Started** (or **Edit**). Sequence:
 | Crash Data | App Functionality | No | No |
 | Other Diagnostic Data | App Functionality | No | No |
 
-4. **Save**. ✓ Preview should show no tracking, no data linked to
+4. **Save**. Preview should show no tracking, no data linked to
    identity, and the selected categories under "Data Not Linked to You."
 
 If a reviewer rejects, re-verify this list against `landing/privacy.html`
@@ -124,18 +125,18 @@ Same for **iPhone 6.5" Display** with `screenshots/65/*.png`.
 | Promotional Text | `Track perimenopause and menopause symptoms in seconds. Spot patterns, ask AI grounded in your own data, and bring the picture to your doctor.` |
 | Description | Paste the block under `## Description` in `appstore-metadata.md` (starts "Your body is changing.", ends "Always consult your healthcare provider.") |
 | Keywords | `perimenopause,hot flashes,night sweats,HRT,estrogen,hormones,cycle,brain fog,mood,tracker,log` |
-| Support URL | `mailto:support@velahealth.health` |
+| Support URL | `https://velahealth.health/support.html` |
 | Marketing URL | `https://velahealth.health` |
 | Version | `1.0.0` |
-| Copyright | `© 2026 Lindsay Kristopher` |
+| Copyright | `2026 Lindsay Kristopher` |
 | What's New | `Hello. This is the first release of Vela, built for women in perimenopause and menopause. Track what's happening, see the patterns, and walk into your next appointment prepared.` |
 
 ## Page: App Review Information
 
 Same scroll, lower. Sign-In Required **No**. Contact: name, phone,
-`lindsaykristopher@gmail.com`. Demo Account: blank. Notes (paste):
+`support@velahealth.health`. Demo Account: blank. Notes (paste):
 
-> Vela has no login or account. Tap "Begin" on the welcome screen to start the 90-second onboarding. To exercise premium features without a real subscription, please use the App Store sandbox tester flow against the in-app paywall. The "Ask Vela" feature sends an anonymized summary of symptom data (no notes, no custom symptom names, no exact dates) to Anthropic's Claude API via our Netlify proxy. Disclosure in Settings → Privacy & Data and in our privacy policy at velahealth.health/privacy.html.
+> Vela has no login or account. Tap "Begin" on the welcome screen to start onboarding. To exercise premium features, use the App Store sandbox tester flow against the in-app paywall. Ask Vela and Daily Brief send anonymized summaries of symptom data through Vela's Netlify API to Anthropic's Claude API. The summaries exclude notes, custom symptom names, exact dates, name, email, and advertising identifiers. Apple Health is optional and reads sleep hours only after the user enables it in Settings. Vela is informational and not medical advice. Backend services are live at `https://velahealth.health/api/*`.
 
 **Save**. The Build slot stays empty until Xcode (see `xcode-build.md`).
 

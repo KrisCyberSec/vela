@@ -17,8 +17,8 @@ What's done in code vs. what only you can do in Apple's / 3rd-party dashboards.
 | `Info.plist`: `ITSAppUsesNonExemptEncryption=false` | ✅ Set (no encryption disclosure required) |
 | `PrivacyInfo.xcprivacy` | ✅ Aligned to Health, purchases, anonymous ID, product events, and diagnostics |
 | Privacy URL → `https://velahealth.health/privacy.html` | ✅ Live + verified |
-| Support URL → `mailto:support@velahealth.health` | ✅ Live + verified (forwards to your Gmail) |
-| RevenueCat SDK wired with `web_fallback` / `misconfigured` / `native` modes | ✅ Fixed in this commit |
+| Support URL → `https://velahealth.health/support.html` | ✅ Committed; verify live after next landing deploy |
+| RevenueCat SDK wired with `web_fallback` / `misconfigured` / `native` modes | ✅ Done |
 | Free-premium bug (was: empty API key on iOS = free premium for all) | ✅ Fixed |
 | Doctor PDF (your strongest single feature) | ✅ Verified end-to-end on 5 scenarios |
 | Capacitor sync: RevenueCat registered as SPM dep in `Package.swift` | ✅ Done |
@@ -38,7 +38,7 @@ These are blockers. Apple won't accept the build, OR the app will be broken in p
 - Go to <https://appstoreconnect.apple.com> → My Apps → "+"
 - Bundle ID: `com.velahealth.app` (must match `capacitor.config.ts` exactly — anything else and uploads will reject)
 - Primary language: English (U.S.)
-- Name: **Vela** (subtitle, description, keywords come from `appstore-metadata.md`)
+- Name: **Vela - Menopause Companion** (subtitle, description, keywords come from `appstore-metadata.md`)
 - SKU: anything unique to you, e.g. `vela-ios-001`
 
 ### 3. Create the In-App Purchase products
@@ -99,24 +99,17 @@ How to capture:
 
 ## P1 — strongly recommended before going public (not a blocker)
 
-### 6. Sentry — crash reporting
-- <https://sentry.io/signup> → React project named `vela`
-- Settings → Projects → vela → Client Keys → copy DSN
-- Paste into `/Users/kristopher/Vela/.env.local`:
-  ```
-  REACT_APP_SENTRY_DSN=https://...ingest...sentry.io/...
-  ```
-- **Why:** App Store reviews will say "it crashed." Without Sentry you have no traceback to fix the issue.
+### 6. Sentry crash reporting
+- Sentry account, local DSN, Netlify DSN, and synthetic smoke are done.
+- Still verify from a real TestFlight build after Apple is available.
+- **Why:** App Store reviews will say "it crashed." Sentry gives us a traceback to fix the issue.
 
-### 7. PostHog — product analytics
-- <https://app.posthog.com/signup> → US region → project **Vela**
-- Project Settings → API Keys → copy Project API Key (`phc_...`)
-- Paste into `/Users/kristopher/Vela/.env.local`:
-  ```
-  REACT_APP_POSTHOG_KEY=phc_xxxxxxxxxxxxxxxxxxxx
-  ```
-- Also replace `const POSTHOG_KEY = "";` in `landing/index.html` with the same key, then redeploy landing.
-- **Why:** without analytics, you ship and have no idea what users actually do. The financial-model decisions in `docs/business/financial-model.md` all depend on knowing things like trial-to-paid conversion. PostHog or you're flying blind.
+### 7. PostHog product analytics
+- PostHog account, local key, Netlify key, landing key, and production
+  `onboarding_completed` verification are done.
+- Still verify real TestFlight funnel events after Apple is available.
+- **Why:** the financial-model decisions in `docs/business/financial-model.md`
+  depend on trial starts, conversion, logging retention, and premium usage.
 
 ### 8. Final rebuild after all keys are pasted
 ```bash
@@ -153,7 +146,7 @@ The first-run audit findings are mostly resolved. What's left is documented belo
    - Description, keywords, etc. (copy from `appstore-metadata.md`)
    - Screenshots (from step 5 above)
    - Build (select the uploaded one)
-   - Age rating questionnaire (Vela: no objectionable content, age 4+)
+   - Age rating questionnaire (answer honestly; accept the rating ASC calculates)
    - Pricing tier
    - Availability (countries — start with US-only if uncertain)
    - **Export compliance:** "Does your app use encryption?" — answer **No** (your `Info.plist` already declares `ITSAppUsesNonExemptEncryption=false`)

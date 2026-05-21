@@ -26,7 +26,7 @@ Every field in `appstore-metadata.md` should be:
    - These read as wellness-industry boilerplate and the 45-55 audience is allergic to them.
 3. **No em dashes.** They read as AI-written and the audience pattern-matches on them. Use periods, commas, "to," "and," or restructure. (Current description line 21 has one: "in seconds — then let Vela surface the patterns.")
 4. **Under the character limits ASC enforces.** Verify by counting:
-   - **App Name:** 30 chars max. (Current "Vela: Menopause Companion" is 25.)
+   - **App Name:** 30 chars max. (Current "Vela - Menopause Companion" is 26.)
    - **Subtitle:** 30 chars max. (Current "Track symptoms. See patterns." is 29.)
    - **Promotional Text:** 170 chars max. (Editable post-launch without resubmission — useful for marketing pushes.)
    - **Keywords:** 100 chars total INCLUDING commas. (ASC will reject if over. Currently the field is at 96 chars.)
@@ -43,7 +43,7 @@ Every field in `appstore-metadata.md` should be:
 
 The file structure stays the same (don't reorganize). For each field below, apply the rules above and produce a clean v1.0 version:
 
-1. **App Name** — keep "Vela: Menopause Companion" unless you find a problem. Verify 30 chars.
+1. **App Name** — keep "Vela - Menopause Companion" unless you find a problem. Verify 30 chars.
 2. **Subtitle** — keep "Track symptoms. See patterns." unless you find a problem. Verify 30 chars.
 3. **Description** — fix the em dash on line 21. Otherwise the body holds up — pillar structure is good, privacy disclosure is honest. Pass it through once for banned-word check.
 4. **Keywords (100 chars max)** — current field has 96 chars and is ASO-reasonable but could be sharper. Consider:

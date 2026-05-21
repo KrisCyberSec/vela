@@ -62,6 +62,7 @@ Or do it from the Netlify dashboard → Deploys → click any past deploy → "P
 | `landing/admin.html` | Password-protected waitlist dashboard |
 | `landing/privacy.html` | Privacy policy |
 | `landing/terms.html` | Terms of service |
+| `landing/support.html` | App Store support page and contact path |
 | `netlify/functions/waitlist.js` | Email capture endpoint (called from landing) |
 | `netlify/functions/waitlist-export.js` | Admin export endpoint (called from admin) |
 | `netlify/functions/ask-vela.js` | Anthropic API proxy for the iOS Ask Vela feature |

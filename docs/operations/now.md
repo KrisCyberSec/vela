@@ -36,6 +36,9 @@ flow.
      match) — *second highest rejection risk*
   6. Netlify env: `ANTHROPIC_API_KEY` + `REVENUECAT_REST_KEY`
   7. TestFlight build that completes a sandbox purchase end-to-end
+- **Trust packet:** use `docs/operations/app-store-trust-packet.md` for
+  the current App Store privacy label, reviewer notes, HealthKit
+  justification, Support URL, and subscription disclosure.
 - **Done means:** TestFlight build passes the verification flow listed
   in manual-tasks.md, then "Submit for Review" in ASC.
 
