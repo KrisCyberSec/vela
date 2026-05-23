@@ -2,151 +2,712 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vela — Waitlist Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Vela Hub</title>
   <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1411" media="(prefers-color-scheme: dark)" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Vela Hub" />
+  <link rel="manifest" href="/hub.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
     :root {
-      --clay: #C4856C; --sage: #7A9E87; --sage-dark: #5A7E67;
-      --cream: #FAF6F1; --ink: #2C1F17; --ink-mid: #6B5347; --ink-light: #9A8578;
+      --clay: #C4856C;
+      --clay-soft: #E8C4B5;
+      --sage: #7A9E87;
+      --sage-dark: #5A7E67;
+      --cream: #FAF6F1;
+      --paper: #FFFFFF;
+      --ink: #2C1F17;
+      --ink-mid: #6B5347;
+      --ink-light: #9A8578;
+      --line: rgba(44, 31, 23, 0.10);
+      --line-soft: rgba(44, 31, 23, 0.06);
+      --shadow-sm: 0 1px 2px rgba(44, 31, 23, 0.04);
+      --shadow-md: 0 4px 16px rgba(44, 31, 23, 0.06);
+      --warn: #C97A3A;
+      --crit: #C4575C;
+      --good: #5A7E67;
+      --radius: 16px;
+      --radius-sm: 10px;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --cream: #1A1411;
+        --paper: #251C16;
+        --ink: #F5EFE8;
+        --ink-mid: #C9B9AC;
+        --ink-light: #8B7B6E;
+        --line: rgba(245, 239, 232, 0.10);
+        --line-soft: rgba(245, 239, 232, 0.05);
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--cream); color: var(--ink); padding: 32px 24px; line-height: 1.5;
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
     }
-    .wrap { max-width: 960px; margin: 0 auto; }
-    h1 { font-size: 28px; margin-bottom: 4px; color: var(--ink); }
-    .sub { color: var(--ink-mid); margin-bottom: 24px; font-size: 14px; }
-    .stats {
-      display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+    .wrap { max-width: 1100px; margin: 0 auto; }
+
+    /* Header */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; gap: 16px;
     }
-    .stat {
-      background: white; border-radius: 12px; padding: 16px 20px; flex: 1; min-width: 160px;
-      border: 1px solid rgba(0,0,0,0.08);
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--clay), var(--sage));
+      display: grid; place-items: center; color: white; font-weight: 600; font-size: 14px;
     }
-    .stat-num { font-size: 28px; font-weight: 600; color: var(--clay); }
-    .stat-label { font-size: 12px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-    .actions { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .brand-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .brand-sub { font-size: 12px; color: var(--ink-light); margin-top: 1px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--paper); border: 1px solid var(--line); color: var(--ink-mid);
+      display: grid; place-items: center; cursor: pointer; font-size: 14px;
+    }
+    .icon-btn:hover { color: var(--ink); border-color: var(--ink-light); }
+    .icon-btn:active { transform: scale(0.96); }
+
+    /* Hero numbers */
+    .hero {
+      display: grid; gap: 12px; margin-bottom: 24px;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .hero-stat {
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm);
+      position: relative; overflow: hidden;
+    }
+    .hero-stat::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--clay); opacity: 0.7;
+    }
+    .hero-stat.sage::before { background: var(--sage); }
+    .hero-stat.warn::before { background: var(--warn); }
+    .hero-stat.ink::before  { background: var(--ink-light); }
+    .hero-num { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+    .hero-label { font-size: 11px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px; }
+    .hero-delta { font-size: 12px; color: var(--ink-mid); margin-top: 6px; }
+
+    /* Tile grid */
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+    .tile {
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);
+    }
+    .tile.span-12 { grid-column: span 12; }
+    .tile.span-8  { grid-column: span 8; }
+    .tile.span-6  { grid-column: span 6; }
+    .tile.span-4  { grid-column: span 4; }
+    .tile-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .tile-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-mid); }
+    .tile-meta  { font-size: 12px; color: var(--ink-light); }
+
+    /* Sparkline */
+    .spark { width: 100%; height: 50px; display: block; margin: 6px 0 14px; }
+    .spark-bar { fill: var(--sage); opacity: 0.85; }
+
+    /* Top referrers */
+    .ref-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px;
+    }
+    .ref-row:last-child { border-bottom: none; }
+    .ref-host { color: var(--ink); font-family: ui-monospace, 'SF Mono', monospace; font-size: 12px; }
+    .ref-count { color: var(--ink-mid); font-variant-numeric: tabular-nums; }
+
+    /* Recent waitlist table */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.recent { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.recent th { text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-light); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); }
+    table.recent td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line-soft); }
+    table.recent tr:last-child td { border-bottom: none; }
+    table.recent .email { font-family: ui-monospace, 'SF Mono', monospace; font-size: 12px; }
+    table.recent .date  { color: var(--ink-mid); white-space: nowrap; }
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
     .btn {
-      padding: 8px 16px; background: var(--ink); color: var(--cream);
-      border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
-      cursor: pointer; text-decoration: none; display: inline-block;
+      padding: 9px 16px; background: var(--ink); color: var(--cream);
+      border: none; border-radius: 10px; font-size: 13px; font-weight: 500;
+      cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+      font-family: inherit; min-height: 36px;
     }
-    .btn:hover { opacity: 0.9; }
-    .btn.secondary { background: white; color: var(--ink); border: 1px solid rgba(0,0,0,0.15); }
-    table {
-      width: 100%; background: white; border-radius: 12px; overflow: hidden;
-      border-collapse: collapse; border: 1px solid rgba(0,0,0,0.08);
+    .btn:active { transform: scale(0.98); }
+    .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .btn.ghost:hover { border-color: var(--ink-light); }
+
+    /* Punchlist */
+    .punch-group { margin-bottom: 14px; }
+    .punch-group:last-child { margin-bottom: 0; }
+    .punch-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
     }
-    thead { background: var(--sage); color: white; }
-    th, td {
-      padding: 12px 16px; text-align: left; font-size: 14px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
+    .punch-title { font-size: 13px; font-weight: 500; color: var(--ink); }
+    .punch-pill {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 2px 8px; border-radius: 999px; font-weight: 600;
     }
-    th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    tbody tr:hover { background: rgba(0,0,0,0.02); }
-    tbody tr:last-child td { border-bottom: none; }
-    .email { font-family: ui-monospace, 'SF Mono', monospace; font-size: 13px; color: var(--ink); }
-    .date { color: var(--ink-mid); font-size: 13px; }
-    .ref { color: var(--ink-light); font-size: 12px; }
+    .punch-pill.critical { background: rgba(196, 87, 92, 0.12); color: var(--crit); }
+    .punch-pill.high     { background: rgba(201, 122, 58, 0.14); color: var(--warn); }
+    .punch-pill.medium   { background: rgba(122, 158, 135, 0.16); color: var(--sage-dark); }
+    .punch-pill.low      { background: var(--line); color: var(--ink-light); }
+    .punch-list { list-style: none; padding: 0; }
+    .punch-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 6px 0;
+      font-size: 13px; color: var(--ink-mid);
+    }
+    .punch-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--ink-light);
+      margin-top: 8px; flex-shrink: 0;
+    }
+
+    /* Services grid */
+    .services-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+    .service-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+      text-decoration: none; color: var(--ink); background: transparent;
+      transition: border-color 0.15s, transform 0.15s;
+      min-height: 56px;
+    }
+    .service-card:hover { border-color: var(--ink-light); }
+    .service-card:active { transform: scale(0.98); }
+    .service-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .service-meta { flex: 1; min-width: 0; }
+    .service-name { font-size: 13px; font-weight: 500; }
+    .service-sub  { font-size: 11px; color: var(--ink-light); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .service-arrow { color: var(--ink-light); font-size: 14px; }
+
+    /* Docs */
+    .docs-group { margin-bottom: 16px; }
+    .docs-group:last-child { margin-bottom: 0; }
+    .docs-group-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--ink-light); margin-bottom: 6px; font-weight: 600;
+    }
+    .doc-link {
+      display: block; padding: 8px 0; border-bottom: 1px solid var(--line-soft);
+      text-decoration: none; color: var(--ink);
+    }
+    .doc-link:last-child { border-bottom: none; }
+    .doc-link:hover .doc-title { color: var(--clay); }
+    .doc-title { font-size: 13px; font-weight: 500; }
+    .doc-title.primary::after { content: " ★"; color: var(--clay); }
+    .doc-desc  { font-size: 12px; color: var(--ink-light); margin-top: 1px; }
+
+    /* Money */
+    .money-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px;
+    }
+    .money-row:last-child { border-bottom: none; }
+    .money-name { color: var(--ink); }
+    .money-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .money-note { font-size: 11px; color: var(--ink-light); margin-left: 6px; font-weight: 400; }
+    .money-section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--ink-light); margin: 12px 0 4px; font-weight: 600;
+    }
+    .money-section-title:first-child { margin-top: 0; }
+
+    /* Notes */
+    .notes-area {
+      width: 100%; min-height: 200px; resize: vertical;
+      border: 1px solid var(--line); border-radius: var(--radius-sm);
+      padding: 12px; background: var(--cream); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px; line-height: 1.6;
+    }
+    .notes-area:focus { outline: none; border-color: var(--sage); }
+    .notes-status {
+      font-size: 11px; color: var(--ink-light); margin-top: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .notes-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--ink-light);
+    }
+    .notes-dot.saving { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+    .notes-dot.saved  { background: var(--good); }
+    .notes-dot.error  { background: var(--crit); }
+    @keyframes pulse { 50% { opacity: 0.4; } }
+
+    /* Login */
     .login {
-      max-width: 400px; margin: 80px auto; background: white; padding: 32px;
-      border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);
+      max-width: 380px; margin: 80px auto; background: var(--paper); padding: 32px;
+      border-radius: var(--radius); border: 1px solid var(--line); box-shadow: var(--shadow-md);
     }
+    .login h1 { font-size: 22px; margin-bottom: 4px; }
+    .login p { font-size: 13px; color: var(--ink-mid); margin-bottom: 20px; }
     .login input {
-      width: 100%; padding: 10px 14px; border: 1px solid rgba(0,0,0,0.15);
-      border-radius: 8px; font-size: 14px; margin: 12px 0 16px;
-      font-family: inherit; color: var(--ink);
+      width: 100%; padding: 12px 14px; border: 1px solid var(--line);
+      border-radius: 10px; font-size: 14px; margin-bottom: 12px;
+      font-family: inherit; color: var(--ink); background: var(--cream);
     }
     .login input:focus { outline: none; border-color: var(--sage); }
-    .login button { width: 100%; padding: 12px; }
-    .error { color: #C4575C; font-size: 13px; margin-bottom: 12px; }
-    .empty {
-      text-align: center; padding: 60px 20px; color: var(--ink-light);
-      background: white; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);
+    .login button { width: 100%; padding: 12px; font-size: 14px; }
+    .login .remember {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--ink-mid); margin: -4px 0 12px;
     }
-    .logout { float: right; font-size: 13px; color: var(--ink-light); text-decoration: none; }
-    .logout:hover { color: var(--ink); }
+    .login .err { color: var(--crit); font-size: 12px; margin-bottom: 12px; }
+
+    /* Empty / loading */
+    .empty {
+      text-align: center; padding: 32px; color: var(--ink-light); font-size: 13px;
+    }
+    .skeleton {
+      background: linear-gradient(90deg, var(--line-soft), var(--line), var(--line-soft));
+      background-size: 200% 100%; animation: skel 1.4s ease-in-out infinite;
+      border-radius: 6px; height: 12px;
+    }
+    @keyframes skel { to { background-position: -200% 0; } }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+      .tile.span-8, .tile.span-6, .tile.span-4 { grid-column: span 12; }
+    }
+    @media (max-width: 600px) {
+      body { padding: max(12px, env(safe-area-inset-top)) 12px max(20px, env(safe-area-inset-bottom)); }
+      .hero { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .hero-num { font-size: 26px; }
+      .tile { padding: 16px; }
+      .topbar { margin-bottom: 20px; }
+      .brand-title { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap" id="app"></div>
 
   <script>
-    const $ = (sel) => document.querySelector(sel);
-    // sessionStorage (not localStorage) so token clears on tab close.
     const TOKEN_KEY = "vela_admin_token";
+    const HUB_URL = "/.netlify/functions/hub-data";
+    const NOTES_URL = "/.netlify/functions/hub-notes";
     const EXPORT_URL = "/.netlify/functions/waitlist-export";
 
-    function authedFetch(token, url) {
-      return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    }
+    const $ = (sel) => document.querySelector(sel);
 
     function el(tag, attrs = {}, children = []) {
       const node = document.createElement(tag);
-      for (const [k, v] of Object.entries(attrs)) {
+      for (const [k, v] of Object.entries(attrs || {})) {
+        if (v == null || v === false) continue;
         if (k === "class") node.className = v;
-        else if (k === "onclick") node.addEventListener("click", v);
-        else node.setAttribute(k, v);
+        else if (k === "html") node.innerHTML = v;
+        else if (k.startsWith("on") && typeof v === "function") {
+          node.addEventListener(k.slice(2).toLowerCase(), v);
+        } else node.setAttribute(k, v);
       }
       for (const c of [].concat(children)) {
-        if (c == null) continue;
-        node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+        if (c == null || c === false) continue;
+        node.appendChild(typeof c === "string" || typeof c === "number"
+          ? document.createTextNode(String(c)) : c);
       }
       return node;
+    }
+
+    function authedFetch(token, url, init = {}) {
+      return fetch(url, {
+        ...init,
+        headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` },
+      });
+    }
+
+    function fmtRel(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso); const now = Date.now();
+      const diff = (now - d.getTime()) / 1000;
+      if (diff < 60) return "just now";
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+
+    /* ---------- Auth flow ---------- */
+
+    function getStoredToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+    }
+    function storeToken(token, persist) {
+      if (persist) {
+        localStorage.setItem(TOKEN_KEY, token);
+        sessionStorage.removeItem(TOKEN_KEY);
+      } else {
+        sessionStorage.setItem(TOKEN_KEY, token);
+        localStorage.removeItem(TOKEN_KEY);
+      }
+    }
+    function clearToken() {
+      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
     }
 
     function renderLogin(errMsg) {
       const app = $("#app");
       app.replaceChildren();
       const wrap = el("div", { class: "login" }, [
-        el("h1", {}, "Vela Admin"),
-        el("p", { class: "sub" }, "Enter your admin token to view the waitlist."),
+        el("h1", {}, "Vela Hub"),
+        el("p", {}, "Enter your admin token."),
       ]);
-      if (errMsg) wrap.appendChild(el("div", { class: "error" }, errMsg));
-      const input = el("input", { type: "password", id: "token-input", placeholder: "Admin token", autofocus: "", required: "" });
-      const form = el("form", {}, [input, el("button", { type: "submit", class: "btn" }, "Unlock")]);
-      form.addEventListener("submit", handleLogin);
+      if (errMsg) wrap.appendChild(el("div", { class: "err" }, errMsg));
+      const input = el("input", { type: "password", id: "tok", placeholder: "Admin token", autofocus: "", required: "" });
+      const remember = el("input", { type: "checkbox", id: "remember", checked: "" });
+      const rememberRow = el("label", { class: "remember" }, [remember, "Stay signed in on this device"]);
+      const submit = el("button", { type: "submit", class: "btn" }, "Unlock");
+      const form = el("form", {}, [input, rememberRow, submit]);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const tok = input.value.trim();
+        if (!tok) return;
+        submit.disabled = true; submit.textContent = "Checking…";
+        const ok = await tryLoad(tok, remember.checked);
+        if (!ok) {
+          submit.disabled = false; submit.textContent = "Unlock";
+          renderLogin("Invalid token. Try again.");
+        }
+      });
       wrap.appendChild(form);
       app.appendChild(wrap);
     }
 
-    async function handleLogin(e) {
-      e.preventDefault();
-      const token = $("#token-input").value.trim();
-      if (!token) return false;
-      const ok = await tryLoad(token);
-      if (ok) {
-        sessionStorage.setItem(TOKEN_KEY, token);
-      } else {
-        renderLogin("Invalid token. Try again.");
-      }
-      return false;
+    async function tryLoad(token, persist) {
+      try {
+        const r = await authedFetch(token, HUB_URL);
+        if (!r.ok) return false;
+        const data = await r.json();
+        if (typeof persist === "boolean") storeToken(token, persist);
+        renderHub(data, token);
+        return true;
+      } catch { return false; }
     }
 
-    function logout() {
-      sessionStorage.removeItem(TOKEN_KEY);
+    function signOut() {
+      clearToken();
       renderLogin();
     }
 
-    async function tryLoad(token) {
+    /* ---------- Sparkline ---------- */
+
+    function sparkline(values) {
+      const w = 280, h = 50, gap = 2;
+      const max = Math.max(1, ...values);
+      const barW = (w - gap * (values.length - 1)) / values.length;
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "spark");
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      svg.setAttribute("preserveAspectRatio", "none");
+      values.forEach((v, i) => {
+        const barH = Math.max(v > 0 ? 2 : 0, (v / max) * h);
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", String(i * (barW + gap)));
+        rect.setAttribute("y", String(h - barH));
+        rect.setAttribute("width", String(barW));
+        rect.setAttribute("height", String(barH));
+        rect.setAttribute("rx", "1");
+        rect.setAttribute("class", "spark-bar");
+        svg.appendChild(rect);
+      });
+      return svg;
+    }
+
+    /* ---------- Hub ---------- */
+
+    function renderHub(data, token) {
+      const app = $("#app");
+      app.replaceChildren();
+
+      const totalPunch = (data.punchlist || []).reduce((n, g) => n + (g.tasks?.length || 0), 0);
+      const criticalCount = (data.punchlist || [])
+        .filter(g => g.weight === "critical")
+        .reduce((n, g) => n + (g.tasks?.length || 0), 0);
+
+      // ---- Topbar
+      const topbar = el("div", { class: "topbar" }, [
+        el("div", { class: "brand" }, [
+          el("div", { class: "brand-mark" }, "V"),
+          el("div", {}, [
+            el("div", { class: "brand-title" }, "Vela Hub"),
+            el("div", { class: "brand-sub" }, `Updated ${fmtRel(data.generatedAt)}`),
+          ]),
+        ]),
+        el("div", { class: "topbar-actions" }, [
+          el("button", { class: "icon-btn", title: "Refresh", onclick: () => tryLoad(token) }, "↻"),
+          el("button", { class: "icon-btn", title: "Sign out", onclick: signOut }, "⏏"),
+        ]),
+      ]);
+
+      // ---- Hero stats
+      const hero = el("div", { class: "hero" }, [
+        statCard(data.waitlist.total, "Waitlist total", null, ""),
+        statCard(data.waitlist.last7d, "Last 7 days", `${data.waitlist.last24h} in last 24h`, "sage"),
+        statCard(criticalCount, "Critical blockers", `${totalPunch} open total`, "warn"),
+        statCard("Pre-launch", "Status", "iOS submission pending", "ink"),
+      ]);
+
+      // ---- Grid
+      const grid = el("div", { class: "grid" }, [
+        waitlistTile(data.waitlist, token),
+        punchlistTile(data.punchlist),
+        servicesTile(data.services),
+        moneyTile(data.money),
+        docsTile(data.docs),
+        notesTile(token),
+      ]);
+
+      app.append(topbar, hero, grid);
+    }
+
+    function statCard(num, label, delta, kind) {
+      return el("div", { class: `hero-stat ${kind || ""}` }, [
+        el("div", { class: "hero-num" }, String(num ?? 0)),
+        el("div", { class: "hero-label" }, label),
+        delta ? el("div", { class: "hero-delta" }, delta) : null,
+      ]);
+    }
+
+    function waitlistTile(w, token) {
+      const tile = el("div", { class: "tile span-8" }, [
+        el("div", { class: "tile-header" }, [
+          el("div", { class: "tile-title" }, "Waitlist"),
+          el("div", { class: "tile-meta" }, `${w.last30d} this month`),
+        ]),
+        sparkline(w.sparkline || []),
+      ]);
+
+      if (w.recent && w.recent.length > 0) {
+        const tbody = el("tbody");
+        for (const e of w.recent.slice(0, 8)) {
+          tbody.appendChild(el("tr", {}, [
+            el("td", { class: "email" }, e.email || "—"),
+            el("td", { class: "date" }, fmtRel(e.submittedAt)),
+          ]));
+        }
+        tile.appendChild(el("div", { class: "table-wrap" }, [
+          el("table", { class: "recent" }, [
+            el("thead", {}, el("tr", {}, [
+              el("th", {}, "Recent signups"),
+              el("th", {}, "When"),
+            ])),
+            tbody,
+          ]),
+        ]));
+      } else {
+        tile.appendChild(el("div", { class: "empty" }, "No signups yet."));
+      }
+
+      tile.appendChild(el("div", { class: "actions-row" }, [
+        el("button", { class: "btn", onclick: () => downloadCsv(token) }, "Download CSV"),
+        el("button", { class: "btn ghost", onclick: () => copyEmails(token) }, "Copy all emails"),
+      ]));
+
+      return tile;
+    }
+
+    function punchlistTile(punch) {
+      const tile = el("div", { class: "tile span-4" }, [
+        el("div", { class: "tile-header" }, [
+          el("div", { class: "tile-title" }, "What's left to ship"),
+        ]),
+      ]);
+      for (const g of punch || []) {
+        const list = el("ul", { class: "punch-list" });
+        for (const t of g.tasks || []) {
+          list.appendChild(el("li", { class: "punch-item" }, [
+            el("div", { class: "punch-dot" }),
+            el("span", {}, t),
+          ]));
+        }
+        tile.appendChild(el("div", { class: "punch-group" }, [
+          el("div", { class: "punch-head" }, [
+            el("div", { class: "punch-title" }, g.group),
+            el("span", { class: `punch-pill ${g.weight || "low"}` }, g.weight || "low"),
+          ]),
+          list,
+        ]));
+      }
+      return tile;
+    }
+
+    function servicesTile(services) {
+      const grid = el("div", { class: "services-grid" });
+      for (const s of services || []) {
+        grid.appendChild(el("a", { class: "service-card", href: s.url, target: "_blank", rel: "noopener" }, [
+          el("div", { class: "service-dot", style: `background: ${s.accent}` }),
+          el("div", { class: "service-meta" }, [
+            el("div", { class: "service-name" }, s.name),
+            el("div", { class: "service-sub" }, s.subtitle),
+          ]),
+          el("div", { class: "service-arrow" }, "↗"),
+        ]));
+      }
+      return el("div", { class: "tile span-8" }, [
+        el("div", { class: "tile-header" }, [
+          el("div", { class: "tile-title" }, "Stack"),
+          el("div", { class: "tile-meta" }, `${(services || []).length} services`),
+        ]),
+        grid,
+      ]);
+    }
+
+    function moneyTile(money) {
+      const tile = el("div", { class: "tile span-4" }, [
+        el("div", { class: "tile-header" }, [
+          el("div", { class: "tile-title" }, "Money"),
+        ]),
+        el("div", { class: "money-section-title" }, "Pricing"),
+      ]);
+      for (const p of money?.prices || []) {
+        tile.appendChild(el("div", { class: "money-row" }, [
+          el("div", { class: "money-name" }, p.name),
+          el("div", {}, [
+            el("span", { class: "money-value" }, p.value),
+            p.note ? el("span", { class: "money-note" }, p.note) : null,
+          ]),
+        ]));
+      }
+      tile.appendChild(el("div", { class: "money-section-title" }, "Fixed monthly cost"));
+      for (const c of money?.fixedMonthly || []) {
+        tile.appendChild(el("div", { class: "money-row" }, [
+          el("div", { class: "money-name" }, c.name),
+          el("div", {}, [
+            el("span", { class: "money-value" }, c.value),
+            c.note ? el("span", { class: "money-note" }, c.note) : null,
+          ]),
+        ]));
+      }
+      return tile;
+    }
+
+    function docsTile(docs) {
+      const tile = el("div", { class: "tile span-6" }, [
+        el("div", { class: "tile-header" }, [
+          el("div", { class: "tile-title" }, "Docs"),
+          el("div", { class: "tile-meta" }, "Source of truth"),
+        ]),
+      ]);
+      for (const g of docs || []) {
+        const group = el("div", { class: "docs-group" }, [
+          el("div", { class: "docs-group-title" }, g.group),
+        ]);
+        for (const it of g.items || []) {
+          const href = `https://github.com/kriscybersec/vela/blob/main/${it.path}`;
+          group.appendChild(el("a", { class: "doc-link", href, target: "_blank", rel: "noopener" }, [
+            el("div", { class: `doc-title ${it.primary ? "primary" : ""}` }, it.title),
+            el("div", { class: "doc-desc" }, it.desc),
+          ]));
+        }
+        tile.appendChild(group);
+      }
+      return tile;
+    }
+
+    function notesTile(token) {
+      const status = el("div", { class: "notes-status" }, [
+        el("div", { class: "notes-dot" }),
+        el("span", { id: "notes-status-text" }, "Loading…"),
+      ]);
+      const textarea = el("textarea", {
+        class: "notes-area",
+        id: "notes",
+        placeholder: "Jot anything. Synced across your devices.",
+      });
+
+      const tile = el("div", { class: "tile span-6" }, [
+        el("div", { class: "tile-header" }, [
+          el("div", { class: "tile-title" }, "Scratchpad"),
+          el("div", { class: "tile-meta" }, "Synced across devices"),
+        ]),
+        textarea,
+        status,
+      ]);
+
+      // Load existing
+      loadNotes(token, textarea, status);
+
+      // Autosave (debounced 1s)
+      let saveTimer = null;
+      let lastSaved = textarea.value;
+      textarea.addEventListener("input", () => {
+        setStatus(status, "saving", "Saving…");
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          const content = textarea.value;
+          if (content === lastSaved) return;
+          try {
+            const r = await authedFetch(token, NOTES_URL, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content }),
+            });
+            if (!r.ok) throw new Error(String(r.status));
+            const saved = await r.json();
+            lastSaved = saved.content;
+            setStatus(status, "saved", `Saved ${fmtRel(saved.updatedAt)}`);
+          } catch {
+            setStatus(status, "error", "Save failed — retrying on next edit");
+          }
+        }, 1000);
+      });
+
+      // Save on blur immediately
+      textarea.addEventListener("blur", () => {
+        if (saveTimer) {
+          clearTimeout(saveTimer);
+          textarea.dispatchEvent(new Event("input"));
+        }
+      });
+
+      return tile;
+    }
+
+    async function loadNotes(token, textarea, status) {
       try {
-        const r = await authedFetch(token, EXPORT_URL);
-        if (!r.ok) return false;
+        const r = await authedFetch(token, NOTES_URL);
+        if (!r.ok) throw new Error(String(r.status));
         const data = await r.json();
-        renderDashboard(data, token);
-        return true;
+        textarea.value = data.content || "";
+        setStatus(status, "saved", data.updatedAt ? `Last saved ${fmtRel(data.updatedAt)}` : "No notes yet");
       } catch {
-        return false;
+        setStatus(status, "error", "Could not load notes");
       }
     }
 
-    function fmtDate(iso) {
-      if (!iso) return "—";
-      const d = new Date(iso);
-      return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    function setStatus(statusEl, kind, text) {
+      const dot = statusEl.querySelector(".notes-dot");
+      dot.className = `notes-dot ${kind}`;
+      statusEl.querySelector("#notes-status-text").textContent = text;
     }
+
+    /* ---------- Waitlist actions ---------- */
 
     async function downloadCsv(token) {
       const r = await authedFetch(token, `${EXPORT_URL}?format=csv`);
@@ -154,93 +715,46 @@
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "waitlist.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = "waitlist.csv";
+      document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
     }
 
-    function renderDashboard(data, token) {
-      const entries = (data.entries || []).slice().reverse(); // newest first
-      const now = Date.now();
-      const last7d = entries.filter(e => new Date(e.submittedAt) > now - 7*86400000).length;
-
-      const app = $("#app");
-      app.replaceChildren();
-
-      const header = el("div", {}, [
-        el("a", { href: "#", class: "logout", onclick: (e) => { e.preventDefault(); logout(); } }, "Sign out"),
-        el("h1", {}, "Waitlist"),
-        el("p", { class: "sub" }, "velahealth.health signups"),
-      ]);
-
-      const stats = el("div", { class: "stats" }, [
-        el("div", { class: "stat" }, [
-          el("div", { class: "stat-num" }, String(data.count ?? 0)),
-          el("div", { class: "stat-label" }, "Total signups"),
-        ]),
-        el("div", { class: "stat" }, [
-          el("div", { class: "stat-num" }, String(last7d)),
-          el("div", { class: "stat-label" }, "Last 7 days"),
-        ]),
-      ]);
-
-      const actions = el("div", { class: "actions" }, [
-        el("button", { class: "btn", onclick: () => downloadCsv(token) }, "Download CSV"),
-        el("button", { class: "btn secondary", onclick: copyEmails }, "Copy all emails"),
-        el("button", { class: "btn secondary", onclick: () => location.reload() }, "Refresh"),
-      ]);
-
-      app.append(header, stats, actions);
-
-      if (entries.length === 0) {
-        const empty = el("div", { class: "empty" }, [
-          el("p", {}, "No signups yet."),
-          el("p", { style: "margin-top:8px; font-size:13px;" }, [
-            "Share your site: ",
-            el("strong", {}, "velahealth.health"),
-          ]),
-        ]);
-        app.appendChild(empty);
-      } else {
-        const tbody = el("tbody");
-        for (const e of entries) {
-          tbody.appendChild(el("tr", {}, [
-            el("td", { class: "email" }, e.email ?? ""),
-            el("td", { class: "date" }, fmtDate(e.submittedAt)),
-            el("td", { class: "ref" }, e.referrer || "—"),
-          ]));
-        }
-        const table = el("table", {}, [
-          el("thead", {}, el("tr", {}, [
-            el("th", {}, "Email"),
-            el("th", {}, "Signed up"),
-            el("th", {}, "Referrer"),
-          ])),
-          tbody,
-        ]);
-        app.appendChild(table);
+    async function copyEmails(token) {
+      try {
+        const r = await authedFetch(token, EXPORT_URL);
+        if (!r.ok) { alert("Fetch failed: " + r.status); return; }
+        const data = await r.json();
+        const emails = (data.entries || []).map(e => e.email).filter(Boolean).join("\n");
+        await navigator.clipboard.writeText(emails);
+        alert(`Copied ${(data.entries || []).length} emails to clipboard`);
+      } catch (err) {
+        alert("Copy failed: " + (err?.message || err));
       }
-
-      window._emails = entries.map(e => e.email).join("\n");
     }
 
-    window.copyEmails = async () => {
-      if (window._emails) {
-        await navigator.clipboard.writeText(window._emails);
-        alert("Copied " + window._emails.split("\n").length + " emails to clipboard");
-      }
-    };
+    /* ---------- Boot ---------- */
 
-    // Boot
-    const saved = sessionStorage.getItem(TOKEN_KEY);
+    const saved = getStoredToken();
     if (saved) {
-      tryLoad(saved).then(ok => { if (!ok) renderLogin("Saved token no longer works. Please re-enter."); });
+      tryLoad(saved).then(ok => {
+        if (!ok) { clearToken(); renderLogin("Saved token no longer works. Please re-enter."); }
+      });
     } else {
       renderLogin();
     }
+
+    // Auto-refresh hub when tab becomes visible after >5min idle
+    let lastVisible = Date.now();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        const tok = getStoredToken();
+        if (tok && Date.now() - lastVisible > 5 * 60 * 1000) tryLoad(tok);
+        lastVisible = Date.now();
+      } else {
+        lastVisible = Date.now();
+      }
+    });
   </script>
 </body>
 </html>
