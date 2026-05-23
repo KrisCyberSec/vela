@@ -8,7 +8,7 @@
 # and naming the file correctly - while you navigate the app by hand.
 #
 # Usage:
-#   scripts/capture-screenshots.sh boot 67           # boot iPhone 15 Pro Max (6.7")
+#   scripts/capture-screenshots.sh boot 67           # boot iPhone 15 Pro Max for 6.9" slot
 #   scripts/capture-screenshots.sh boot 65           # boot iPhone 11 Pro Max (6.5")
 #   scripts/capture-screenshots.sh shot welcome      # capture current screen → screenshots/<size>/01-welcome.png
 #   scripts/capture-screenshots.sh shot insights

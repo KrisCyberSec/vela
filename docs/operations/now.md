@@ -53,7 +53,8 @@ flow.
   saved in `.env.local`. Local production rebuild embeds the DSN, and a
   synthetic smoke event appeared in Sentry Issues tagged `vela@1.0.0`.
 - **Production status (2026-05-21):** DSN is set in Netlify as a secret
-  env var and production redeploy `6a0e5921b228037c89395de0` completed.
+  env var. Latest production deploy `6a123a42c35e882ae1ef4d7b` completed
+  on 2026-05-23.
 - **Done means:** A real iOS/TestFlight build smoke appears in Sentry
   after Apple/TestFlight is available.
 
@@ -63,9 +64,10 @@ flow.
   missing until Apple/RevenueCat setup resumes.
 - **Server-side status:** Netlify has `ANTHROPIC_API_KEY`,
   `REVENUECAT_REST_KEY`, `NETLIFY_BLOBS_TOKEN`, and
-  `REACT_APP_SENTRY_DSN`; production redeploy completed. Empty POST
-  checks now return `Question required` / `Summary required`, which means
-  the functions are past missing-env guards.
+  `REACT_APP_SENTRY_DSN`; production deploy
+  `6a123a42c35e882ae1ef4d7b` completed from a clean staging folder. Empty
+  POST checks now return `Question required` / `Summary required`, which
+  means the functions are past missing-env guards.
 - **PostHog status:** Production app bundle fired `onboarding_completed`
   and the event appeared in PostHog Activity.
 - **Done means:** `npm run verify:observability` passes after RevenueCat

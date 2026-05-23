@@ -1,12 +1,13 @@
 # CI — runs on every push to main and on every pull request.
 #
-# Two jobs:
-#   1. test   — runs the smoke suite (src/**/__tests__/*.test.js)
-#   2. build  — proves the production CRA bundle compiles
+# Three jobs:
+#   1. deploy-scope - proves Netlify uploads stay limited to landing/functions
+#   2. test         - runs the smoke suite (src/**/__tests__/*.test.js)
+#   3. build        - proves the production CRA bundle compiles
 #
-# Both must pass before a commit is "trusted." Red ❌ on the GitHub
+# All must pass before a commit is "trusted." Red ❌ on the GitHub
 # commit list = don't merge / don't deploy. Green ✓ = privacy contracts,
-# doctor PDF, and boot path are still verified.
+# doctor PDF, deploy scope, and boot path are still verified.
 #
 # Node 24 LTS. The official checkout/setup-node v5 actions run on the
 # Node 24 action runtime, which avoids GitHub's Node 20 deprecation warning.
@@ -26,6 +27,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  deploy-scope:
+    name: Netlify deploy scope
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+      - run: npm run verify:netlify-scope
+
   test:
     name: Smoke tests
     runs-on: ubuntu-latest

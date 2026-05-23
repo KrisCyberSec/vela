@@ -23,6 +23,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "verify:netlify-scope": "node scripts/verify-netlify-deploy-scope.mjs",
     "verify:observability": "node scripts/verify-observability.mjs"
   },
   "eslintConfig": {

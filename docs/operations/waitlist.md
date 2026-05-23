@@ -107,12 +107,15 @@ If the token leaks (posted in a screenshot, sent to the wrong person, etc.):
 cd /Users/kristopher/Vela
 NEW_TOKEN=$(openssl rand -hex 32)
 netlify env:set ADMIN_TOKEN "$NEW_TOKEN"
-netlify deploy --prod
+tmpdir=$(mktemp -d /tmp/vela-netlify-deploy.XXXXXX)
+rsync -a netlify.toml package.json package-lock.json landing netlify "$tmpdir/"
+(cd "$tmpdir" && netlify deploy --prod)
 echo "New admin token: $NEW_TOKEN"
 ```
 
-(Run from the repo root, not `landing/`. `netlify.toml` at the root is the
-single source of truth for `publish` and `functions` paths, so no flags needed.)
+(Run the staging command from the repo root, not `landing/`. `netlify.toml`
+at the root is the single source of truth for `publish` and `functions`
+paths.)
 
 Then update `ADMIN.md` with the new value. Any cached tokens in browsers will now fail login and prompt for the new one.
 

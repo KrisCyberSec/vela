@@ -11,8 +11,8 @@ Every service Vela depends on, who owns it, where it lives, and how to access it
 | **Namecheap** | Domain registrar | [ap.namecheap.com](https://ap.www.namecheap.com/domains/list/) | `karawforever` |
 | **Netlify** | Landing page hosting + waitlist functions + blobs | [app.netlify.com/projects/velahealth-app](https://app.netlify.com/projects/velahealth-app) | Kristopher's Google account |
 | **Firebase** | Community backend (dormant until flipped on) | [console.firebase.google.com](https://console.firebase.google.com) | TBD when enabled |
-| **Apple Developer** | App Store publishing | [developer.apple.com](https://developer.apple.com) | Not yet created |
-| **RevenueCat** | Subscription management | [app.revenuecat.com](https://app.revenuecat.com) | Not yet created |
+| **Apple Developer** | App Store publishing | [developer.apple.com](https://developer.apple.com) | Not enrolled yet |
+| **RevenueCat** | Subscription management | [app.revenuecat.com](https://app.revenuecat.com) | Project created; App Store connection pending |
 
 ## Domain
 
@@ -39,7 +39,7 @@ SSL is provisioned by Netlify via Let's Encrypt, auto-renews.
 - **Site ID:** `e0a6111f-d0ad-469a-bb29-66844eb342fe`
 - **Production URL:** [velahealth.health](https://velahealth.health)
 - **Netlify subdomain:** `velahealth-app.netlify.app`
-- **Deploy source:** Manual CLI (`netlify deploy --prod`) from repo root. Single [netlify.toml](../../netlify.toml) drives the deploy (publishes `landing/`, ships all four functions in `netlify/functions/`).
+- **Deploy source:** Manual CLI from a clean staging folder. Single [netlify.toml](../../netlify.toml) drives the deploy (publishes `landing/`, ships all four functions in `netlify/functions/`).
 - **Plan:** Free (Starter / `nf_team_dev`)
 
 ### Functions
@@ -71,7 +71,9 @@ Located at `/Users/kristopher/Vela/netlify/functions/`:
 cd /Users/kristopher/Vela
 NEW=$(openssl rand -hex 32)
 netlify env:set ADMIN_TOKEN "$NEW"
-netlify deploy --prod
+tmpdir=$(mktemp -d /tmp/vela-netlify-deploy.XXXXXX)
+rsync -a netlify.toml package.json package-lock.json landing netlify "$tmpdir/"
+(cd "$tmpdir" && netlify deploy --prod)
 echo "$NEW"  # paste into ADMIN.md (gitignored)
 ```
 

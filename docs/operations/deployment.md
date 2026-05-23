@@ -21,11 +21,15 @@ netlify login
 
 ### Deploy
 
-From the project root:
+Use a clean staging folder so Netlify uploads only the marketing site and
+functions. Uploading the full repo can include compiled iOS assets and
+trigger Netlify secret scanning on public client keys.
 
 ```bash
 cd /Users/kristopher/Vela
-netlify deploy --prod
+tmpdir=$(mktemp -d /tmp/vela-netlify-deploy.XXXXXX)
+rsync -a netlify.toml package.json package-lock.json landing netlify "$tmpdir/"
+(cd "$tmpdir" && netlify deploy --prod)
 ```
 
 This:
@@ -115,12 +119,14 @@ npx cap open ios                # open Xcode
 
 Before submitting:
 - Create App Store Connect in-app purchases (annual $69.99, monthly $8.99)
-- Paste SKUs into RevenueCat
-- Replace paywall no-op handlers in `src/App.jsx` (lines around 7554)
+- Paste SKUs and Apple credentials into RevenueCat
+- Add the RevenueCat public iOS key (`REACT_APP_REVENUECAT_IOS_API_KEY`)
+  locally and in Netlify, then rebuild and sync iOS
 
 ## CI/CD (future)
 
-We're currently deploying manually via CLI. When this becomes painful (rare deploys or more collaborators), set up:
+We're currently deploying manually from a clean staging folder. When this
+becomes painful (rare deploys or more collaborators), set up:
 
 - GitHub Actions workflow that runs `netlify deploy --prod` on push to `main`
 - Netlify's built-in Git integration (connect repo in Netlify dashboard) — safe to enable, the toml is correct
