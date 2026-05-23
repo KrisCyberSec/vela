@@ -8,8 +8,8 @@
 # commit list = don't merge / don't deploy. Green ✓ = privacy contracts,
 # doctor PDF, and boot path are still verified.
 #
-# Node 20 LTS — CRA 5 supports 14, 16, 18, 20. We pin 20 to match the
-# version most likely to be on the user's Mac long-term.
+# Node 24 LTS. The official checkout/setup-node v5 actions run on the
+# Node 24 action runtime, which avoids GitHub's Node 20 deprecation warning.
 
 name: CI
 
@@ -30,10 +30,10 @@ jobs:
     name: Smoke tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
       - run: npm ci
       - run: npm test -- --watchAll=false
@@ -42,10 +42,10 @@ jobs:
     name: Production build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
       - run: npm ci
       - run: npm run build
