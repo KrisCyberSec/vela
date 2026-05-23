@@ -73,4 +73,16 @@ describe("buildDailyBriefSummary", () => {
     const out = buildDailyBriefSummary(logs);
     expect(out).not.toHaveProperty("notes");
   });
+
+  it("uses the actual latest log date for recency, regardless of array order", () => {
+    const logs = [
+      dayOffset(6, { "Hot flash": true }),
+      dayOffset(1, { "Brain fog": true }),
+      dayOffset(4, { "Night sweats": true }),
+    ];
+
+    const out = buildDailyBriefSummary(logs);
+
+    expect(out.lastEntryDaysAgo).toBe(1);
+  });
 });

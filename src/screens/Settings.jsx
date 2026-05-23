@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import {
   isAnalyticsOptedOut,
   setAnalyticsOptedOut,
+  track,
 } from "../analytics";
 import {
   disableHealthKit,
@@ -52,9 +53,15 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
       if (hkOn) {
         await disableHealthKit();
         setHkOn(false);
+        track("health_sync_disabled", {});
       } else {
         const r = await enableHealthKit();
-        if (r.ok) setHkOn(true);
+        if (r.ok) {
+          setHkOn(true);
+          track("health_sync_enabled", {});
+        } else {
+          track("health_sync_failed", { reason: "permission_or_plugin" });
+        }
       }
     } finally {
       setHkBusy(false);
@@ -74,7 +81,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
   const streak = stats.streak;
   const entries = logs.length;
 
-  // First log date for "Tracking since" — null when no logs (we hide
+  // First log date for "Tracking since" - null when no logs (we hide
   // the line in the JSX rather than print "Tracking since today").
   const trackingSince = (() => {
     if (logs.length === 0) return null;
@@ -86,7 +93,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
   // Position the marker on a 5-stage arc (Regular cycles → Perimenopause → Postmenopause → Surgical)
   const stagePosition = profile && profile[0] !== undefined ? [0.10, 0.45, 0.85, 0.65][profile[0]] || 0.45 : 0.45;
 
-  // Recent quote — pull from the strongest correlation if we have one.
+  // Recent quote - pull from the strongest correlation if we have one.
   // Empty-state copy avoids "journey" (banned brand-voice word).
   const correlations = analyzeCorrelations(logs);
   const journeyQuote = correlations[0]?.text
@@ -367,7 +374,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
           <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
           <span className="body">
             <span className="label">Product analytics</span>
-            <span className="sub">{analyticsOptOut ? "Off. Nothing is sent." : "On. Event names only (log saved, paywall shown, etc.) — never your symptom data."}</span>
+            <span className="sub">{analyticsOptOut ? "Off. Nothing is sent." : "On. Event names only (log saved, paywall shown, etc.). Never your symptom data."}</span>
           </span>
           <span
             className={`set-toggle${!analyticsOptOut ? " on" : ""}`}
@@ -389,6 +396,7 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
           onClick={() => {
             if (!isPremium) { onShowPaywall("doctor_report"); return; }
             generateDoctorReport(logs, profile);
+            track("doctor_report_exported", { source: "settings", uniqueDays: days });
           }}
         >
           <span className="glyph"><UIIcon name="FileText" size={16} /></span>
@@ -400,7 +408,10 @@ export default function SettingsScreen({ profile, logs, isPremium, onShowPaywall
         </button>
         <button
           className="set-row"
-          onClick={() => exportCSV(logs)}
+          onClick={() => {
+            exportCSV(logs);
+            track("csv_exported", { uniqueDays: days });
+          }}
         >
           <span className="glyph"><UIIcon name="ChartBar" size={16} /></span>
           <span className="body">

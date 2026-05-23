@@ -8,7 +8,7 @@ import { UIIcon } from "./icons";
 import { CRISIS_RESOURCES } from "../lib/crisis";
 
 
-// Standalone component — used inline in the Ask Vela sheet AND on Today
+// Standalone component - used inline in the Ask Vela sheet AND on Today
 // when the daily-brief flow detects a sustained mood crash. Same surface
 // either place so the user recognizes "this is the safety card" wherever
 // it appears.

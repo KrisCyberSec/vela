@@ -39,17 +39,13 @@ ITMS-XXXX errors get easier to triage if you paste me the email body.
 | `NSHealthShareUsageDescription` present | ✓ PASS | `ios/App/App/Info.plist` line 56 |
 | `NSHealthUpdateUsageDescription` present | ✓ PASS | line 58 |
 | `ITSAppUsesNonExemptEncryption = false` | ✓ PASS | line 50-51 |
-| `NSUserTrackingUsageDescription` present | ✓ PASS | line 52-53 |
+| `NSUserTrackingUsageDescription` absent | ✓ PASS — Vela does not request ATT tracking permission | `ios/App/App/Info.plist` |
 | `capacitor.config.ts` `appId` | ✓ PASS — `com.velahealth.app` | line 4 |
-| `package.json` version | ⚠ `0.1.0` — needs bump to `1.0.0` in Xcode (see Step 5) | line 3 |
+| `package.json` version | ✓ PASS — `1.0.0` | line 3 |
 | `ios/App/App/public/` populated | ✓ PASS (compiled bundle present from prior sync) | `index.html`, `static/js/main.*.js` |
 
-⚠ Version mismatch: `package.json` says `0.1.0`; walkthrough Step 7.5
-sets Xcode `MARKETING_VERSION` to `1.0.0`. The App Store uses the
-Xcode value, but Sentry tags events `vela@0.1.0` (per
-`src/errorReporting.js` line 26) until `package.json` is bumped.
-Recommended: bump `package.json` to `1.0.0` before archive so Sentry
-matches the App Store version.
+Version alignment: `package.json` and Xcode `MARKETING_VERSION` are both
+`1.0.0`, so Sentry release tags match the App Store version.
 
 ## Xcode walkthrough (only after build is green)
 

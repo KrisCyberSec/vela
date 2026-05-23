@@ -5,7 +5,7 @@
 const sharp = require("sharp");
 const path = require("path");
 
-// ─── OG Share Card (1200 × 630) ────────────────────────────────────────────
+// OG Share Card (1200 x 630)
 const ogSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -48,13 +48,13 @@ const ogSvg = `<?xml version="1.0" encoding="UTF-8"?>
   <!-- Feature pills -->
   <g font-family="Calibri, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#F5F0E8">
     <rect x="80" y="490" width="220" height="52" rx="26" fill="#7A8B6F" fill-opacity="0.25" stroke="#7A8B6F" stroke-width="1.5"/>
-    <text x="108" y="524">🔒 On-device only</text>
+    <text x="108" y="524">On-device only</text>
 
     <rect x="320" y="490" width="240" height="52" rx="26" fill="#7A8B6F" fill-opacity="0.25" stroke="#7A8B6F" stroke-width="1.5"/>
-    <text x="350" y="524">🤖 AI companion</text>
+    <text x="350" y="524">Personal patterns</text>
 
     <rect x="580" y="490" width="260" height="52" rx="26" fill="#7A8B6F" fill-opacity="0.25" stroke="#7A8B6F" stroke-width="1.5"/>
-    <text x="610" y="524">📋 Doctor reports</text>
+    <text x="610" y="524">Doctor reports</text>
   </g>
 
   <!-- URL bottom right -->
@@ -63,7 +63,7 @@ const ogSvg = `<?xml version="1.0" encoding="UTF-8"?>
   </text>
 </svg>`;
 
-// ─── Apple Touch Icon (180 × 180) ──────────────────────────────────────────
+// Apple Touch Icon (180 x 180)
 const touchIconSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
   <defs>

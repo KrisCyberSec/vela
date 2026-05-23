@@ -223,8 +223,9 @@ fiddling.
 
 ### Step 3.2 — Generate App Store screenshots
 
-You need 3-10 screenshots at each of these sizes:
-- **6.7" display**: 1290×2796 (iPhone 14/15/16 Pro Max)
+Apple allows 1-10 screenshots per device size. Vela is targeting 6
+screenshots so the listing tells the full story:
+- **6.9" display slot**: 1290×2796 (accepted Pro Max portrait size)
 - **6.5" display**: 1284×2778 (iPhone 11 Pro Max, XS Max)
 
 **The simplest path:**
@@ -292,7 +293,7 @@ your green light for this phase.
 1. Click the blue **+** button → **New App**.
 2. A dialog appears. Fill in:
    - **Platforms**: ☑ iOS
-   - **Name**: `Vela: Menopause Companion` (this is what shows in the
+   - **Name**: `Vela - Menopause Companion` (this is what shows in the
      App Store; don't include "Vela" twice — Apple counts the App Name
      toward the 30-char limit)
    - **Primary Language**: English (U.S.)
@@ -342,7 +343,7 @@ In the left sidebar, click **Monetization** → **In-App Purchases** →
      - Description: `Unlimited Ask Vela, daily brief, doctor PDF reports, personalized experiments, and more.`
    - **Review Information** (Apple will see this):
      - Screenshot: upload one of the paywall screenshots from Phase 3.2
-     - Review Notes: `Tap "Try free for 14 days" on the paywall to subscribe. Sandbox tester accounts work normally.`
+     - Review Notes: `Tap the Annual purchase button on the paywall. If the sandbox Apple ID is eligible for the introductory offer, the button says "Start 14 days free · then $69.99/yr"; otherwise it says "Continue with Annual · $69.99/yr". Sandbox tester accounts work normally.`
 6. Click **Save** at the top.
 
 **Second IAP — Monthly subscription:**
@@ -375,27 +376,32 @@ In the left sidebar, click **App Privacy**.
    privacy-first. But Ask Vela sends an anonymized summary, which
    counts as collection.)
 
-3. **Data Type screen**: select what's collected. Check ONLY this box:
-   - ☑ **Health & Fitness** → **Health & Fitness** (the sub-category)
+3. **Data Type screen**: select what's collected:
+   - ☑ **Health & Fitness** → **Health**
+   - ☑ **Purchases** → **Purchase History**
+   - ☑ **Identifiers** → **User ID**
+   - ☑ **Usage Data** → **Product Interaction**
+   - ☑ **Diagnostics** → **Crash Data**
+   - ☑ **Diagnostics** → **Other Diagnostic Data**
 
-   Leave everything else unchecked. We don't collect contact info,
-   identifiers, location, browsing history, etc.
+   Leave contact info, location, browsing history, search history,
+   contacts, photos, audio, and advertising data unchecked.
 
 4. Click **Save**.
 
-5. **Health & Fitness configuration screen** appears. Answer:
-   - **How is this data used?**: ☑ **App Functionality**
-     (Uncheck everything else. Specifically, do NOT check
-     "Analytics", "Product Personalization", "Advertising", or "Other
-     Purposes".)
-   - **Is the data linked to the user's identity?**: **No**
-   - **Is the data used for tracking?**: **No**
+5. Configure each type:
+   - **Health**: App Functionality + Product Personalization; Linked: No; Tracking: No.
+   - **Purchase History**: App Functionality + Analytics; Linked: No while using anonymous RevenueCat app user IDs; Tracking: No.
+   - **User ID**: App Functionality; Linked: No while the ID is anonymous and not tied to email/account identity; Tracking: No.
+   - **Product Interaction**: Analytics; Linked: No; Tracking: No.
+   - **Crash Data**: App Functionality; Linked: No; Tracking: No.
+   - **Other Diagnostic Data**: App Functionality; Linked: No; Tracking: No.
 
 6. Click **Save**.
 
-✓ **You'll see**: a "Privacy Nutrition Label" preview. It should show
-"Data Used to Track You: Data Not Collected" and "Data Linked to You:
-Data Not Collected" and "Data Not Linked to You: Health & Fitness".
+✓ **You'll see**: a Privacy Nutrition Label preview with no tracking, no
+data linked to identity, and the above data types under "Data Not Linked
+to You."
 
 ⚠ **If a reviewer rejects this**: they'll cite "incomplete privacy
 disclosure." The fix is to come back here and verify Health & Fitness
@@ -407,9 +413,9 @@ is checked correctly.
    **1.0 Prepare for Submission**.
 2. Scroll down to **App Previews and Screenshots**.
 3. There's a tab for each device size:
-   - **iPhone 6.7" Display** (Pro Max sizes)
+   - **iPhone 6.9" Display** (Pro Max accepted sizes)
    - **iPhone 6.5" Display**
-   - You can ignore the smaller ones if you uploaded 6.7" — Apple
+   - You can ignore the smaller ones if you uploaded 6.9" - Apple
      auto-scales, but having the dedicated 6.5" set is more polished.
 4. Drag-and-drop your 6 screenshots from Phase 3.2 into each tab.
 
@@ -432,8 +438,7 @@ On the same **1.0 Prepare for Submission** page, fill in:
   section
 - **Keywords**: paste from `appstore-metadata.md` "Keywords" section
   (`perimenopause,hot flashes,night sweats,HRT,estrogen,hormones,cycle,brain fog,mood,tracker,log`)
-- **Support URL**: `https://velahealth.health` (or specifically
-  `mailto:support@velahealth.health` if asked for a contact link)
+- **Support URL**: `https://velahealth.health/support.html`
 - **Marketing URL**: `https://velahealth.health` (optional but nice)
 - **Version**: `1.0.0`
 - **Copyright**: `© 2026 [your name]`
@@ -740,7 +745,10 @@ Tap to open Vela. Verify each:
 
 3. **Paywall + sandbox purchase.**
    - Tap Settings → Subscription → "Upgrade to Vela".
-   - Tap "Try free for 14 days · then $69.99/yr".
+   - Tap "Start 14 days free · then $69.99/yr" if the sandbox tester is
+     eligible for the introductory offer. If Apple reports the account is
+     not eligible or eligibility is unknown, tap "Continue with Annual ·
+     $69.99/yr".
    - You'll be prompted to sign in with a sandbox tester account.
      (Set up at ASC → Users and Access → Sandbox → Testers → +. Use a
      fresh email like `vela-sandbox-1@yourdomain.com`. Sign out of
@@ -787,7 +795,7 @@ You're here. Final step.
 
 Scroll through the entire page once more. Confirm:
 - [ ] All metadata fields are filled (no red exclamation marks)
-- [ ] Screenshots uploaded for at least 6.7" size
+- [ ] Screenshots uploaded for at least the 6.9" iPhone slot
 - [ ] Privacy Nutrition Label complete
 - [ ] App Review Information has the reviewer notes
 - [ ] Build is selected

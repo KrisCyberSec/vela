@@ -2,14 +2,17 @@
  * Analytics — thin PostHog wrapper. No-ops gracefully without an API key,
  * so local dev and screenshots don't pollute the prod project.
  *
- * Five events instrumented in v1 (don't add more without a reason):
- *   - log_started        user opened the daily-log entry screen
- *   - log_completed      user saved a log; props: { uniqueDays, symptomCount }
- *   - ask_vela_used      user submitted a question to Ask Vela
- *   - paywall_shown      paywall appeared; props: { trigger }
- *   - paywall_converted  user completed a purchase; props: { plan }
+ * Launch events are intentionally sparse and non-sensitive:
+ *   - activation / retention: onboarding_completed, log_completed,
+ *     day_3_reached, day_7_reached, day_14_reached
+ *   - premium funnel: premium_feature_tapped, paywall_shown,
+ *     paywall_plan_selected, purchase_started, purchase_cancelled,
+ *     purchase_failed, paywall_converted, restore_*
+ *   - premium value: ask_vela_started/succeeded/failed,
+ *     doctor_report_exported, health_sync_*
  *
- * Add new events sparingly — every event is a thing to maintain.
+ * Event props must remain counts, booleans, trigger names, and status
+ * strings. No symptoms, notes, Ask Vela text, AI answers, or sleep values.
  *
  * Opt-out: users can disable product analytics from Settings → Privacy & Data.
  * Toggling on sets `vela_analytics_opt_out=true` in localStorage. We honor
@@ -21,6 +24,7 @@ import posthog from 'posthog-js';
 
 const KEY = process.env.REACT_APP_POSTHOG_KEY || '';
 const HOST = process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com';
+const ENABLE_DEV_ANALYTICS = process.env.REACT_APP_ENABLE_DEV_ANALYTICS === 'true';
 const OPT_OUT_KEY = 'vela_analytics_opt_out';
 
 let initialized = false;
@@ -52,6 +56,7 @@ export function setAnalyticsOptedOut(optOut) {
 
 export function initAnalytics() {
   if (initialized || !KEY) return;
+  if (process.env.NODE_ENV !== 'production' && !ENABLE_DEV_ANALYTICS) return;
   if (isOptedOut()) return;
   posthog.init(KEY, {
     api_host: HOST,

@@ -1,10 +1,10 @@
 // Generates the Vela app icon at 1024×1024, no alpha, RGB.
 //
 // Writes to two places:
-//   1. landing/icon-1024.png            — source-of-truth file checked
+//   1. landing/icon-1024.png            - source-of-truth file checked
 //                                          into the repo
 //   2. ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
-//                                        — what Xcode bakes into the IPA
+//                                        - what Xcode bakes into the IPA
 //
 // App Store Connect requires the 1024×1024 PNG to be flat RGB (no alpha
 // channel). Apple applies the rounded-rect mask themselves, so the icon
@@ -32,7 +32,7 @@ const iconSvg = `<?xml version="1.0" encoding="UTF-8"?>
     </radialGradient>
   </defs>
 
-  <!-- Background (no corner radius — Apple masks icons) -->
+  <!-- Background (no corner radius - Apple masks icons) -->
   <rect width="1024" height="1024" fill="url(#bg)"/>
   <rect width="1024" height="1024" fill="url(#highlight)"/>
 
@@ -49,10 +49,10 @@ const iconSvg = `<?xml version="1.0" encoding="UTF-8"?>
 </svg>`;
 
 // Flatten any transparency against the background gradient's starting
-// clay tone. Belt-and-suspenders — `.removeAlpha()` already strips the
+// clay tone. Belt-and-suspenders - `.removeAlpha()` already strips the
 // alpha channel, but `flatten()` first composites onto a solid color so
 // any semi-transparent pixels render correctly instead of going black.
-const FLATTEN_AGAINST = { r: 196, g: 133, b: 108 }; // #C4856C — clay
+const FLATTEN_AGAINST = { r: 196, g: 133, b: 108 }; // #C4856C - clay
 
 const landingOutPath = path.join(__dirname, "icon-1024.png");
 const xcodeOutPath = path.join(

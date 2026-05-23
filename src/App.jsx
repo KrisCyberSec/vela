@@ -37,7 +37,7 @@ import {
   LEVELS,
 } from "./lib/gamification";
 
-// Screen components (Phase 2 refactor — these used to be inline below
+// Screen components (Phase 2 refactor - these used to be inline below
 // alongside the styles block, but ESLint's `import/first` rule trips
 // `npm run build` when any import appears after a non-import statement).
 import OnboardingScreen from "./screens/Onboarding";
@@ -93,7 +93,7 @@ const css = `
     --glass-blur-soft:    blur(20px) saturate(150%);   /* for subtle accent cards */
   }
 
-  /* Dark theme overrides — activated by data-theme="dark" on <html>.
+  /* Dark theme overrides - activated by data-theme="dark" on <html>.
      src/theme.js sets the attribute synchronously based on user pref
      (light/dark/system) and watches matchMedia for system changes. */
   [data-theme="dark"] {
@@ -210,7 +210,7 @@ const css = `
   }
   .nav-logo em { color: var(--clay); font-style: italic; }
 
-  /* Floating pill-dock at bottom — Liquid Glass material.
+  /* Floating pill-dock at bottom - Liquid Glass material.
      Translucent sage-cream over content with backdrop blur + saturation
      boost (Apple's iOS 26 tab-bar approach). Inset top edge highlight
      gives the surface a "lift" against whatever scrolls behind it. */
@@ -266,12 +266,12 @@ const css = `
      energy bars, severity strip, context grid, sticky save bar.
      ════════════════════════════════════════════════════════════════════════ */
 
-  /* Today screen wrapper — extra bottom padding so content clears both
+  /* Today screen wrapper - extra bottom padding so content clears both
      the sticky save bar (~50px tall, floating ~80px from bottom) AND the
      bottom nav dock. Total clearance needed: ~180px. */
   .screen.vela-app { padding-bottom: 180px; padding-top: 0; }
 
-  /* Sticky glass header on Today — bleeds back to viewport edges using
+  /* Sticky glass header on Today - bleeds back to viewport edges using
      negative margin to counter the .screen 16px gutter. */
   .vela-header {
     position: sticky; top: 0; z-index: 10;
@@ -323,7 +323,7 @@ const css = `
   }
 
   /* Reveal card. Sage glass with radial gradient overlay */
-  /* Forecast card — light surface, list of probabilities + reason.
+  /* Forecast card - light surface, list of probabilities + reason.
      Locked variant uses the gold gating accent. */
   .forecast-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
   .forecast-card.locked { background: linear-gradient(135deg, rgba(212,168,83,0.10), rgba(201,123,92,0.06)); border-color: rgba(212,168,83,0.26); }
@@ -338,7 +338,7 @@ const css = `
   .forecast-card .forecast-teaser { font-size: 13px; color: var(--ink-mid); line-height: 1.5; margin: 0 0 12px; }
   .forecast-card .forecast-unlock { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, var(--gold), #BD8F38); color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
 
-  /* Daily AI brief card — sage-tinted glass surface. Distinct from
+  /* Daily AI brief card - sage-tinted glass surface. Distinct from
      the static reveal card so users learn "this is the live AI read,
      not the same dashboard text I see every day." */
   .brief-card { background: linear-gradient(135deg, rgba(143,184,155,0.18), rgba(212,168,83,0.06)); border: 1px solid rgba(143,184,155,0.32); border-radius: var(--radius); padding: 18px; }
@@ -664,7 +664,7 @@ const css = `
   .pattern-card .pattern-exp-btn:active { transform: scale(0.98); }
   .pattern-card .pattern-exp-running { display: inline-block; margin-top: 8px; font-size: 11.5px; color: var(--ink-light); font-style: italic; }
 
-  /* Anomaly cards — quieter than pattern cards (no confidence dots, no
+  /* Anomaly cards - quieter than pattern cards (no confidence dots, no
      correlation framing). They say "I'm noticing something different
      about THIS week vs your normal." */
   .anomaly-list { display: flex; flex-direction: column; gap: 8px; }
@@ -782,7 +782,7 @@ const css = `
   .exp-card .exp-btn.primary { background: var(--clay); color: #fff; border-color: var(--clay); }
   .exp-card .exp-btn.secondary:hover { background: var(--card-bg-soft, rgba(0,0,0,0.04)); }
 
-  /* Personalized experiment suggestions — premium, derived from
+  /* Personalized experiment suggestions - premium, derived from
      correlations + top symptoms. Reason headline reads first so the
      user understands why this suggestion appeared. */
   .suggest-list { display: flex; flex-direction: column; gap: 10px; }
@@ -830,7 +830,7 @@ const css = `
   .shelf-card .desc { font-size: 12px; color: var(--ink-mid); line-height: 1.4; }
   .shelf-card .mins { font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; margin-top: auto; }
 
-  /* Ask Vela floating button — discrete pill in the corner. Avatar carries
+  /* Ask Vela floating button - discrete pill in the corner. Avatar carries
      the brand (gold = premium upgrade, clay = active premium); the label
      stays tight ("Ask Vela") so the FAB never dominates the viewport like
      the original Premium · 7 Questions variant. */
@@ -845,8 +845,8 @@ const css = `
   /* Ask Vela glass sheet */
   .av-scrim { position: fixed; inset: 0; background: var(--glass-modal-scrim); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
   .av-scrim.show { opacity: 1; pointer-events: auto; }
-  .av-sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; max-width: 420px; margin: 0 auto; border-radius: 24px; background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 16px 40px rgba(140, 78, 50, 0.18); z-index: 51; padding: 18px 18px 16px; max-height: 78vh; display: flex; flex-direction: column; transform: translateY(20px); opacity: 0; pointer-events: none; transition: transform 240ms cubic-bezier(0.2,0.8,0.3,1), opacity 240ms ease; }
-  .av-sheet.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .av-sheet { position: fixed; left: 50%; right: auto; bottom: 8px; width: min(420px, calc(100vw - 16px)); box-sizing: border-box; margin: 0; border-radius: 24px; background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 16px 40px rgba(140, 78, 50, 0.18); z-index: 51; padding: 18px 18px 16px; max-height: 78vh; display: flex; flex-direction: column; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: transform 240ms cubic-bezier(0.2,0.8,0.3,1), opacity 240ms ease; }
+  .av-sheet.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
   .av-handle { width: 36px; height: 4px; border-radius: 3px; background: rgba(140,78,50,0.2); margin: -6px auto 14px; }
   .av-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
   .av-avatar { width: 40px; height: 40px; border-radius: 999px; background: var(--clay); color: #fff; font-family: var(--font-serif); font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
@@ -854,7 +854,7 @@ const css = `
   .av-sub { font-size: 11px; color: var(--ink-light); margin-top: 2px; display: inline-flex; gap: 5px; align-items: center; }
   .av-q-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding: 4px 0; }
 
-  /* Crisis support card — appears in two places (Ask Vela sheet inline,
+  /* Crisis support card - appears in two places (Ask Vela sheet inline,
      Today screen when sustained mood crash detected). Same surface in
      both so the user recognizes the safety affordance wherever it
      shows up. Soft sage to read as care, not alarm. */
@@ -872,8 +872,16 @@ const css = `
   .av-q { background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink); line-height: 1.4; text-align: left; cursor: pointer; font-family: var(--font-sans); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .av-q em { font-style: italic; color: var(--clay-dark); }
   .av-q .arr { flex-shrink: 0; color: var(--ink-light); }
+  .av-msg { border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink); line-height: 1.45; max-width: 85%; }
+  .av-msg.user { align-self: flex-end; background: var(--clay-light); }
+  .av-msg.assistant { align-self: flex-start; background: rgba(255,255,255,0.55); }
+  .av-msg-text { display: flex; flex-direction: column; gap: 8px; }
+  .av-msg-text p { margin: 0; }
+  .av-msg-text ul { margin: 0; padding-left: 17px; }
+  .av-msg-text li + li { margin-top: 4px; }
+  .av-msg-text em { color: var(--clay-dark); font-style: italic; }
   .av-input { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
-  .av-input input { flex: 1; background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-family: var(--font-sans); font-size: 13px; color: var(--ink); outline: none; }
+  .av-input input { flex: 1; min-width: 0; background: rgba(255,255,255,0.55); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-family: var(--font-sans); font-size: 13px; color: var(--ink); outline: none; }
   .av-input input::placeholder { color: var(--ink-light); font-style: italic; }
   .av-input button { background: var(--clay); color: #fff; width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
 
@@ -933,7 +941,7 @@ const css = `
   .set-premium-row .body small { display: block; font-size: 12px; color: var(--ink-mid); margin-top: 2px; line-height: 1.4; }
   .set-premium-row .cta { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--clay-dark); text-transform: uppercase; }
 
-  /* "Patterns you've marked helpful" — Settings card pulling thumbs-up'd
+  /* "Patterns you've marked helpful" - Settings card pulling thumbs-up'd
      correlations from Insights, so the user can see validated patterns
      still surface. Tap to jump to Insights. Hidden when none. */
   .set-recent { display: block; width: 100%; text-align: left; background: linear-gradient(135deg, rgba(143,184,155,0.10), rgba(212,168,83,0.05)); border: 1px solid rgba(143,184,155,0.26); border-radius: 16px; padding: 14px 16px; cursor: pointer; font-family: inherit; }
@@ -1278,7 +1286,7 @@ const css = `
   .cir-privacy .body { font-size: 12px; line-height: 1.5; color: var(--sage-dark); }
   .cir-privacy .body strong { display: block; font-size: 12.5px; font-weight: 600; color: var(--sage-dark); margin-bottom: 2px; }
 
-  /* First-time welcome card — uses translucent surface tokens that adapt
+  /* First-time welcome card - uses translucent surface tokens that adapt
      to light/dark theme instead of a hardcoded cream gradient (the
      hardcoded gradient + var(--ink) text rendered as white-on-cream in
      dark mode and was unreadable). */
@@ -2272,7 +2280,7 @@ const css = `
   }
 
   /* ── TOAST ── */
-  /* Toast — Liquid Glass with sage tint. Floats above the bottom dock,
+  /* Toast - Liquid Glass with sage tint. Floats above the bottom dock,
      translucent so the user still feels grounded in the screen. */
   .toast {
     position: fixed;
@@ -2690,7 +2698,7 @@ const css = `
     background: var(--border); transition: all 0.3s ease;
   }
   .reveal-dot.active { background: var(--sage); width: 20px; border-radius: 4px; }
-  /* Prominent secondary action — present on every reveal step so users
+  /* Prominent secondary action - present on every reveal step so users
      never feel trapped in the ceremony. Goes TO patterns, not away from them. */
   .reveal-skip {
     margin-top: 20px; padding: 12px 24px; font-size: 14px; font-weight: 500;
@@ -2917,7 +2925,7 @@ const css = `
 `;
 
 // Screen components + lib helpers (doctorReport, csv) imported at the
-// top of this file — see the block right after the gamification import.
+// top of this file - see the block right after the gamification import.
 
 export default function App() {
   // App-init reads use safeReadJSON: a localStorage exception (e.g. Safari private mode,
@@ -2951,13 +2959,28 @@ export default function App() {
   // Dev-only URL trigger: visiting /?seed=demo seeds 30 days of synthetic
   // data + skips onboarding + unlocks premium for the session, then strips
   // the query param so a refresh doesn't re-seed. Same data shape as the
-  // hidden "Seed Demo Data" button in Settings → debug, but URL-driven so
+  // hidden "Seed Demo Data" button in Settings debug, but URL-driven so
   // you don't need DevTools or the debug screen. Compiled out in prod
   // (process.env.NODE_ENV === "production" tree-shakes the whole block).
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("seed") !== "demo") return;
+    const screenshotFrame = params.get("screenshot");
+    const shouldSeed = params.get("seed") === "demo" || (screenshotFrame && screenshotFrame !== "welcome");
+    if (screenshotFrame === "welcome") {
+      try {
+        localStorage.removeItem("vela_onboarded");
+        localStorage.removeItem("vela_logs");
+        localStorage.removeItem("vela_chat_messages");
+      } catch { /* private mode */ }
+      setLogs([]);
+      setOnboarded(false);
+      setScreen("onboard");
+      setIsPremium(false);
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+    if (!shouldSeed) return;
     const pad = (n) => String(n).padStart(2, "0");
     const localISO = (d) => {
       const tz = -d.getTimezoneOffset(), sign = tz >= 0 ? "+" : "-", tzA = Math.abs(tz);
@@ -3001,12 +3024,24 @@ export default function App() {
       localStorage.setItem("vela_logs", JSON.stringify(demoLogs));
       localStorage.setItem("vela_profile", JSON.stringify([1, [0, 1, 2], 4, "sometimes"]));
       localStorage.setItem("vela_onboarded", "true");
+      localStorage.setItem("vela_insights_revealed", "true");
+      if (screenshotFrame === "ask-vela") {
+        localStorage.setItem("vela_screenshot_ask_open", "true");
+      }
     } catch { /* private mode */ }
     setLogs(demoLogs);
     setProfile([1, [0, 1, 2], 4, "sometimes"]);
     setOnboarded(true);
-    setScreen("tracker"); // otherwise the screen-state initializer leaves us on "onboard"
+    const screenForFrame = {
+      today: "tracker",
+      insights: "insights",
+      "ask-vela": "insights",
+      paywall: "tracker",
+      history: "history",
+    }[screenshotFrame] || "tracker";
+    setScreen(screenForFrame); // otherwise the screen-state initializer leaves us on "onboard"
     setIsPremium(true); // dev shortcut so you don't have to click through paywall
+    if (screenshotFrame === "paywall") setShowPaywall(true);
     window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
@@ -3018,7 +3053,7 @@ export default function App() {
       const { isPremium: livePremium } = await checkSubscription();
       if (livePremium) setIsPremium(true);
       // Set Sentry user context so errors group by user. We use the
-      // anonymous RevenueCat appUserId — never PII.
+      // anonymous RevenueCat appUserId - never PII.
       try {
         const uid = await getAppUserId();
         if (uid) identifyUser(uid);
@@ -3070,13 +3105,14 @@ export default function App() {
   function handleLog(entry) {
     // Stamp the log with a LOCAL-time ISO string. new Date().toISOString()
     // returns UTC, so a user logging at 8pm ET (= 12am UTC the next day)
-    // would see the entry land on tomorrow's date in History — broke the
+    // would see the entry land on tomorrow's date in History - broke the
     // calendar highlight and "newest first" ordering. Computing the local
     // ISO keeps `date.slice(0, 10)` aligned with the user's local day.
     const logEntry = { ...entry, date: localISOString(new Date()) };
     const newLogs = [logEntry, ...logs];
     setLogs(newLogs);
-    // Smart contextual toast messages — personalized by profile
+    // Smart contextual toast messages - personalized by profile
+    const previousUniqueDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
     const uniqueDays = new Set(newLogs.map((l) => l.date.slice(0, 10))).size;
     const streak = getStreak(newLogs);
     track("log_completed", {
@@ -3085,6 +3121,11 @@ export default function App() {
       symptomCount: Object.keys(entry.symptoms || {}).length,
       hasNotes: !!(entry.notes && entry.notes.length > 0),
     });
+    if (uniqueDays !== previousUniqueDays) {
+      if (uniqueDays === 3) track("day_3_reached", { uniqueDays, streak });
+      if (uniqueDays === 7) track("day_7_reached", { uniqueDays, streak });
+      if (uniqueDays === 14) track("day_14_reached", { uniqueDays, streak });
+    }
     const p = getPersonalization(profile);
     const concern = p?.topConcernNames?.[0];
     const symptoms = Object.keys(entry.symptoms || {});
@@ -3114,6 +3155,11 @@ export default function App() {
     setProfile(answers);
     setOnboarded(true);
     setScreen("tracker");
+    track("onboarding_completed", {
+      concernCount: Array.isArray(answers?.[1]) ? answers[1].length : (answers?.[1] != null ? 1 : 0),
+      goalCount: Array.isArray(answers?.[2]) ? answers[2].length : (answers?.[2] != null ? 1 : 0),
+      remindersPreferenceSet: answers?.[3] !== undefined && answers?.[3] !== null,
+    });
     // Schedule reminders based on Q4 preference
     if (answers[3] !== undefined && answers[3] !== null && remindersEnabled) {
       scheduleReminders(answers[3]);
@@ -3181,7 +3227,7 @@ export default function App() {
         // Nudges (per-row dismissals)
         "vela_insights_nudge_dismissed", "vela_doctor_nudge_dismissed",
         "vela_community_nudge_dismissed", "vela_relief_nudge_dismissed",
-        // Aesthetic — debatable, but Reset means reset
+        // Aesthetic - debatable, but Reset means reset
         "vela_theme_pref",
       ];
       knownKeys.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
@@ -3210,7 +3256,7 @@ export default function App() {
   // onboarding + logging dozens of entries. Surface from the hidden debug
   // screen (Settings → tap version number 5×). Pattern: caffeine days have
   // worse hot flashes / insomnia / mood; non-caffeine days correlate with
-  // exercise + better sleep — produces real correlations in Insights.
+  // exercise + better sleep - produces real correlations in Insights.
   function seedDemoData() {
     if (!window.confirm("Replace your current data with 30 days of demo content? This is intended for App Store screenshots.")) return;
     const demoProfile = [1, [0, 1, 2], 4, "sometimes"]; // perimenopause; concerns: hot flashes/sleep/mood
@@ -3265,31 +3311,42 @@ export default function App() {
   }
 
   function openPaywall(trigger) {
+    track("premium_feature_tapped", { trigger });
     track("paywall_shown", { trigger });
     setShowPaywall(true);
   }
 
+  function purchaseFailureReason(result) {
+    if (result.cancelled) return "cancelled";
+    if (["misconfigured", "web_fallback", "no_offering", "no_package"].includes(result.error)) return result.error;
+    return result.error ? "sdk_error" : "unknown";
+  }
+
   async function handleSubscribe(plan) {
+    track("purchase_started", { plan });
     const result = await purchasePlan(plan);
     if (result.isPremium) {
       track("paywall_converted", { plan });
       setIsPremium(true);
       setShowPaywall(false);
     } else if (result.cancelled) {
-      // user dismissed the native sheet — leave paywall open, no toast
+      track("purchase_cancelled", { plan, mode: result.mode || "unknown" });
+      // user dismissed the native sheet - leave paywall open, no toast
     } else if (result.error === "web_fallback") {
-      // Browser dev preview only — no Apple receipt to validate. Unlock locally for testing.
+      // Browser dev preview only - no Apple receipt to validate. Unlock locally for testing.
       // This branch is unreachable in production iOS builds (mode would be 'native' or 'misconfigured').
       setIsPremium(true);
       setShowPaywall(false);
     } else if (result.error === "misconfigured") {
-      // Native iOS build is missing the RevenueCat API key — surfaced as a user-friendly error,
+      track("purchase_failed", { plan, reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
+      // Native iOS build is missing the RevenueCat API key - surfaced as a user-friendly error,
       // logged to Sentry inside subscription.js. Critically: do NOT grant premium.
       setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
       setToast(true);
       setTimeout(() => setToast(false), 3500);
     } else {
-      // no_offering / no_package / network error / unknown — surface a generic failure
+      track("purchase_failed", { plan, reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
+      // no_offering / no_package / network error / unknown - surface a generic failure
       setToastMsg("Purchase didn't go through. Try again or contact support.");
       setToast(true);
       setTimeout(() => setToast(false), 3500);
@@ -3297,14 +3354,18 @@ export default function App() {
   }
 
   async function handleRestore() {
+    track("restore_started", {});
     const result = await restorePurchases();
     if (result.isPremium) {
+      track("restore_succeeded", { mode: result.mode || "unknown" });
       setIsPremium(true);
       setShowPaywall(false);
-      setToastMsg("Premium restored. ✨");
+      setToastMsg("Premium restored.");
     } else if (result.error === "misconfigured") {
+      track("restore_failed", { reason: "misconfigured", mode: result.mode || "unknown" });
       setToastMsg("Subscriptions are temporarily unavailable. Please try again shortly.");
     } else {
+      track("restore_failed", { reason: purchaseFailureReason(result), mode: result.mode || "unknown" });
       setToastMsg("No previous purchase found on this Apple ID.");
     }
     setToast(true);
@@ -3334,7 +3395,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Slim top header — wordmark only. Hidden on Today (which has its
+      {/* Slim top header - wordmark only. Hidden on Today (which has its
           own sticky glass header per the redesign) and Onboarding (which
           renders its own giant Vela mark in the welcome screen and needs
           full-bleed height for the welcome → questions → summary flow). */}
@@ -3451,7 +3512,7 @@ export default function App() {
                 {BADGES.slice(0, 12).map((b) => (
                   <button key={b.id} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
                     onClick={() => { haptic("Medium"); setBadgeToast(b); setTimeout(() => setBadgeToast(null), 3000); }}>
-                    <span>{b.icon}</span> {b.name}
+                    <UIIcon name={b.icon} size={14} /> {b.name}
                   </button>
                 ))}
               </div>
@@ -3470,7 +3531,7 @@ export default function App() {
                 { days: 60, label: "60 days" },
               ].map((s) => (
                 <div key={s.days} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
-                  <span>🔥 {s.label} streak</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><UIIcon name="Flame" size={14} weight="fill" /> {s.label} streak</span>
                   <span style={{ fontWeight: 600, color: getStreakMultiplier(s.days) > 1 ? "var(--gold)" : "var(--ink-light)" }}>{getStreakMultiplier(s.days)}x XP</span>
                 </div>
               ))}
@@ -3505,7 +3566,7 @@ export default function App() {
             <div className="settings-card" style={{ padding: 16 }}>
               {LEVELS.map((lvl, i) => {
                 const next = LEVELS[i + 1];
-                const range = next ? `${lvl.xpNeeded} – ${next.xpNeeded - 1} XP` : `${lvl.xpNeeded}+ XP`;
+                const range = next ? `${lvl.xpNeeded} - ${next.xpNeeded - 1} XP` : `${lvl.xpNeeded}+ XP`;
                 return (
                   <div key={lvl.level} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < LEVELS.length - 1 ? "1px solid var(--border)" : "none", fontSize: 13 }}>
                     <div>
@@ -3513,7 +3574,7 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: 12, color: "var(--ink-light)" }}>{range}</div>
-                      {lvl.unlock && <div style={{ fontSize: 11, color: "var(--gold)" }}>🔓 {lvl.unlock}</div>}
+                      {lvl.unlock && <div style={{ fontSize: 11, color: "var(--gold)", display: "inline-flex", alignItems: "center", gap: 4 }}><UIIcon name="Lock" size={11} /> {lvl.unlock}</div>}
                     </div>
                   </div>
                 );
@@ -3526,12 +3587,12 @@ export default function App() {
             <div className="settings-card" style={{ padding: 12 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {[
-                  { label: "Basic log", msg: "Entry logged! Keep it up. 🌿 +15 XP" },
-                  { label: "First entry", msg: "First entry logged! Vela is now learning your hot flashes patterns. 🌱 +20 XP" },
-                  { label: "Day 7", msg: "7 days! Your hot flashes insights are ready. Tap Insights. ✨ +20 XP" },
-                  { label: "With streak 1.5x", msg: "Entry logged! Keep it up. 🌿 +23 XP (1.5x streak bonus!)" },
-                  { label: "With streak 3x", msg: "Entry logged! Keep it up. 🌿 +45 XP (3x streak bonus!)" },
-                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more. Great detail! 💡 +25 XP" },
+                  { label: "Basic log", msg: "Entry logged. +15 XP" },
+                  { label: "First entry", msg: "First entry logged. Vela is now learning your hot flashes patterns. +20 XP" },
+                  { label: "Day 7", msg: "7 days. Your hot flashes insights are ready. Tap Insights. +20 XP" },
+                  { label: "With streak 1.5x", msg: "Entry logged. +23 XP (1.5x streak bonus)" },
+                  { label: "With streak 3x", msg: "Entry logged. +45 XP (3x streak bonus)" },
+                  { label: "Detailed entry", msg: "Tracking your hot flashes + 2 more. Good detail. +25 XP" },
                 ].map((t, i) => (
                   <button key={i} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--ink)", fontSize: 12, fontFamily: "'DM Sans', sans-serif", cursor: "pointer" }}
                     onClick={() => { setToastMsg(t.msg); setToast(true); setTimeout(() => setToast(false), 3500); }}>
@@ -3548,7 +3609,7 @@ export default function App() {
               <div className="gam-badges-grid">
                 {BADGES.map((b) => (
                   <div key={b.id} className="gam-badge earned" style={{ cursor: "pointer" }} onClick={() => { haptic("Medium"); setBadgeToast(b); setTimeout(() => setBadgeToast(null), 3000); }}>
-                    <div className="gam-badge-icon">{b.icon}</div>
+                    <div className="gam-badge-icon"><UIIcon name={b.icon} size={22} /></div>
                     <div className="gam-badge-name">{b.name}</div>
                     <div className="gam-badge-desc">{b.desc}</div>
                   </div>
@@ -3584,10 +3645,10 @@ export default function App() {
       {/* Badge Toast */}
       {badgeToast && (
         <div className="badge-toast">
-          <span className="badge-toast-icon">{badgeToast.icon}</span>
+          <span className="badge-toast-icon"><UIIcon name={badgeToast.icon} size={22} /></span>
           <div className="badge-toast-content">
             <span className="badge-toast-title">Milestone reached!</span>
-            <span className="badge-toast-text">{badgeToast.icon} {badgeToast.name}</span>
+            <span className="badge-toast-text">{badgeToast.name}</span>
           </div>
         </div>
       )}

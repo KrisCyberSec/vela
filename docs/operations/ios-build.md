@@ -41,6 +41,23 @@ Then in Xcode: **Product → Run** (⌘R).
 
 Live reload to a simulator is possible via `npx cap run ios -l` but it's flaky — scripted build+sync is more reliable.
 
+### Command-line native smoke build
+
+After Xcode is installed and first-launch setup is complete:
+
+```bash
+xcodebuild -downloadPlatform iOS
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+```
+
+If SwiftPM hangs while resolving public GitHub packages, check whether a
+saved GitHub internet password in Keychain is prompting headlessly. The
+workaround used during setup was to run `xcodebuild` with a temporary empty
+keychain search list, then immediately restore the normal keychain list.
+
 ## iOS project config
 
 Current state (verified in `ios/App/App/`):
@@ -48,28 +65,29 @@ Current state (verified in `ios/App/App/`):
 | File | Purpose | Status |
 |------|---------|--------|
 | `Info.plist` | App metadata, permissions, category | ✅ Configured |
-| `PrivacyInfo.xcprivacy` | Apple privacy manifest (required 2024+) | ✅ Added, must be linked in Xcode |
+| `PrivacyInfo.xcprivacy` | Apple privacy manifest (required 2024+) | ✅ Added and included in target resources |
 | `Assets.xcassets/AppIcon.appiconset/` | App icon | ✅ Vela branded icon |
 | `Assets.xcassets/Splash.imageset/` | Launch screen | Uses default; customize later |
 
 ### Info.plist keys set
 
 - `ITSAppUsesNonExemptEncryption = false` — skips the annual encryption compliance question
-- `NSUserTrackingUsageDescription` — required even though we don't track
 - `LSApplicationCategoryType = public.app-category.healthcare-fitness` — App Store category
 
 ### Privacy Manifest
 
 `PrivacyInfo.xcprivacy` declares:
 - No tracking
-- No collected data types (app is fully on-device)
+- Collected data types for the actual off-device flows: Health, Purchase
+  History, anonymous User ID, Product Interaction, Crash Data, and Other
+  Diagnostic Data
 - Accessed API categories with "required reasons":
   - `UserDefaults` (CA92.1) — localStorage via WebView
   - `FileTimestamp` (C617.1) — general file ops
   - `SystemBootTime` (35F9.1) — performance measurement
   - `DiskSpace` (E174.1) — user-initiated writes
 
-**First Xcode open:** verify the PrivacyInfo.xcprivacy file is included in the app target. In Xcode's left sidebar, right-click the `App` group → Add Files to "App"… → select `PrivacyInfo.xcprivacy` → ensure "App" target is checked.
+`PrivacyInfo.xcprivacy` is already included in the Xcode target resources via `ios/App/App.xcodeproj/project.pbxproj`. On first Xcode open, just confirm it appears under the `App` group and do not add a duplicate.
 
 ## Running on your device (no paid account)
 
@@ -93,8 +111,8 @@ Apps installed this way expire after 7 days and must be re-deployed. Fine for te
    - Category: Health & Fitness
    - Primary language: English (US)
 3. **In-app purchases** — create 2 subscriptions:
-   - `vela_premium_monthly` at $8.99/mo (Apple Tier 9), 14-day intro free trial
-   - `vela_premium_annual` at $69.99/yr (Apple Tier 70), 14-day intro free trial
+   - `com.velahealth.app.premium.monthly` at $8.99/mo (Apple Tier 9), 14-day intro free trial
+   - `com.velahealth.app.premium.annual` at $69.99/yr (Apple Tier 70), 14-day intro free trial
 
    Both go in the same Subscription Group (`vela_premium`). Allow upgrade/downgrade between them.
 
@@ -108,9 +126,11 @@ Apps installed this way expire after 7 days and must be re-deployed. Fine for te
 
 5. **Wire RevenueCat**:
    - Create an app in RevenueCat
-   - Paste the App Store Connect shared secret
-   - Copy the RevenueCat public API key
-   - Replace the no-op `handleSubscribe` / `handleRestore` in `src/App.jsx` (~line 7554) with the RevenueCat SDK calls
+   - Paste the App Store Connect shared secret and In-App Purchase API key
+   - Copy the RevenueCat Apple public API key into
+     `REACT_APP_REVENUECAT_IOS_API_KEY`
+   - The app-side purchase and restore handlers already call
+     `src/subscription.js`; no additional RevenueCat code swap is needed
 6. **Archive in Xcode**:
    - Product → Archive
    - Window → Organizer → Distribute App → App Store Connect → Upload
@@ -130,6 +150,7 @@ Before clicking "Submit for Review", verify:
 - [ ] Paywall subscription + restore flows work
 - [ ] Privacy policy URL is live: `velahealth.health/privacy.html`
 - [ ] Terms URL is live: `velahealth.health/terms.html`
+- [ ] Support URL is live: `velahealth.health/support.html`
 - [ ] App icon is the Vela icon (not the default Capacitor icon)
 - [ ] Launch screen doesn't show a spinner or blank state
 - [ ] No console errors in the WebView (check via Safari → Develop → connected device)
@@ -141,6 +162,7 @@ Before clicking "Submit for Review", verify:
 ## Troubleshooting
 
 **"Could not locate device support files"** — update Xcode or your iOS version
+**"iOS <version> is not installed"** — run `xcodebuild -downloadPlatform iOS` or install it from Xcode → Settings → Components
 **"Signing failed"** — Signing & Capabilities → sign out, sign back in with Apple ID
 **White screen on launch** — `npm run build` was skipped; re-run the build flow
 **Missing plugin errors** — `npx cap sync ios` after `npm install`

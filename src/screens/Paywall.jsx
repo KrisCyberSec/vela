@@ -2,15 +2,47 @@
 // each pillar maps to a real, wired feature (Ask Vela, daily brief,
 // doctor report, experiments, cycle prediction, etc.). Renders monthly
 // vs annual plan toggle and calls back into the App-level subscribe /
-// restore handlers via props. No localStorage of its own — the parent
+// restore handlers via props. No localStorage of its own - the parent
 // owns subscription state.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { track } from "../analytics";
 import { UIIcon } from "../components/icons";
+import { getPaywallPlans } from "../subscription";
+
+const FALLBACK_PLANS = {
+  annual: {
+    title: "Annual",
+    priceString: "$69.99",
+    priceLine: "$69.99/yr",
+    note: "$5.83/mo · billed yearly",
+    trial: null,
+  },
+  monthly: {
+    title: "Monthly",
+    priceString: "$8.99",
+    priceLine: "$8.99/mo",
+    note: "Cancel anytime",
+    trial: null,
+  },
+};
 
 export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   const [plan, setPlan] = useState("annual");
+  const [plans, setPlans] = useState(FALLBACK_PLANS);
+
+  useEffect(() => {
+    let alive = true;
+    getPaywallPlans().then((next) => {
+      if (!alive) return;
+      setPlans({
+        annual: next?.annual || FALLBACK_PLANS.annual,
+        monthly: next?.monthly || FALLBACK_PLANS.monthly,
+      });
+    });
+    return () => { alive = false; };
+  }, []);
 
   // Pillar copy must match what actually ships. Each pillar below maps to
   // a real feature with shipping code:
@@ -26,14 +58,14 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
   //
   // Order matters: Ask Vela + personalized suggestions lead because
   // they're the differentiation tier vs Caria/Balance/Flo. Doctor PDF
-  // (the original hero) sits at #3 — still the most concrete benefit
+  // (the original hero) sits at #3 - still the most concrete benefit
   // for the doctor-prep persona, but no longer carries the whole pitch.
   const pillars = [
     {
       icon: "ChatCircle",
       tone: "sage",
       title: "Ask Vela",
-      body: "Real AI grounded in your data. Not generic web advice. Ask anything about your symptoms, sleep, cycle, or what to bring to your next appointment.",
+      body: "Ask about your symptoms, sleep, cycle, or what to bring to your next appointment. Vela answers from the pattern summary your own logs create.",
     },
     {
       icon: "SunHorizon",
@@ -97,7 +129,15 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
     },
   ];
 
-  const ctaPrice = plan === "annual" ? "$69.99/yr" : "$8.99/mo";
+  const ctaLabel = plan === "annual" ? "Continue with Annual" : "Continue with Monthly";
+  const selectedPlan = plans[plan] || FALLBACK_PLANS[plan];
+  const ctaText = selectedPlan.trial
+    ? `Start ${selectedPlan.trial.label} free · then ${selectedPlan.priceLine}`
+    : `${ctaLabel} · ${selectedPlan.priceLine}`;
+  const finePrint = selectedPlan.trial
+    ? `After trial, auto-renews at ${selectedPlan.priceLine} until canceled`
+    : "Auto-renews until canceled";
+  const planNote = (p) => p.trial ? `${p.trial.label} free · then ${p.priceLine}` : p.note;
 
   return (
     <div className="pw-app">
@@ -113,7 +153,7 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           Make sense of it. <em>Out loud.</em>
         </h1>
         <p className="pw-sub">
-          Real AI grounded in your data, personalized experiments from your patterns, and a doctor-ready report. Built for the years between.
+          Ask Vela about your patterns, run experiments from what you log, and build a doctor-ready report. Built for the years between.
         </p>
 
         {/* Hero. Doctor report preview */}
@@ -168,31 +208,37 @@ export default function PaywallScreen({ onClose, onSubscribe, onRestore }) {
           <button
             type="button"
             className={`pw-plan ${plan === "annual" ? "on" : ""}`}
-            onClick={() => setPlan("annual")}
+            onClick={() => {
+              setPlan("annual");
+              track("paywall_plan_selected", { plan: "annual" });
+            }}
           >
             <span className="save-badge">Save 35%</span>
             <div className="term">Annual</div>
-            <div className="price">$69.99<small>/yr</small></div>
-            <div className="note">$5.83/mo · billed yearly</div>
+            <div className="price">{plans.annual.priceString}<small>/yr</small></div>
+            <div className="note">{planNote(plans.annual)}</div>
           </button>
           <button
             type="button"
             className={`pw-plan ${plan === "monthly" ? "on" : ""}`}
-            onClick={() => setPlan("monthly")}
+            onClick={() => {
+              setPlan("monthly");
+              track("paywall_plan_selected", { plan: "monthly" });
+            }}
           >
             <div className="term">Monthly</div>
-            <div className="price">$8.99<small>/mo</small></div>
-            <div className="note">Cancel anytime</div>
+            <div className="price">{plans.monthly.priceString}<small>/mo</small></div>
+            <div className="note">{planNote(plans.monthly)}</div>
           </button>
         </div>
       </div>
 
       <div className="pw-cta-bar">
         <button type="button" className="pw-cta" onClick={() => onSubscribe(plan)}>
-          Try free for 14 days · then {ctaPrice}
+          {ctaText}
         </button>
         <div className="pw-cta-fine">
-          Cancel anytime ·{" "}
+          {finePrint} ·{" "}
           <a href="/terms.html" target="_blank" rel="noreferrer">Terms</a> ·{" "}
           <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a>
         </div>

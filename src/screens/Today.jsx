@@ -1,12 +1,13 @@
 // Today (formerly Tracker) screen. The primary daily-logging surface
 // where users record mood, energy, symptoms, severity, and contextual
 // triggers (sleep / stress / period / caffeine / alcohol / exercise).
-// It also hosts the morning "reveal" card and — for Premium users with
-// at least seven days of data — the AI-generated daily brief.
+// It also hosts the morning "reveal" card and - for Premium users with
+// at least seven days of data - the Daily Brief.
 
 import { useState, useEffect } from "react";
 
 import { track } from "../analytics";
+import { apiHeaders, apiUrl } from "../api";
 import { reportError } from "../errorReporting";
 import { getAppUserId } from "../subscription";
 import { isHealthKitEnabled, fetchYesterdaySleep } from "../healthkit";
@@ -23,7 +24,7 @@ import { computeEarlyStats } from "../lib/patterns";
 import { getPersonalization } from "../lib/personalization";
 import { QUESTIONS } from "../lib/questions";
 import { buildDailyBriefSummary } from "../lib/summaries";
-import { MOODS, SYMPTOMS, prioritizedSymptomsForCat } from "../lib/symptoms";
+import { SYMPTOMS, prioritizedSymptomsForCat } from "../lib/symptoms";
 
 export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigate, onShowPaywall }) {
   const [mood, setMood] = useState(null);
@@ -46,7 +47,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
   const [periodFlow, setPeriodFlow] = useState(null);
   const [energy, setEnergy] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
-  // HealthKit auto-fill — pulls yesterday's sleep when permission's been
+  // HealthKit auto-fill - pulls yesterday's sleep when permission's been
   // granted. Sets a flag so the UI can show "Synced from Apple Health"
   // and the user can override by tapping the +/- buttons.
   const [hkSyncedSleep, setHkSyncedSleep] = useState(false);
@@ -63,9 +64,9 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
   }, []);
 
   // ─── Daily brief (Premium) ──────────────────────────────────────────
-  // Fetches today's brief from /api/daily-brief once per day (server
+  // Fetches today's brief once per day through the API helper (server
   // caches per appUserId+date so repeat opens are free). Only runs for
-  // premium users with at least 7 days of data — anything earlier and
+  // premium users with at least 7 days of data - anything earlier and
   // there's not enough signal for the brief to be worth reading.
   const [dailyBrief, setDailyBrief] = useState(() => {
     try { return JSON.parse(localStorage.getItem("vela_daily_brief") || "null"); }
@@ -96,9 +97,9 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
           goal: goalIdxs.length ? QUESTIONS[2].opts[goalIdxs[0]]?.label : null,
         };
         const appUserId = await getAppUserId();
-        const r = await fetch("/api/daily-brief", {
+        const r = await fetch(apiUrl("/api/daily-brief"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: apiHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ summary, profile: profilePayload, appUserId }),
         });
         if (!cancelled && r.ok) {
@@ -168,51 +169,51 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
 
     let celebTitle = "Entry logged!";
     let celebText = "";
-    let celebIcon = "✓";
+    let celebIcon = "CheckCircle";
 
     if (uniqueDays === 1) {
-      celebTitle = "Your journey begins!";
+      celebTitle = "First entry saved";
       celebText = "6 more days until your first pattern report.";
-      celebIcon = "🌱";
+      celebIcon = "Flower";
     } else if (uniqueDays === 2) {
       celebTitle = "Day 2. Building your baseline";
       celebText = concern
         ? `Vela is now watching your ${concern} patterns. 5 more days to insights.`
         : "Building your baseline. 5 more days to insights.";
-      celebIcon = "📊";
+      celebIcon = "ChartBar";
     } else if (uniqueDays === 3) {
       celebTitle = "Early patterns forming";
       celebText = stats?.topSymptom
         ? `Your most logged symptom so far: ${stats.topSymptom[0]}. 4 more days for deeper analysis.`
         : "Your data is starting to tell a story. 4 more days to go.";
-      celebIcon = "🔍";
+      celebIcon = "MagnifyingGlass";
     } else if (uniqueDays >= 4 && uniqueDays < 7) {
       celebTitle = `${daysLeft} day${daysLeft !== 1 ? "s" : ""} to insights`;
       celebText = concern
         ? `Almost there! Vela will reveal what triggers your ${concern}.`
         : "Almost there! Your personalized patterns are taking shape.";
-      celebIcon = "🌟";
+      celebIcon = "Star";
     } else if (uniqueDays === 7) {
       celebTitle = "Insights unlocked!";
       celebText = "Your first week is complete. Head to Insights to see your patterns.";
-      celebIcon = "✨";
+      celebIcon = "Sparkle";
     } else {
       // Streak milestone celebrations
       if (currentStreak === 30) {
         celebTitle = "30-day streak!";
         celebText = "A full month of tracking. You now have powerful data about your body's patterns. This is the kind of consistency that changes how you manage your health.";
-        celebIcon = "👑";
+        celebIcon = "Target";
       } else if (currentStreak === 21) {
         celebTitle = "21-day streak!";
         celebText = "Three weeks strong. Research shows it takes 21 days to form a habit. Tracking is now part of your routine.";
-        celebIcon = "🏆";
+        celebIcon = "Star";
       } else if (currentStreak === 14) {
         celebTitle = "14-day streak!";
         celebText = "Two solid weeks! Vela can now compare week-over-week trends and spot patterns that shorter tracking misses.";
-        celebIcon = "⭐";
+        celebIcon = "Sparkle";
       } else if (currentStreak >= 3) {
         celebTitle = `${currentStreak}-day streak!`;
-        celebIcon = "🔥";
+        celebIcon = "Flame";
       }
       if (![14, 21, 30].includes(currentStreak)) {
         celebText = entrySymptoms.length > 0
@@ -228,7 +229,6 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
       streak: currentStreak,
       uniqueDays,
       symptomCount: entrySymptoms.length,
-      moodEmoji: mood !== null ? MOODS[mood] : null,
     });
 
     onLog({ mood, energy, symptoms: activeSymptoms, severities, notes, context: { sleepHours, stress, caffeine, alcohol, exercise, period: periodLogged, periodFlow } });
@@ -374,7 +374,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         <p className="meta">{today}{journeyStage ? <> <span className="dot">·</span> {journeyStage}</> : null}</p>
       </section>
 
-      {/* CRISIS PRECONDITION — if the user has logged sustained low
+      {/* CRISIS PRECONDITION - if the user has logged sustained low
           mood (avg ≤ 1 over the last 5 days with ≥ 3 entries), suppress
           the cheerful AI brief and surface the support card instead.
           This is the highest-priority "do no harm" check on Today. */}
@@ -392,7 +392,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         return null;
       })()}
 
-      {/* Daily AI brief (Premium) — when present, replaces the static
+      {/* Daily AI brief (Premium) - when present, replaces the static
           reveal card. This is the proactive Vela voice: a fresh 2-3
           sentence read on yesterday + the past week, generated each
           morning by Claude grounded in anonymized data. */}
@@ -438,7 +438,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         </section>
       )}
 
-      {/* Forecast — Premium. Bayesian-flavored "what tomorrow may
+      {/* Forecast - Premium. Bayesian-flavored "what tomorrow may
           look like" based on cycle phase + recency + recent triggers.
           Quietly hides if confidence is too low or data is too thin. */}
       {(() => {
@@ -642,8 +642,8 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
           </div>
         </div>
 
-        {/* Triggers — caffeine / alcohol / exercise (full width).
-            Critical for analyzeCorrelations() — kept as toggle chips. */}
+        {/* Triggers - caffeine / alcohol / exercise (full width).
+            Critical for analyzeCorrelations() - kept as toggle chips. */}
         <div className="context-card" style={{ gridColumn: "1 / -1" }}>
           <div className="label"><UIIcon name="Sparkle" size={13} /> Today's triggers</div>
           <div className="period-chips">
@@ -668,7 +668,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
       {/* Cross-screen nudge: when the user is logging a symptom AND a
           trigger that already correlates in their history, surface a
           one-tap experiment offer right inline. Only fires when there's
-          a real correlation in the data — not at random. */}
+          a real correlation in the data - not at random. */}
       {(() => {
         // What did the user just log this session?
         const activeSymList = Object.keys(activeSymptoms || {}).filter((s) => activeSymptoms[s]);
@@ -715,7 +715,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
               className={`trigger-nudge-cta${!isPremium ? " locked" : ""}`}
               onClick={() => {
                 if (!isPremium) { onShowPaywall("trigger_nudge"); return; }
-                // Inline-start the experiment — same shape as the
+                // Inline-start the experiment - same shape as the
                 // Insights startExperiment, kept here so this Today
                 // surface doesn't depend on a sibling component.
                 const newExp = {
@@ -764,7 +764,7 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
         <span>Your data stays on this device.</span>
       </div>
 
-      {/* Sticky glass save bar — copy adapts:
+      {/* Sticky glass save bar - copy adapts:
           - In progress (something in form) → live preview
           - Empty + already logged today → confirmation chip
           - Empty + nothing logged today → invitation */}
@@ -797,14 +797,15 @@ export default function TodayScreen({ onLog, logs, profile, isPremium, onNavigat
       {showCelebration && (
         <div className="post-log-celebration" onClick={() => setShowCelebration(null)}>
           <div className="celebration-card">
-            <div className="celebration-icon">{showCelebration.icon}</div>
+            <div className="celebration-icon">
+              <UIIcon name={showCelebration.icon} size={42} weight="duotone" />
+            </div>
             <div className="celebration-title">{showCelebration.title}</div>
-            {showCelebration.moodEmoji && (
-              <div className="celebration-mood">{showCelebration.moodEmoji}</div>
-            )}
             <div className="celebration-text">{showCelebration.text}</div>
             {showCelebration.streak > 1 && (
-              <div className="celebration-streak">🔥 {showCelebration.streak}-day streak</div>
+              <div className="celebration-streak">
+                <UIIcon name="Flame" size={14} weight="fill" /> {showCelebration.streak}-day streak
+              </div>
             )}
             {showCelebration.uniqueDays < 7 && (
               <div className="celebration-progress">

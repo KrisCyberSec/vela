@@ -30,7 +30,7 @@ After this is done, all four destinations get pasted in
 
 Verified against the current main commit before writing this sheet.
 
-- **Sentry** — `src/errorReporting.js` line 24 reads `process.env.REACT_APP_SENTRY_DSN`. Release tag format is `vela@<package.json version>` (line 26 — currently `vela@0.1.0`).
+- **Sentry** — `src/errorReporting.js` line 24 reads `process.env.REACT_APP_SENTRY_DSN`. Release tag format is `vela@<package.json version>` (line 26 — currently `vela@1.0.0`).
 - **Anthropic** — Both `netlify/functions/ask-vela.js` (lines 86, 157, 237) and `netlify/functions/daily-brief.js` (lines 85, 157) read `process.env.ANTHROPIC_API_KEY`. Without it both endpoints return 503.
 - **RevenueCat** — `src/subscription.js` line 28 reads `process.env.REACT_APP_REVENUECAT_IOS_API_KEY`. Entitlement constant on line 29 is `ENTITLEMENT_ID = 'premium'` (lowercase — see `revenuecat-wire.md` for why this matters). `.env.example` line 11 lists the var.
 
@@ -50,7 +50,7 @@ Verified against the current main commit before writing this sheet.
 DevTools console, run
 `setTimeout(() => { throw new Error('sentry-smoke-test'); }, 0)`.
 Within 10s, the error appears in Sentry **Issues** tagged
-`vela@0.1.0`.
+`vela@1.0.0`.
 
 ## 2. Anthropic API key
 

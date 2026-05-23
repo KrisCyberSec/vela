@@ -102,7 +102,7 @@ The DSN bakes into the static JS, so verify from a real browser:
    setTimeout(() => { throw new Error("sentry-smoke-test-2026-05"); }, 0);
    ```
 4. Within 10s, go to Sentry → **Issues**. You should see the error
-   tagged with release `vela@0.1.0`. (Tag format from
+   tagged with release `vela@1.0.0`. (Tag format from
    `src/errorReporting.js` line 26.)
 
 If no event arrives: open DevTools → Network tab, refresh the page,

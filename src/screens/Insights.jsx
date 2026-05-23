@@ -1,7 +1,7 @@
 // Insights / patterns screen. Surfaces the weekly hero, correlation findings,
-// anomalies, cycle prediction, weekly summary, and experiments — plus the
-// floating Ask Vela chat sheet (Claude-backed via /api/ask-vela with a canned
-// fallback) and the doctor-report export trigger. All analytics run on-device
+// anomalies, cycle prediction, weekly summary, and experiments - plus the
+// floating Ask Vela chat sheet (Claude-backed through the API helper with a
+// canned fallback) and the doctor-report export trigger. All analytics run on-device
 // from the logs prop; the screen is gated by uniqueDays (locked < 7) and
 // further sub-gates Premium-only modules (cycle prediction, anomalies,
 // experiments, Ask Vela). Persists chat history, experiments, and reveal
@@ -10,11 +10,13 @@
 import { useState, useEffect, useRef } from "react";
 
 import { track } from "../analytics";
+import { apiHeaders, apiUrl } from "../api";
 import { reportError } from "../errorReporting";
 import { getAppUserId } from "../subscription";
 import { readJSON as safeReadJSON } from "../safeStorage";
 import { SymptomIcon, UIIcon, MoodFace } from "../components/icons";
 import { CrisisSupportCard } from "../components/CrisisSupportCard";
+import { FormattedAssistantMessage } from "../components/FormattedAssistantMessage";
 import { SYMPTOMS } from "../lib/symptoms";
 import { QUESTIONS } from "../lib/questions";
 import { localDateStr } from "../lib/formatters";
@@ -54,7 +56,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
   const [chatInput, setChatInput] = useState("");
   // Mirror chatInput into a ref so cross-screen handoffs can peek at
   // the live value (used by the auto-submit timer to detect "user
-  // started typing in the 600ms grace window — don't fire").
+  // started typing in the 600ms grace window - don't fire").
   const chatInputRef = useRef("");
   useEffect(() => { chatInputRef.current = chatInput; }, [chatInput]);
   const [isTyping, setIsTyping] = useState(false);
@@ -68,6 +70,24 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
   useEffect(() => {
     if (chatMessages.length > 0) localStorage.setItem("vela_chat_messages", JSON.stringify(chatMessages.slice(-20)));
   }, [chatMessages]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    let shouldOpen = false;
+    try {
+      shouldOpen = localStorage.getItem("vela_screenshot_ask_open") === "true";
+      if (shouldOpen) localStorage.removeItem("vela_screenshot_ask_open");
+    } catch { /* private mode */ }
+    if (!shouldOpen) return;
+    setChatMessages([
+      { role: "user", text: "What triggers my hot flashes?" },
+      {
+        role: "assistant",
+        text: "Your logs point to caffeine days as the clearest pattern.\n\n- Hot flashes show up more often on caffeine days.\n- Sleep also looks lighter on those nights.\n\nWorth testing: try a 7-day caffeine cutoff after lunch and watch hot flashes plus sleep together.",
+      },
+    ]);
+    setAskOpen(true);
+  }, []);
 
   // Cross-screen pickup: when another screen ("Ask Vela about this day"
   // from History, etc.) stashes a pending question, open the sheet
@@ -125,21 +145,24 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
 
   const handleQuestion = async (text) => {
     if (!text.trim() || isTyping) return;
-    track("ask_vela_used", { logCount: logs.length, gatedByDataMin: logs.length < 7 });
+    const uniqueLogDays = new Set(logs.map((l) => l.date.slice(0, 10))).size;
+    track("ask_vela_used", { logCount: logs.length, uniqueDays: uniqueLogDays, gatedByDataMin: uniqueLogDays < 7 });
+    track("ask_vela_started", { logCount: logs.length, uniqueDays: uniqueLogDays, dataReady: uniqueLogDays >= 7 });
     const userMsg = { role: "user", text: text.trim(), time: new Date().toISOString() };
     setChatMessages([...chatMessages, userMsg]);
     setChatInput("");
     setIsTyping(true);
     haptic("Light");
 
-    // CRISIS SAFETY — first check, before everything else. We never send
+    // CRISIS SAFETY - first check, before everything else. We never send
     // crisis-language messages to AI or canned engines; the user gets the
     // dedicated CrisisSupportCard rendered inline as the assistant turn.
     if (looksLikeCrisis(text)) {
       track("crisis_intercepted", {});
+      track("ask_vela_failed", { reason: "crisis_intercepted" });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
-        crisis: true, // sentinel — chat renderer shows CrisisSupportCard
+        crisis: true, // sentinel - chat renderer shows CrisisSupportCard
         time: new Date().toISOString(),
       }]);
       setIsTyping(false);
@@ -148,10 +171,11 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     }
 
     // Pre-flight: too little data for a meaningful answer
-    if (logs.length < 7) {
+    if (uniqueLogDays < 7) {
+      track("ask_vela_failed", { reason: "insufficient_data", logCount: logs.length, uniqueDays: uniqueLogDays });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
-        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${logs.length}. Keep going.`,
+        text: `I need at least 7 days of entries to spot meaningful patterns. You're on day ${uniqueLogDays}. Keep going.`,
         time: new Date().toISOString(),
       }]);
       setIsTyping(false);
@@ -164,6 +188,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     // that prevents us from making round-trips we know will fail.
     const monthCap = checkAndUpdateMonthlyCap();
     if (!monthCap.ok) {
+      track("ask_vela_failed", { reason: "client_monthly_cap" });
       setChatMessages((prev) => [...prev, {
         role: "assistant",
         text: `You've asked your monthly limit of ${ASK_VELA_MONTHLY_CAP} questions. The cap resets ${monthCap.resetsOn}. Until then, the existing answers in this thread stay available.`,
@@ -191,16 +216,9 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
       const appUserId = await getAppUserId();
       // Try the real API first; fall back to the canned response engine
       // if the function returns 5xx (key missing, model unreachable, etc.)
-      const headers = { "Content-Type": "application/json" };
-      // Local dev only: send the dev-bypass header so the function skips
-      // RevenueCat verification (no Apple receipts on web). The token must
-      // match ASK_VELA_DEV_TOKEN in .env.local — both default to "dev".
-      if (process.env.NODE_ENV === "development" && process.env.REACT_APP_ASK_VELA_DEV_TOKEN) {
-        headers["x-dev-token"] = process.env.REACT_APP_ASK_VELA_DEV_TOKEN;
-      }
-      const r = await fetch("/api/ask-vela", {
+      const r = await fetch(apiUrl("/api/ask-vela"), {
         method: "POST",
-        headers,
+        headers: apiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ question: text.trim(), summary, profile: profilePayload, appUserId }),
       });
       let answer;
@@ -209,23 +227,28 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
         const data = await r.json();
         answer = data.answer;
         if (typeof data.remainingToday === "number") serverRemaining = data.remainingToday;
+        track("ask_vela_succeeded", { cached: !!data.cached });
       } else if (r.status === 429) {
         // Rate-limited by server (per-user or per-IP cap hit). Skip the
-        // canned fallback — the user needs to know they hit the limit.
+        // canned fallback - the user needs to know they hit the limit.
         const data = await r.json().catch(() => ({}));
         answer = data.detail || "You've hit today's question limit. Try again later.";
+        track("ask_vela_failed", { reason: "server_rate_limited" });
         // Sync our local counter to the server's view so the UI reflects truth
         bumpMonthlyCapTo(ASK_VELA_MONTHLY_CAP);
       } else if (r.status === 503) {
         const data = await r.json().catch(() => ({}));
         answer = data.detail || "Ask Vela is taking a break. Try again later.";
+        track("ask_vela_failed", { reason: "server_unavailable" });
       } else if (r.status === 401 || r.status === 403) {
         const data = await r.json().catch(() => ({}));
         answer = data.detail || "Couldn't verify your subscription. Try restoring your purchase from Settings.";
+        track("ask_vela_failed", { reason: "subscription_required" });
       } else {
-        // Other failure — graceful degradation to canned response so the
+        // Other failure - graceful degradation to canned response so the
         // user always gets *something*
         answer = generateResponse(matchQuestion(text), logs, profile);
+        track("ask_vela_failed", { reason: "server_error_fallback" });
       }
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
       if (serverRemaining != null) setRemainingToday(serverRemaining);
@@ -235,6 +258,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
       // see at scale whether the failure is e.g. the function timing out,
       // returning malformed JSON, or hitting a CDN edge case.
       reportError(err, { tag: "ask_vela_fetch_failed" });
+      track("ask_vela_failed", { reason: "network_fallback" });
       const answer = generateResponse(matchQuestion(text), logs, profile);
       setChatMessages((prev) => [...prev, { role: "assistant", text: answer, time: new Date().toISOString() }]);
     } finally {
@@ -303,7 +327,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
   const avgMoodIdx = moodSamples.length > 0
     ? Math.round(moodSamples.reduce((s, w) => s + w.mood, 0) / moodSamples.length)
     : null;
-  // MoodFace replaces system emoji here — 45-55 audience finds emoji-yellow
+  // MoodFace replaces system emoji here - 45-55 audience finds emoji-yellow
   // smileys childish for a menopause app. MoodFace follows currentColor and
   // matches the rest of the duotone-Phosphor / earth-palette system.
   const MOOD_KIND = ["rough", "low", "okay", "good", "great"];
@@ -333,7 +357,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
     setFeedbackTick((n) => n + 1);
   };
 
-  // Personal-baseline anomalies — premium-gated, surface only when present
+  // Personal-baseline anomalies - premium-gated, surface only when present
   const anomalies = detectAnomalies(logs);
 
   // Cycle prediction (Premium-gated render below)
@@ -351,15 +375,15 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
   const [experimentBrowserOpen, setExperimentBrowserOpen] = useState(false);
   const [weekSheetOpen, setWeekSheetOpen] = useState(false);
 
-  // Personalized experiment suggestions — premium-gated, derived from
+  // Personalized experiment suggestions - premium-gated, derived from
   // detected correlations + top symptoms in the last 30 days.
   const experimentSuggestions = suggestExperiments(logs, experiments);
 
-  // Weekly summary — computed live from logs. Card highlights on Sundays.
+  // Weekly summary - computed live from logs. Card highlights on Sundays.
   const weeklySummary = buildWeeklySummary(logs);
   const isSunday = new Date().getDay() === 0;
 
-  // Shy-mode for the Ask Vela FAB — hides when the user is scrolling
+  // Shy-mode for the Ask Vela FAB - hides when the user is scrolling
   // down (reading), reveals when scrolling up. Same pattern as iOS
   // Mail / Twitter compose buttons. Threshold + direction lock keeps
   // it from flickering on small jitter.
@@ -414,7 +438,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
   }
 
   // The legacy "Try this week" CBT shelf was removed when real
-  // Experiments shipped — the EXPERIMENT_LIBRARY constant + the
+  // Experiments shipped - the EXPERIMENT_LIBRARY constant + the
   // Experiment browser sheet replaced it.
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -580,7 +604,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             )}
           </section>
 
-          {/* Sunday weekly summary — promoted on Sundays, present every
+          {/* Sunday weekly summary - promoted on Sundays, present every
               other day as a quieter card. Premium-gated content; free
               tier sees the headline only and gets nudged to upgrade. */}
           {weeklySummary && (
@@ -606,7 +630,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             </button>
           )}
 
-          {/* Cycle prediction (Premium) — only render when there's enough
+          {/* Cycle prediction (Premium) - only render when there's enough
               signal OR when free user, to surface the upsell */}
           {cyclePrediction && (
             <>
@@ -658,7 +682,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
                     </div>
                     <p className="cycle-window">
                       {new Date(cyclePrediction.windowStart + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      {" – "}
+                      {" - "}
                       {new Date(cyclePrediction.windowEnd + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </p>
                     <p className="cycle-meta">
@@ -671,7 +695,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             </>
           )}
 
-          {/* Active experiments (Premium) — shows running experiments with
+          {/* Active experiments (Premium) - shows running experiments with
               live progress + comparison snapshot. Browser sheet for adding
               new ones is below. */}
           {(activeExperiments.length > 0 || completedExperiments.length > 0) && (
@@ -854,7 +878,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             </>
           )}
 
-          {/* Anomalies — surface "this is unusual for you" findings.
+          {/* Anomalies - surface "this is unusual for you" findings.
               Premium-gated; free users see a teaser. */}
           {anomalies.length > 0 && (
             <>
@@ -899,7 +923,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             </>
           )}
 
-          {/* Personalized experiment suggestions — Premium. Maps the
+          {/* Personalized experiment suggestions - Premium. Maps the
               patterns above to one-tap experiments tied to what we've
               actually seen in the user's data, with the reason
               surfaced as the headline so it's never random. */}
@@ -948,6 +972,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             onClick={() => {
               if (!isPremium) { onShowPaywall("doctor_report"); return; }
               generateDoctorReport(logs, profile);
+              track("doctor_report_exported", { source: "insights", uniqueDays });
             }}
           >
             <div className="ico"><UIIcon name="FileText" size={20} /></div>
@@ -958,7 +983,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
             <div className="arrow"><UIIcon name="ArrowRight" size={16} /></div>
           </button>
 
-          {/* Experiments entry — only show "Try one" CTA if no active
+          {/* Experiments entry - only show "Try one" CTA if no active
               experiments and no completed history yet (otherwise the
               section above already exposes "+ New") */}
           {activeExperiments.length === 0 && completedExperiments.length === 0 && (
@@ -989,7 +1014,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
         <span>Patterns are computed on this device.</span>
       </div>
 
-      {/* Ask Vela floating button — hidden on locked state, also
+      {/* Ask Vela floating button - hidden on locked state, also
           temporarily hidden when the user is actively scrolling down
           (shy-mode) so it stops covering content the user is reading. */}
       {!isLocked && (
@@ -1019,7 +1044,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="av-name">Ask Vela</div>
             <div className="av-sub">
-              <UIIcon name="Lock" size={10} /> Anonymized · grounded in your data
+              <UIIcon name="Lock" size={10} /> Anonymized · based on your logs
               {monthlyAsked > 0 && (
                 <> · <strong>{Math.max(0, ASK_VELA_MONTHLY_CAP - monthlyAsked)}</strong> of {ASK_VELA_MONTHLY_CAP} this month, or 30/day</>
               )}
@@ -1058,13 +1083,9 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
                 );
               }
               return (
-                <div key={i} style={{
-                  background: m.role === "user" ? "var(--clay-light)" : "rgba(255,255,255,0.55)",
-                  border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px",
-                  fontSize: 13, color: "var(--ink)", lineHeight: 1.45,
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                }}>{m.text}</div>
+                <div key={i} className={`av-msg ${m.role === "user" ? "user" : "assistant"}`}>
+                  {m.role === "assistant" ? <FormattedAssistantMessage text={m.text} /> : m.text}
+                </div>
               );
             })}
             {isTyping && <div style={{ fontSize: 12, color: "var(--ink-light)", padding: "4px 14px" }}>Vela is thinking…</div>}
@@ -1132,7 +1153,7 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
               <span className="eye"><UIIcon name="Sparkle" size={11} /> Your week</span>
               <h2>
                 {new Date(weeklySummary.windowStart + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                {" – "}
+                {" - "}
                 {new Date(weeklySummary.windowEnd + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </h2>
               <p className="ws-sheet-summary">{weeklySummary.summary}</p>

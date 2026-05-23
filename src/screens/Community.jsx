@@ -1,5 +1,5 @@
 // Anonymous daily-prompt "Circle" surface. Currently in preview mode
-// because the Firebase community backend (community.js) isn't live yet —
+// because the Firebase community backend (community.js) isn't live yet -
 // anything that would be a lie (answer counts, sample replies, share
 // button) is hidden behind the COMMUNITY_PREVIEW flag. Today's prompt
 // text and the privacy footer stay visible. Function is still named
@@ -12,7 +12,7 @@ import { useState } from "react";
 import { UIIcon } from "../components/icons";
 
 export default function CommunityScreen() {
-  // Renamed conceptually to "Circle" in the redesign — anonymous daily-prompt
+  // Renamed conceptually to "Circle" in the redesign - anonymous daily-prompt
   // model. Kept function name CommunityScreen so App.jsx wiring is unchanged.
   // Real backend integration is still gated by LIVE_COMMUNITY (community.js);
   // this is the visual shell that lights up once we flip the flag.
@@ -20,7 +20,7 @@ export default function CommunityScreen() {
   // Preview mode: backend isn't live yet, so we hide everything that would
   // be a lie if the user took it at face value (answer counts, "12 reading
   // now" pulse, the sample replies feed, past prompts, the share-as-no-op
-  // button). The prompt-of-the-day text and the privacy footer stay —
+  // button). The prompt-of-the-day text and the privacy footer stay -
   // those are honest. Flip to false in the same commit that wires
   // community.js to the backend.
   const COMMUNITY_PREVIEW = true;
@@ -40,7 +40,7 @@ export default function CommunityScreen() {
   const toggle = (i) => setReactions((r) => ({ ...r, [i]: !r[i] }));
   const toggleSave = (i) => setSaved((s) => ({ ...s, [i]: !s[i] }));
 
-  // Hardcoded sample data — real prompt + replies come from the Firebase
+  // Hardcoded sample data - real prompt + replies come from the Firebase
   // backend (community.js) once LIVE_COMMUNITY is enabled.
   const promptToday = {
     // Date renders live so we never ship "TODAY'S PROMPT · APR 30"
@@ -94,7 +94,7 @@ export default function CommunityScreen() {
           <div className="cir-first-eye"><UIIcon name="Sparkle" size={12} /> First time here</div>
           <h3>You don't have to <em>say anything yet.</em></h3>
           <p>{COMMUNITY_PREVIEW
-            ? "The circle opens later this season. Until then, the prompt below is real — sit with it. Sharing and replies will turn on when we flip the switch."
+            ? "The circle opens later this season. Until then, the prompt below is real. Sit with it. Sharing and replies will turn on when we flip the switch."
             : "Most people read for a week before they answer. That's fine. The prompt below is today's. There will be a new one tomorrow."}</p>
           <div className="cir-first-rules">
             <span><UIIcon name="Eye" size={12} /> Anonymous by default</span>
@@ -142,7 +142,7 @@ export default function CommunityScreen() {
         )}
       </section>
 
-      {/* Replies — hidden in preview because the sample replies aren't
+      {/* Replies - hidden in preview because the sample replies aren't
           real users. Once LIVE_COMMUNITY ships, this renders the real
           feed from community.js. */}
       {!COMMUNITY_PREVIEW && (
@@ -188,7 +188,7 @@ export default function CommunityScreen() {
         </article>
           ))}
 
-          {/* Past prompts — also gated; the dates and answer counts here
+          {/* Past prompts - also gated; the dates and answer counts here
               are sample data, not historical posts. */}
           <div className="cir-section-label"><span>Past prompts</span></div>
           <div className="cir-past">

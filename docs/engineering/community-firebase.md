@@ -115,7 +115,7 @@ Custom topics users create (if you enable user-generated topics):
   id: "auto-id",
   name: "...",
   description: "...",
-  emoji: "🌿",
+  icon: "ChatCircle",
   createdBy: "uid",
   createdAt: Timestamp,
   postCount: 0
@@ -135,7 +135,7 @@ votePost(postId, direction)       // 'up' or 'down', toggles/switches
 reactToPost(postId, reactionType) // 'heart' | 'hug' | ...
 reportPost(postId)                // flags `reported = true`
 fetchUserTopics()
-createTopic({ name, description, emoji })
+createTopic({ name, description, icon })
 ```
 
 ## Cost expectations

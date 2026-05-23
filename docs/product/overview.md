@@ -21,7 +21,7 @@ Vela makes it trivial to track, find patterns, and walk into doctor appointments
 |---------|-------|
 | **30-second daily log** | Mood, energy, 44 menopause-specific symptoms, context (sleep/stress/triggers), notes |
 | **Pattern detection** | Automatic correlation analysis: triggers ↔ symptoms, day-of-week peaks, sleep-energy relationships |
-| **Ask Vela (AI companion)** | Rule-based, research-backed Q&A layered with personal data — see [engineering/ai-companion.md](../engineering/ai-companion.md) |
+| **Ask Vela (AI companion)** | Anthropic-backed Q&A grounded in anonymized summaries of the user's own logs — see [engineering/ai-companion.md](../engineering/ai-companion.md) |
 | **Doctor PDF reports** | jsPDF-generated structured summary with talking points |
 | **CBT programs** | 3 evidence-based programs: hot flashes, sleep, anxiety (3–4 weeks each) |
 | **Self-experiments** | 16 structured experiments (caffeine-free, sleep hygiene, etc.) |
@@ -33,7 +33,7 @@ Vela makes it trivial to track, find patterns, and walk into doctor appointments
 ### What makes Vela different
 
 - **Built for menopause** — not adapted from a period tracker
-- **On-device AI** — no cloud, no account required
+- **Local-first privacy** — the health log stays on device; AI sees only anonymized summaries
 - **Doctor-ready reports** — turns "I feel bad" into structured clinical data
 - **Pattern detection** — finds connections you wouldn't spot alone
 
@@ -54,9 +54,9 @@ Vela makes it trivial to track, find patterns, and walk into doctor appointments
 
 See [business/financial-model.md](../business/financial-model.md) for unit economics and revenue scenarios.
 
-## Current stage (April 2026)
+## Current stage (May 2026)
 
-**Product:** Feature-complete. ~7,800 lines of production code in `src/App.jsx`.
+**Product:** Feature-complete. React app now split across `src/App.jsx`, `src/screens/`, `src/lib/`, and `src/components/`.
 
 **Infrastructure live:**
 - Landing page at [velahealth.health](https://velahealth.health)
@@ -64,8 +64,10 @@ See [business/financial-model.md](../business/financial-model.md) for unit econo
 - Admin dashboard at [/admin.html](https://velahealth.health/admin.html)
 
 **What's next:**
-- Apple Developer account + Capacitor iOS build
-- RevenueCat subscription integration
+- Apple Developer Program enrollment/payment
+- App Store Connect app record and subscription products
+- RevenueCat App Store configuration and public iOS key
+- TestFlight sandbox purchase
 - App Store submission
 - Seed community with beta testers
 - Flip `LIVE_COMMUNITY` to `true` when 50–100 users exist
@@ -74,7 +76,7 @@ See [business/financial-model.md](../business/financial-model.md) for unit econo
 
 | Feature | Vela | Midday | Caria | Balance | Flo |
 |---------|:----:|:------:|:-----:|:-------:|:---:|
-| On-device AI | ✓ | ✗ | ✗ | ✗ | ✗ |
+| AI grounded in user data | ✓ | ✗ | ✗ | ✗ | ✗ |
 | Doctor PDF reports | ✓ | ✗ | ✗ | ✗ | ✗ |
 | No account required | ✓ | ✗ | ✗ | ✗ | ✗ |
 | Menopause-specific | ✓ | ✓ | ✓ | ✓ | ✗ |

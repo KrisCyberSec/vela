@@ -1,30 +1,29 @@
 {
   "name": "vela",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@capacitor/cli": "^8.2.0",
-    "@capacitor/core": "^8.2.0",
-    "@capacitor/haptics": "^8.0.1",
-    "@capacitor/ios": "^8.2.0",
-    "@capacitor/local-notifications": "^8.0.2",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.3.4",
+    "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/splash-screen": "^8.0.1",
-    "@capacitor/status-bar": "^8.0.1",
-    "@netlify/blobs": "^10.7.4",
+    "@capacitor/status-bar": "^8.0.2",
+    "@netlify/blobs": "^10.7.8",
     "@phosphor-icons/react": "^2.1.10",
-    "@revenuecat/purchases-capacitor": "^13.0.0",
-    "@sentry/react": "^10.49.0",
-    "firebase": "^12.11.0",
-    "jspdf": "^4.2.0",
-    "posthog-js": "^1.369.3",
+    "@revenuecat/purchases-capacitor": "^13.1.2",
+    "@sentry/react": "^10.53.1",
+    "firebase": "^12.13.0",
+    "jspdf": "^4.2.1",
+    "posthog-js": "^1.374.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-dom": "^18.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test"
+    "test": "react-scripts test",
+    "verify:observability": "node scripts/verify-observability.mjs"
   },
   "eslintConfig": {
     "extends": [
@@ -46,7 +45,34 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.3.1",
+    "@capacitor/cli": "^8.3.4",
     "pptxgenjs": "^4.0.1",
+    "react-scripts": "5.0.1",
     "sharp": "^0.34.5"
+  },
+  "overrides": {
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "@protobufjs/codegen": "2.0.5",
+    "@protobufjs/fetch": "1.1.1",
+    "@protobufjs/inquire": "1.1.2",
+    "@protobufjs/utf8": "1.1.1",
+    "@xmldom/xmldom": "0.8.13",
+    "brace-expansion@1": "1.1.14",
+    "brace-expansion@2": "2.1.0",
+    "brace-expansion@5": "5.0.6",
+    "dompurify": "3.4.5",
+    "fast-uri": "3.1.2",
+    "flatted": "3.4.2",
+    "follow-redirects": "1.16.0",
+    "lodash": "4.18.1",
+    "nanoid": "3.3.12",
+    "node-forge": "1.4.0",
+    "path-to-regexp": "0.1.13",
+    "picomatch@2": "2.3.2",
+    "picomatch@4": "4.0.4",
+    "postcss": "8.5.15",
+    "protobufjs": "7.6.0",
+    "ws": "8.20.1",
+    "yaml": "1.10.3"
   }
 }

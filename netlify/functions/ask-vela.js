@@ -45,27 +45,29 @@ const DEFAULT_DAILY_USD_CAP = 50;
 
 const SITE_ID = "e0a6111f-d0ad-469a-bb29-66844eb342fe";
 
-const SYSTEM_PROMPT = `You are Vela's pattern companion — a quiet, plainspoken voice that helps women in perimenopause and menopause make sense of their own symptom-tracking data.
+const SYSTEM_PROMPT = `You are Vela's pattern companion: a quiet, plainspoken voice that helps women in perimenopause and menopause make sense of their own symptom-tracking data.
 
-YOU ARE NOT A DOCTOR. Never diagnose. Never recommend specific dosages of any supplement, hormone, or medication. Never tell someone to start, stop, or change a prescribed treatment. If asked, say so kindly and suggest bringing the question to their provider — Vela can help them prepare.
+YOU ARE NOT A DOCTOR. Never diagnose. Never recommend specific dosages of any supplement, hormone, or medication. Never tell someone to start, stop, or change a prescribed treatment. If asked, say so kindly and suggest bringing the question to their provider. Vela can help them prepare.
 
 VOICE
 - Warm, direct, never therapeutic-jargon. Talk to a smart 50-year-old who's tired of being condescended to.
 - Short. Most answers are 2 to 4 sentences. No headers, no bullet lists unless explicitly asked.
 - Italics for emphasis on a word or two when it earns it. Otherwise plain prose.
-- Never use em dashes (—). They read as AI-written. Use periods, commas, or "to" instead.
+- Never use em dashes. They read as AI-written. Use periods, commas, or "to" instead.
 - Never use the words "journey," "wellness," "self-care," or "empower."
 - Never start with "Great question" or "I'd be happy to."
 
 GROUNDING
 - Every claim about the user must come from the data summary in the user message. If the data doesn't support it, say so plainly: "I don't see enough data on that yet."
 - When you reference a number, use the number from the data. Don't round or estimate.
-- If the data shows a correlation, name it as a correlation — never as causation. "On days you logged X, Y appeared more often" — not "X causes Y."
+- If the data shows a correlation, name it as a correlation, never as causation. Say "On days you logged X, Y appeared more often", not "X causes Y."
+- Symptom frequency numbers are counts of symptom days only. Never describe them as "logged together with" a trigger unless a correlation line explicitly gives that paired count.
+- Use "pattern" or "correlation" for observed relationships. Avoid saying "clear link" unless the source data uses that phrase.
 
 SCOPE
-- Symptom patterns, sleep, mood, cycle, triggers, lifestyle context they've logged — fair game.
-- Doctor-prep questions — fair game; suggest specifics worth bringing up.
-- General education on perimenopause physiology — fair game when the user asks, kept brief.
+- Symptom patterns, sleep, mood, cycle, triggers, lifestyle context they've logged: fair game.
+- Doctor-prep questions: fair game. Suggest specifics worth bringing up.
+- General education on perimenopause physiology: fair game when the user asks, kept brief.
 - Out of scope: dosing, prescribing, diagnosing, mental-health crisis intervention.
 - For crisis topics (suicide, self-harm, immediate danger), do NOT try to counsel. Respond ONLY with:
   "What you're saying matters and you don't have to do this alone. Please reach a free, trained listener: 988 in the US, 116 123 (Samaritans) in the UK & Ireland, 13 11 14 (Lifeline) in Australia, 1-833-456-4566 in Canada, or ifindahelpline.com anywhere else. If you're in immediate danger, please call your local emergency number."
@@ -221,7 +223,7 @@ exports.handler = async (event) => {
   const cached = await stores.cache.get(cacheKey, { type: "json" }).catch(() => null);
   if (cached?.answer && Date.now() - cached.t < RESPONSE_CACHE_TTL_MS) {
     return json(200, {
-      answer: cached.answer,
+      answer: cleanModelAnswer(cached.answer),
       cached: true,
       remainingToday: PER_USER_LIMIT - (await currentCount(stores.userRl, `u:${hash(appUserId || clientIp)}`)),
     });
@@ -250,7 +252,7 @@ exports.handler = async (event) => {
       console.error("Anthropic API error:", r.status, errText);
       return json(502, {
         error: "Ask Vela couldn't reach the model right now",
-        detail: r.status === 529 ? "Service is busy — try again in a moment." : "Try again in a moment.",
+        detail: r.status === 529 ? "Service is busy. Try again in a moment." : "Try again in a moment.",
       });
     }
     data = await r.json();
@@ -259,7 +261,7 @@ exports.handler = async (event) => {
     return json(500, { error: "Ask Vela hit an unexpected error" });
   }
 
-  const answer = data?.content?.[0]?.text?.trim();
+  const answer = cleanModelAnswer(data?.content?.[0]?.text?.trim());
   if (!answer) return json(502, { error: "Empty response from model" });
 
   // ── Track cost + update cache (best-effort — never blocks response) ─
@@ -401,6 +403,16 @@ function summarySignature(summary) {
 }
 
 function bucket(n, step) { return Math.floor(n / step) * step; }
+
+function cleanModelAnswer(answer) {
+  if (!answer) return "";
+  return answer
+    .replace(/[ \t]*\u2014[ \t]*/g, ", ")
+    .replace(/(\d)[ \t]*\u2013[ \t]*(\d)/g, "$1 to $2")
+    .replace(/[ \t]*\u2013[ \t]*/g, " - ")
+    .replace(/\.{2,}/g, ".")
+    .trim();
+}
 
 function hash(s) {
   return crypto.createHash("sha256").update(String(s)).digest("hex").slice(0, 24);

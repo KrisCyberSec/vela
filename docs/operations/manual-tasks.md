@@ -1,4 +1,4 @@
-# Manual tasks — things only you can do
+# Manual tasks - things only you can do
 
 Things that require human hands at a console (App Store Connect, Apple
 Developer portal, Netlify dashboard, Xcode UI clicks, third-party
@@ -17,10 +17,11 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ### [ ] Create the App in App Store Connect
 - Bundle ID: `com.velahealth.app`
-- Name: `Vela`
+- Name: `Vela - Menopause Companion`
 - Category: Health & Fitness
 - Primary language: English (US)
 - Privacy policy URL: `https://velahealth.health/privacy.html`
+- Support URL: `https://velahealth.health/support.html`
 
 ### [ ] Create the two IAP products in App Store Connect
 | Product ID | Type | Price | Trial |
@@ -35,10 +36,12 @@ Sorted by what blocks what. Cross items off as they ship.
 ### [ ] Enable HealthKit capability in Xcode
 - Xcode → App target → **Signing & Capabilities** → **+ Capability** → HealthKit
 - This adds the entitlement to the provisioning profile (the entitlements
-  file `ios/App/App/App.entitlements` is already wired in pbxproj — this
+  file `ios/App/App/App.entitlements` is already wired in pbxproj - this
   step links it to your Apple Developer account)
+- The native HealthKit plugin, usage strings, and privacy manifest target
+  resource are already wired in the repo.
 - App Store Connect will require justification text on first build with
-  HealthKit — paste from `NSHealthShareUsageDescription` in Info.plist
+  HealthKit - paste from `NSHealthShareUsageDescription` in Info.plist
 
 ### [ ] Code signing in Xcode
 - Xcode → App target → **Signing & Capabilities** → check **Automatically
@@ -47,59 +50,70 @@ Sorted by what blocks what. Cross items off as they ship.
 - A **Distribution** certificate and **App Store** provisioning profile
   will be generated when you do the first archive build
 
-### [ ] 1024×1024 app icon (no alpha channel)
-- App Store Connect wants a single 1024×1024 PNG for the App Store
-  listing. The existing `landing/icon-512.png` is too small AND may
-  have alpha — both reasons for rejection.
-- Generator script at `landing/generate-app-icon.js` if you want to
-  regenerate from source. Output: `landing/icon-1024.png`, no alpha.
-- Drop into Xcode → `Assets.xcassets/AppIcon.appiconset/` (1024×1024
-  slot) AND upload separately to App Store Connect → Media Manager.
+### [x] 1024×1024 app icon (no alpha channel)
+- Verified present at `landing/icon-1024.png`: 1024×1024 RGB PNG, no alpha.
+- Verified present in `ios/App/App/Assets.xcassets/AppIcon.appiconset/`.
+- Still upload the same 1024×1024 icon separately to App Store Connect
+  → Media Manager if Apple asks for it outside the binary.
 
 ### [ ] App Store screenshots
-- Required sizes (Apple needs at least one set; using 6.7" covers most
-  devices when "default" is selected):
-  - 6.7" display: **1290 × 2796** (iPhone 14/15/16 Pro Max)
+- Required sizes (Apple needs at least one iPhone set; using the current
+  6.9" slot with the accepted 1290 x 2796 Pro Max size covers smaller
+  iPhones through App Store Connect scaling):
+  - 6.9" display slot: **1290 × 2796** (accepted Pro Max portrait size)
   - 6.5" display: **1284 × 2778** (iPhone 11 Pro Max, XS Max)
-- 3 minimum, 10 maximum per size.
+- Apple allows 1-10 screenshots per device size. Vela targets 6 because
+  the listing needs to show the whole premium story.
 - Frames + captions to use as a spec (from the screenshots agent's
   earlier draft pass):
-  1. **Welcome** — "A quiet place for the noisy years."
-  2. **Today** — "See yesterday's pattern before today even starts."
-  3. **Insights** — "Patterns Vela has noticed — the kind worth showing your doctor."
-  4. **Ask Vela** — "Real AI grounded in your data — not generic web advice."
-  5. **Paywall** — "Make sense of it. Out loud."
-  6. **History** — "Every day, a quiet entry. Every month, a record."
-- Best path: iPhone 15 Pro Max simulator → seed with `?seed=demo` →
-  use `Cmd+S` to capture at native resolution. The captions go in the
-  App Store Connect form, not on the screenshots themselves (don't
-  overlay text on the images for v1).
+  1. **Welcome** - "A quiet place for the noisy years."
+  2. **Insights** - "Patterns Vela has noticed, the kind worth showing your doctor."
+  3. **Ask Vela** - "Ask Vela about what your logs are showing."
+  4. **Today** - "See yesterday's pattern before today even starts."
+  5. **Paywall** - "Make sense of it. Out loud."
+  6. **History** - "Every day, a quiet entry. Every month, a record."
+- Generated packet exists in `screenshots/67/` and `screenshots/65/`.
+  Upload those files to App Store Connect in filename order. The captions
+  go in the App Store Connect form, not on the screenshots themselves
+  (don't overlay text on the images for v1).
 
 ### [ ] Privacy nutrition label in App Store Connect
-- **Highest-probability source of rejection.** The unusual case for
-  Vela is: the symptom log is local-only, BUT Ask Vela and Daily Brief
-  send an anonymized summary to our server (which proxies to
-  Anthropic). The label must reflect this honestly.
+- **Highest-probability source of rejection.** The symptom log is mostly
+  local-only, but Vela still has off-device flows: Ask Vela/Daily Brief
+  summaries, RevenueCat purchases, PostHog product events, and Sentry
+  diagnostics. The label must reflect all of them.
 - Correct declaration:
-  - **Health & Fitness data** → *Used for App Functionality* →
-    *Not Linked to User Identity*
-  - All other categories: *Data Not Collected*
+  - **Health & Fitness → Health**: App Functionality + Product
+    Personalization, Not Linked, Not Tracking.
+  - **Purchases → Purchase History**: App Functionality + Analytics, Not
+    Linked if you keep anonymous RevenueCat app user IDs, Not Tracking.
+  - **Identifiers → User ID**: App Functionality, Not Linked, Not
+    Tracking. This is the anonymous RevenueCat/Sentry app user ID, not an
+    email or account login.
+  - **Usage Data → Product Interaction**: Analytics, Not Linked, Not
+    Tracking. Users can opt out in Settings, but Apple still asks for
+    everything the app may collect.
+  - **Diagnostics → Crash Data** and **Other Diagnostic Data**: App
+    Functionality, Not Linked, Not Tracking.
 - Do NOT check "Data Not Collected" universally. A reviewer who sees
-  the network call to `/api/ask-vela` will reject for inaccurate
-  disclosure.
-- The privacy policy at `landing/privacy.html` already matches this.
-  Cross-reference the two before submitting.
+  `/api/ask-vela`, RevenueCat, Sentry, or PostHog traffic can reject for
+  inaccurate disclosure.
+- The privacy policy at `landing/privacy.html` and the native
+  `PrivacyInfo.xcprivacy` manifest have been aligned to this disclosure.
 
 ### [ ] App Review Information (reviewer notes + contact)
 - ASC → App Information → App Review Information.
 - Reviewer notes (paste verbatim, adjust as needed):
-  > Vela has no login or account. Tap "Begin" to start the 90-second
-  > onboarding. To exercise premium features without a real
-  > subscription, the reviewer can use the App Store sandbox tester
-  > flow against the in-app paywall. The "Ask Vela" feature sends an
-  > anonymized summary of symptom data (no notes, no custom names, no
-  > exact dates) to Anthropic's Claude API via our Netlify proxy.
-  > Disclosure in Settings → Privacy & Data and in our privacy policy.
+  > Vela has no login or account. Tap "Begin" on the welcome screen to
+  > start onboarding. To exercise premium features, use the App Store
+  > sandbox tester flow against the in-app paywall. Ask Vela and Daily
+  > Brief send anonymized summaries of symptom data through Vela's
+  > Netlify API to Anthropic's Claude API. The summaries exclude notes,
+  > custom symptom names, exact dates, name, email, and advertising
+  > identifiers. Apple Health is optional and reads sleep hours only
+  > after the user enables it in Settings. Vela is informational and not
+  > medical advice. Backend services are live at
+  > `https://velahealth.health/api/*`.
 - Contact email: `support@velahealth.health`
 - Sign-in required: No.
 
@@ -121,22 +135,26 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ## Blocking real Ask Vela + Daily Brief in production
 
-### [ ] Set `ANTHROPIC_API_KEY` in Netlify
+### [x] ~~Set `ANTHROPIC_API_KEY` in Netlify~~ (done 2026-05-21)
 - Site Settings → Environment variables → Add a variable
 - Get the key from [console.anthropic.com](https://console.anthropic.com/settings/keys)
 - Powers BOTH `/api/ask-vela` AND `/api/daily-brief`. Until set, both
   return 503 with explainers and the client falls back to canned text.
+- Verified after production deploy `6a0e5921b228037c89395de0`: empty
+  `/api/ask-vela` returns `Question required` instead of missing-env.
 
-### [ ] Set `REVENUECAT_REST_KEY` in Netlify
+### [x] ~~Set `REVENUECAT_REST_KEY` in Netlify~~ (done 2026-05-21)
 - Get the **secret** REST API key (starts with `sk_`) from
   [app.revenuecat.com](https://app.revenuecat.com) → Project Settings → API Keys
 - Both AI functions verify against this before spending tokens
 - Without it, both return 403 to all premium-gated callers
+- Secret V1 key created in RevenueCat as `netlify-premium-verification`
+  and pasted into Netlify as a secret env var.
 
 ### [ ] (Optional) Tune `ASK_VELA_DAILY_USD` in Netlify
 - Default is $50/day SHARED budget across both ask-vela + daily-brief
 - At 1000 paying users with 1 brief each per day + ~10 questions/mo
-  per user, expected daily spend is ~$1.90 — plenty of headroom
+  per user, expected daily spend is ~$1.90 - plenty of headroom
 - Set lower if you want to be more conservative early on
 - Set higher once you have real usage data and aren't worried
 
@@ -164,12 +182,13 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ### [x] ~~Create PostHog account + paste public key~~ (done 2026-05-08)
 - US Cloud project. Key (`phc_...`) set in `.env.local` AND Netlify env vars.
-- `REACT_APP_POSTHOG_HOST` not set — code defaults to `https://us.i.posthog.com` which matches the project, so no override needed.
-- Verification still pending: run `netlify dev`, fire a tracked event (e.g. open the daily log → `log_started`, or hit the paywall → `paywall_shown`), then check the PostHog "Live events" view.
+- `REACT_APP_POSTHOG_HOST` not set - code defaults to `https://us.i.posthog.com` which matches the project, so no override needed.
+- Verified 2026-05-21: production app bundle fired
+  `onboarding_completed`, and it appeared in PostHog Activity.
 
-### [ ] Create Sentry account + paste DSN
+### [x] ~~Create Sentry account + paste DSN~~ (done 2026-05-21)
 - [sentry.io](https://sentry.io) → free Developer plan covers 5k errors/mo
-  (plenty for v1 — Vela is client-side-error-light by design).
+  (plenty for v1 - Vela is client-side-error-light by design).
 - Create a project, platform: **React**. Name suggestion: `vela-ios`.
 - Copy the DSN (looks like `https://abc@xxxx.ingest.sentry.io/12345`).
 - Two places to paste it:
@@ -178,26 +197,29 @@ Sorted by what blocks what. Cross items off as they ship.
 - Verification flow once the DSN is set:
   1. Restart `netlify dev`.
   2. Open the app, navigate to Settings → tap **Reset all data**.
-     Reset clears Sentry user context too — confirms `clearUser()` runs.
+     Reset clears Sentry user context too - confirms `clearUser()` runs.
   3. Force a test error: open DevTools console, run
      `setTimeout(() => { throw new Error('sentry-smoke-test'); }, 0)`.
   4. Within ~10s, the error should appear in Sentry under
-     **Issues** with the release tag `vela@0.1.0`.
+     **Issues** with the release tag `vela@1.0.0`.
+- Verified 2026-05-21: DSN is in `.env.local` and Netlify env, local
+  production bundle embeds it, and a synthetic smoke event appeared in
+  Sentry Issues tagged `vela@1.0.0`.
 - Code-side wiring (all done):
-  - `src/errorReporting.js` — init, `reportError()`, `identifyUser()`,
+  - `src/errorReporting.js` - init, `reportError()`, `identifyUser()`,
     `clearUser()`. Adds `window.onerror` + `unhandledrejection` handlers
     on init. Tags every event with the `vela@<version>` release.
-  - `src/ErrorBoundary.jsx` — catches React render errors.
-  - `src/subscription.js` — 6 tagged `reportError()` calls covering
+  - `src/ErrorBoundary.jsx` - catches React render errors.
+  - `src/subscription.js` - 6 tagged `reportError()` calls covering
     every RevenueCat failure mode.
-  - `src/screens/Today.jsx` — tagged report on daily-brief fetch failure.
-  - `src/screens/Insights.jsx` — tagged report on ask-vela fetch failure.
-  - `src/App.jsx` — `identifyUser(appUserId)` on launch once RevenueCat
+  - `src/screens/Today.jsx` - tagged report on daily-brief fetch failure.
+  - `src/screens/Insights.jsx` - tagged report on ask-vela fetch failure.
+  - `src/App.jsx` - `identifyUser(appUserId)` on launch once RevenueCat
     resolves; `clearUser()` on "Reset all data".
 - (Optional, post-launch.) Wire source-map upload via
   `@sentry/webpack-plugin` so production stack traces deobfuscate. Needs
   a Sentry **auth token** (Settings → Auth tokens) plus the org + project
-  slugs. Not needed for v1 — minified stack traces are still actionable.
+  slugs. Not needed for v1 - minified stack traces are still actionable.
 
 ---
 
@@ -209,16 +231,16 @@ Sorted by what blocks what. Cross items off as they ship.
 
 ### [ ] App Store screenshots
 - Dimensions in `docs/product/app-store-listing.md`
-- Can be generated from the existing screens — no new code needed
+- Can be generated from the existing screens - no new code needed
 
 ### [x] ~~Add smoke tests~~ (suite landed 2026-05-13)
 - Five Jest tests under `src/__tests__/` and `src/lib/__tests__/` lock
   in the three regressions that would hurt most: privacy-promise
   contracts on the two off-device payloads, the doctor-report PDF, the
   perfect-correlation insight, and the App boot path.
-- No CI yet — running them is still a manual `npm test -- --watchAll=false`
-  step. Wire CI (GitHub Actions, Netlify build hook, whatever) so these
-  run on every push before launch.
+- CI now runs smoke tests and the production build for pull requests and
+  pushes to `main`. Run `CI=true npm test -- --watchAll=false` locally
+  before pushing launch-critical changes.
 
 ---
 

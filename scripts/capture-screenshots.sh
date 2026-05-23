@@ -4,16 +4,16 @@
 # Full automation would need a UI test framework (XCUITest, Playwright)
 # to drive the React app to specific screens. That's overkill for a one-
 # time App Store submission. Instead this script handles the deterministic
-# parts — picking the right simulator size, capturing at native resolution,
-# and naming the file correctly — while you navigate the app by hand.
+# parts - picking the right simulator size, capturing at native resolution,
+# and naming the file correctly - while you navigate the app by hand.
 #
 # Usage:
 #   scripts/capture-screenshots.sh boot 67           # boot iPhone 15 Pro Max (6.7")
 #   scripts/capture-screenshots.sh boot 65           # boot iPhone 11 Pro Max (6.5")
 #   scripts/capture-screenshots.sh shot welcome      # capture current screen → screenshots/<size>/01-welcome.png
-#   scripts/capture-screenshots.sh shot today
 #   scripts/capture-screenshots.sh shot insights
 #   scripts/capture-screenshots.sh shot ask-vela
+#   scripts/capture-screenshots.sh shot today
 #   scripts/capture-screenshots.sh shot paywall
 #   scripts/capture-screenshots.sh shot history
 #   scripts/capture-screenshots.sh verify            # confirm 12 files, each at correct size
@@ -69,12 +69,12 @@ cmd_shot() {
   local index=""
   case "$name" in
     welcome)  index="01" ;;
-    today)    index="02" ;;
-    insights) index="03" ;;
-    ask-vela) index="04" ;;
+    insights) index="02" ;;
+    ask-vela) index="03" ;;
+    today)    index="04" ;;
     paywall)  index="05" ;;
     history)  index="06" ;;
-    *) echo "Unknown frame: $name. Valid: welcome today insights ask-vela paywall history" >&2; exit 1 ;;
+    *) echo "Unknown frame: $name. Valid: welcome insights ask-vela today paywall history" >&2; exit 1 ;;
   esac
   local out="$SCREENSHOT_DIR/$size/${index}-${name}.png"
   xcrun simctl io booted screenshot "$out"
@@ -91,11 +91,11 @@ cmd_verify() {
     else expect_w=1284; expect_h=2778
     fi
     echo "── $size\" set (expecting ${expect_w}×${expect_h}) ─────────────"
-    for name in welcome today insights ask-vela paywall history; do
+    for name in welcome insights ask-vela today paywall history; do
       local index
       case "$name" in
-        welcome)  index="01" ;; today)    index="02" ;; insights) index="03" ;;
-        ask-vela) index="04" ;; paywall)  index="05" ;; history)  index="06" ;;
+        welcome)  index="01" ;; insights) index="02" ;; ask-vela) index="03" ;;
+        today)    index="04" ;; paywall)  index="05" ;; history)  index="06" ;;
       esac
       local f="$SCREENSHOT_DIR/$size/${index}-${name}.png"
       if [[ ! -f "$f" ]]; then

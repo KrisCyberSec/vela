@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vela — Waitlist Admin</title>
+  <title>Vela. Waitlist Admin</title>
   <meta name="robots" content="noindex, nofollow" />
   <style>
     :root {
@@ -143,7 +143,7 @@
     }
 
     function fmtDate(iso) {
-      if (!iso) return "—";
+      if (!iso) return "-";
       const d = new Date(iso);
       return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     }
@@ -210,7 +210,7 @@
           tbody.appendChild(el("tr", {}, [
             el("td", { class: "email" }, e.email ?? ""),
             el("td", { class: "date" }, fmtDate(e.submittedAt)),
-            el("td", { class: "ref" }, e.referrer || "—"),
+            el("td", { class: "ref" }, e.referrer || "-"),
           ]));
         }
         const table = el("table", {}, [

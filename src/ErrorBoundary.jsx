@@ -52,7 +52,7 @@ export default class ErrorBoundary extends React.Component {
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🌿</div>
+        <div style={{ fontFamily: "Georgia, serif", fontSize: 32, marginBottom: 16, color: "#8c4e32" }}>Vela</div>
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: "0 0 12px" }}>
           Something went wrong
         </h1>

@@ -234,7 +234,7 @@ export async function createTopic(topicData) {
   const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
 
   const topic = {
-    icon: topicData.icon || "💬",
+    icon: topicData.icon || "ChatCircle",
     title: topicData.title.trim(),
     description: (topicData.description || "").trim(),
     tags: topicData.tags || [],

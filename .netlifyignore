@@ -1,0 +1,12 @@
+# Keep Netlify uploads focused on the marketing site and functions.
+# Native iOS bundles can contain public client keys that Netlify's secret
+# scanner still treats as deploy-blocking matches.
+*
+!netlify.toml
+!package.json
+!package-lock.json
+!landing/
+!landing/**
+!netlify/
+!netlify/functions/
+!netlify/functions/**
