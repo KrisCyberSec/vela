@@ -77,7 +77,7 @@ Or do it from the Netlify dashboard → Deploys → click any past deploy → "P
 The iOS app reaches its functions over HTTPS at `https://velahealth.health/api/*`,
 which the toml redirects to `/.netlify/functions/:splat`.
 
-Security headers are configured in `netlify.toml`: HSTS, frame denial,
+Security headers are configured in `landing/_headers`: HSTS, frame denial,
 content-type sniffing protection, strict-origin referrer policy, and a
 restrictive permissions policy. Content-Security-Policy is intentionally
 not enabled yet because the static landing page uses inline assets and

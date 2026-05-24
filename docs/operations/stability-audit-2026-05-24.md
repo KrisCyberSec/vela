@@ -60,7 +60,7 @@ risk without improving the App Store path.
 ## Changes made from this audit
 
 - Added `/api/health` via `netlify/functions/health.js`.
-- Added baseline Netlify security headers in `netlify.toml`.
+- Added baseline Netlify security headers in `landing/_headers`.
 - Added `npm run deploy:netlify` and `npm run deploy:netlify:preview`.
 - Updated Netlify scope verification so the health function is required.
 - Updated deployment and infrastructure docs to match the clean staging deploy flow.

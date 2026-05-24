@@ -56,7 +56,8 @@ Located at `/Users/kristopher/Vela/netlify/functions/`:
 
 ### Security headers
 
-Configured in [netlify.toml](../../netlify.toml) for all public paths:
+Configured in [landing/_headers](../../landing/_headers) for all static
+public paths:
 
 - `Strict-Transport-Security`
 - `X-Content-Type-Options`
