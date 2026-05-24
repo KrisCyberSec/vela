@@ -57,6 +57,11 @@ useful as an operating model, but Vela is primarily an iOS app with a static
 landing page and a few API functions. A platform migration would add launch
 risk without improving the App Store path.
 
+If Vela becomes a Next.js app, prefer Vercel as the primary app host and
+Cloudflare as DNS, WAF, rate-limiting, and security edge unless the repo
+reveals a strong reason not to. Keep app code standard Next.js where possible
+and avoid baking provider-specific logic into product components.
+
 ## Changes made from this audit
 
 - Added `/api/health` via `netlify/functions/health.js`.
