@@ -7,6 +7,13 @@ const { getStore } = require("@netlify/blobs");
 const SITE_ID = "e0a6111f-d0ad-469a-bb29-66844eb342fe";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SECURITY_HEADERS = {
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+};
 
 exports.handler = async (event) => {
   // CORS preflight
@@ -17,12 +24,13 @@ exports.handler = async (event) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
+        ...SECURITY_HEADERS,
       },
     };
   }
 
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method not allowed" };
+    return { statusCode: 405, headers: SECURITY_HEADERS, body: "Method not allowed" };
   }
 
   let email;
@@ -76,6 +84,7 @@ function json(statusCode, body) {
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
+      ...SECURITY_HEADERS,
     },
     body: JSON.stringify(body),
   };

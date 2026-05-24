@@ -5,6 +5,13 @@
 const { getStore } = require("@netlify/blobs");
 
 const SITE_ID = "e0a6111f-d0ad-469a-bb29-66844eb342fe";
+const SECURITY_HEADERS = {
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+};
 
 // Wrap in quotes, double internal quotes, and prefix formula-leading chars
 // with a single quote so spreadsheet apps don't evaluate them.
@@ -20,7 +27,7 @@ exports.handler = async (event) => {
   const match = /^Bearer\s+(.+)$/i.exec(auth);
   const token = match?.[1]?.trim();
   if (!token || !process.env.ADMIN_TOKEN || token !== process.env.ADMIN_TOKEN) {
-    return { statusCode: 401, body: "Unauthorized" };
+    return { statusCode: 401, headers: SECURITY_HEADERS, body: "Unauthorized" };
   }
 
   try {
@@ -48,6 +55,7 @@ exports.handler = async (event) => {
         headers: {
           "Content-Type": "text/csv",
           "Content-Disposition": 'attachment; filename="waitlist.csv"',
+          ...SECURITY_HEADERS,
         },
         body: header + rows,
       };
@@ -55,12 +63,13 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
       body: JSON.stringify({ count: entries.length, entries }, null, 2),
     };
   } catch (err) {
     return {
       statusCode: 500,
+      headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
       body: JSON.stringify({ error: "Export failed", detail: String(err?.message || err) }),
     };
   }

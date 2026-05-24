@@ -1,9 +1,18 @@
+const SECURITY_HEADERS = {
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+};
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 204,
       headers: {
         Allow: "GET, HEAD, OPTIONS",
+        ...SECURITY_HEADERS,
       },
     };
   }
@@ -35,6 +44,7 @@ exports.handler = async (event) => {
         "Content-Type": "application/json",
         "Cache-Control": "no-store",
         Allow: "GET, HEAD, OPTIONS",
+        ...SECURITY_HEADERS,
       },
     };
   }
@@ -48,6 +58,7 @@ function json(statusCode, body) {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
+      ...SECURITY_HEADERS,
     },
     body: JSON.stringify(body),
   };

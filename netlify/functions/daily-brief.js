@@ -40,6 +40,13 @@ const PER_IP_LIMIT = 30;
 const DEFAULT_DAILY_USD_CAP = 50;
 
 const SITE_ID = "e0a6111f-d0ad-469a-bb29-66844eb342fe";
+const SECURITY_HEADERS = {
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+};
 
 // System prompt is tuned for a SHORT, observational, never-prescriptive
 // daily message. Different from Ask Vela — this is one-way, has to land
@@ -317,6 +324,7 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-dev-token",
+    ...SECURITY_HEADERS,
   };
 }
 
