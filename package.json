@@ -23,6 +23,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "deploy:netlify": "bash scripts/deploy-netlify.sh --prod",
+    "deploy:netlify:preview": "bash scripts/deploy-netlify.sh",
     "verify:netlify-scope": "node scripts/verify-netlify-deploy-scope.mjs",
     "verify:observability": "node scripts/verify-observability.mjs"
   },

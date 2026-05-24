@@ -21,29 +21,29 @@ netlify login
 
 ### Deploy
 
-Use a clean staging folder so Netlify uploads only the marketing site and
+Use the deploy script so Netlify uploads only the marketing site and
 functions. Uploading the full repo can include compiled iOS assets and
 trigger Netlify secret scanning on public client keys.
 
 ```bash
 cd /Users/kristopher/Vela
-tmpdir=$(mktemp -d /tmp/vela-netlify-deploy.XXXXXX)
-rsync -a netlify.toml package.json package-lock.json landing netlify "$tmpdir/"
-(cd "$tmpdir" && netlify deploy --prod)
+npm run deploy:netlify
 ```
 
 This:
 1. Uploads everything in `/landing` to Netlify's CDN
-2. Deploys the four Netlify Functions (`waitlist`, `waitlist-export`,
-   `ask-vela`, `daily-brief`)
+2. Deploys the five Netlify Functions (`waitlist`, `waitlist-export`,
+   `ask-vela`, `daily-brief`, `health`)
 3. Makes it live at [velahealth.health](https://velahealth.health) within a few seconds
 
-### Deploy a preview (without affecting production)
+The script runs `npm run verify:netlify-scope` before deploying.
 
-Drop `--prod`:
+### Deploy a preview without affecting production
+
+Use the preview script:
 
 ```bash
-netlify deploy
+npm run deploy:netlify:preview
 ```
 
 Netlify returns a unique preview URL so you can QA before publishing.
@@ -71,10 +71,17 @@ Or do it from the Netlify dashboard → Deploys → click any past deploy → "P
 | `netlify/functions/waitlist-export.js` | Admin export endpoint (called from admin) |
 | `netlify/functions/ask-vela.js` | Anthropic API proxy for the iOS Ask Vela feature |
 | `netlify/functions/daily-brief.js` | Anthropic API proxy for the iOS daily brief |
+| `netlify/functions/health.js` | Cheap health endpoint at `/api/health` for uptime checks and deploy verification |
 | `netlify.toml` | Single source of truth for the deploy |
 
 The iOS app reaches its functions over HTTPS at `https://velahealth.health/api/*`,
 which the toml redirects to `/.netlify/functions/:splat`.
+
+Security headers are configured in `netlify.toml`: HSTS, frame denial,
+content-type sniffing protection, strict-origin referrer policy, and a
+restrictive permissions policy. Content-Security-Policy is intentionally
+not enabled yet because the static landing page uses inline assets and
+should be reviewed separately before adding CSP.
 
 ## DNS changes
 

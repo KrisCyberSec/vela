@@ -62,6 +62,7 @@ Running and deploying things.
 | [waitlist.md](operations/waitlist.md) | Admin dashboard, JSON/CSV export, token rotation, viewing emails via CLI |
 | [ios-build.md](operations/ios-build.md) | iOS build flow, Xcode setup, TestFlight/App Store submission |
 | [analytics-and-billing.md](operations/analytics-and-billing.md) | RevenueCat, PostHog, Sentry — env vars, setup steps, instrumented events |
+| [stability-audit-2026-05-24.md](operations/stability-audit-2026-05-24.md) | Current stack map, infrastructure risks, target operating model, and account-side blockers |
 | [security-audit-2026-04.md](operations/security-audit-2026-04.md) | Pre-beta audit: secret patterns checked, repo visibility, admin auth flow |
 | [app-store-submission.md](operations/app-store-submission.md) | Hand-off checklist for going live: what's in code, what only Apple/3rd parties can do |
 

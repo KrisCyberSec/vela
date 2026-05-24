@@ -39,7 +39,7 @@ SSL is provisioned by Netlify via Let's Encrypt, auto-renews.
 - **Site ID:** `e0a6111f-d0ad-469a-bb29-66844eb342fe`
 - **Production URL:** [velahealth.health](https://velahealth.health)
 - **Netlify subdomain:** `velahealth-app.netlify.app`
-- **Deploy source:** Manual CLI from a clean staging folder. Single [netlify.toml](../../netlify.toml) drives the deploy (publishes `landing/`, ships all four functions in `netlify/functions/`).
+- **Deploy source:** Manual CLI through `npm run deploy:netlify`, which builds a clean staging folder before running `netlify deploy --prod`. Single [netlify.toml](../../netlify.toml) drives the deploy (publishes `landing/`, ships all functions in `netlify/functions/`).
 - **Plan:** Free (Starter / `nf_team_dev`)
 
 ### Functions
@@ -52,6 +52,20 @@ Located at `/Users/kristopher/Vela/netlify/functions/`:
 | `waitlist-export.js` | `/.netlify/functions/waitlist-export` (requires `Authorization: Bearer $ADMIN_TOKEN`) | Returns all waitlist entries as JSON or CSV |
 | `ask-vela.js` | `/api/ask-vela` (rewritten via toml) | Anthropic API proxy for the iOS Ask Vela feature |
 | `daily-brief.js` | `/api/daily-brief` (rewritten via toml) | Anthropic API proxy for the iOS daily brief |
+| `health.js` | `/api/health` (rewritten via toml) | Cheap health check for uptime checks and deploy verification |
+
+### Security headers
+
+Configured in [netlify.toml](../../netlify.toml) for all public paths:
+
+- `Strict-Transport-Security`
+- `X-Content-Type-Options`
+- `X-Frame-Options`
+- `Referrer-Policy`
+- `Permissions-Policy`
+
+Content-Security-Policy is not enabled yet. Add it only after reviewing
+the static landing pages for inline scripts/styles and third-party assets.
 
 ### Netlify Blobs
 
@@ -65,15 +79,23 @@ Located at `/Users/kristopher/Vela/netlify/functions/`:
 |------|-------|---------|
 | `NETLIFY_BLOBS_TOKEN` | all contexts | Auth for Blobs reads and writes (Netlify PAT). Required because this site's runtime doesn't auto-inject `NETLIFY_BLOBS_CONTEXT`. If rotated, also rotate it here. |
 | `ADMIN_TOKEN` | all contexts | Protects `/admin.html` and export endpoint |
+| `ANTHROPIC_API_KEY` | functions | Powers `ask-vela` and `daily-brief` |
+| `REVENUECAT_REST_KEY` | functions | Verifies premium entitlement server-side before AI calls |
+| `ASK_VELA_DAILY_USD` | functions | Optional daily AI spend cap override |
+| `ASK_VELA_DEV_TOKEN` | functions | Optional local/internal bypass token for AI endpoint testing |
+| `REACT_APP_SENTRY_DSN` | build/client | Sentry client DSN used by the React app bundle |
+| `REACT_APP_POSTHOG_KEY` | build/client | PostHog project key used by the React app bundle |
+
+The RevenueCat public iOS key, `REACT_APP_REVENUECAT_IOS_API_KEY`, is not
+final until Apple Developer enrollment and App Store Connect products are
+created.
 
 **Rotate admin token:**
 ```bash
 cd /Users/kristopher/Vela
 NEW=$(openssl rand -hex 32)
 netlify env:set ADMIN_TOKEN "$NEW"
-tmpdir=$(mktemp -d /tmp/vela-netlify-deploy.XXXXXX)
-rsync -a netlify.toml package.json package-lock.json landing netlify "$tmpdir/"
-(cd "$tmpdir" && netlify deploy --prod)
+npm run deploy:netlify
 echo "$NEW"  # paste into ADMIN.md (gitignored)
 ```
 

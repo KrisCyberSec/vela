@@ -33,6 +33,7 @@ const requiredDeployPaths = [
   "landing/support.html",
   "netlify/functions/ask-vela.js",
   "netlify/functions/daily-brief.js",
+  "netlify/functions/health.js",
   "netlify/functions/waitlist.js",
   "netlify/functions/waitlist-export.js",
 ];
