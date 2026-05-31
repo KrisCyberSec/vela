@@ -579,6 +579,17 @@ const css = `
   .locked-progress .pip { width: 8px; height: 8px; border-radius: 4px; background: rgba(140,78,50,0.14); }
   .locked-progress .pip.on { background: var(--clay); }
   .locked-foot { font-size: 11px; color: var(--ink-light); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 4px; }
+  .locked-ask-card { margin-top: 12px; background: var(--glass-cream-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; box-shadow: inset 0 1px 0 var(--glass-edge), 0 8px 22px rgba(140, 78, 50, 0.08); }
+  .locked-ask-card .vela-mark { width: 38px; height: 38px; border-radius: 999px; background: var(--gold); color: #2C1F17; font-family: var(--font-serif); font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
+  .locked-ask-card .body { min-width: 0; }
+  .locked-ask-card .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--clay-dark); margin-bottom: 5px; }
+  .locked-ask-card h4 { font-family: var(--font-serif); font-weight: 400; font-size: 19px; line-height: 1.18; color: var(--ink); margin: 0 0 7px; }
+  .locked-ask-card h4 em { font-style: italic; color: var(--clay); }
+  .locked-ask-card p { font-size: 13px; line-height: 1.5; color: var(--ink-mid); margin: 0 0 12px; }
+  .locked-ask-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .locked-ask-status { font-size: 11px; color: var(--ink-light); border: 1px solid var(--border); border-radius: 999px; padding: 6px 9px; background: rgba(255,255,255,0.45); }
+  .locked-ask-btn { border: none; border-radius: 999px; background: var(--clay); color: #fff; font-family: var(--font-sans); font-size: 12px; font-weight: 600; padding: 7px 11px; cursor: pointer; }
+  .locked-ask-btn:active { transform: scale(0.97); }
 
   /* Day-7 unlock hero */
   .unlock-card { position: relative; border-radius: 22px; padding: 22px 20px 20px; background: var(--glass-sage-card); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); box-shadow: inset 0 1px 0 var(--glass-edge), 0 10px 30px rgba(61, 107, 79, 0.12), 0 1px 3px rgba(61, 107, 79, 0.06); overflow: hidden; }
@@ -3419,6 +3430,7 @@ export default function App() {
           profile={profile}
           isPremium={isPremium}
           onShowPaywall={(sub) => openPaywall(sub ? `insights_${sub}` : "insights")}
+          onNavigate={setScreen}
         />
       )}
       {onboarded && screen === "community" && <CommunityScreen />}

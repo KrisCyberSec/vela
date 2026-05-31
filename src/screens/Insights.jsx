@@ -48,7 +48,7 @@ import {
 } from "../lib/experiments";
 import { matchQuestion, generateResponse } from "../lib/cannedAI";
 
-export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall }) {
+export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall, onNavigate }) {
   // ─── Persistent Ask-Vela chat (kept from previous implementation) ──────────
   const [chatMessages, setChatMessages] = useState(() => {
     try { return JSON.parse(localStorage.getItem("vela_chat_messages")) || []; } catch { return []; }
@@ -466,20 +466,39 @@ export default function InsightsScreen({ logs, profile, isPremium, onShowPaywall
 
       {/* LOCKED. Single state, no other modules */}
       {isLocked && (
-        <section className="locked-card">
-          <div className="lock-glyph"><UIIcon name="Lock" size={22} /></div>
-          <h3>Patterns unlock at <em>day 7</em></h3>
-          <p>
-            You're {7 - uniqueDays} {7 - uniqueDays === 1 ? "day" : "days"} away. Vela needs a week of entries to
-            spot rhythms in your symptoms. Anything sooner would be guessing.
-          </p>
-          <div className="locked-progress" aria-label={`${uniqueDays} of 7 days logged`}>
-            {Array.from({ length: 7 }).map((_, i) => (
-              <span key={i} className={`pip${i < uniqueDays ? " on" : ""}`} />
-            ))}
-          </div>
-          <div className="locked-foot">{uniqueDays} of 7 days</div>
-        </section>
+        <>
+          <section className="locked-card">
+            <div className="lock-glyph"><UIIcon name="Lock" size={22} /></div>
+            <h3>Patterns unlock at <em>day 7</em></h3>
+            <p>
+              You're {7 - uniqueDays} {7 - uniqueDays === 1 ? "day" : "days"} away. Vela needs a week of entries to
+              spot rhythms in your symptoms. Anything sooner would be guessing.
+            </p>
+            <div className="locked-progress" aria-label={`${uniqueDays} of 7 days logged`}>
+              {Array.from({ length: 7 }).map((_, i) => (
+                <span key={i} className={`pip${i < uniqueDays ? " on" : ""}`} />
+              ))}
+            </div>
+            <div className="locked-foot">{uniqueDays} of 7 days</div>
+          </section>
+
+          <section className="locked-ask-card" aria-label="Ask Vela preview">
+            <div className="vela-mark">V</div>
+            <div className="body">
+              <div className="eyebrow">Premium after day 7</div>
+              <h4>Ask Vela is learning your <em>baseline.</em></h4>
+              <p>
+                Once you have seven logged days, ask about triggers, sleep, cycle shifts, and what to bring to your doctor.
+              </p>
+              <div className="locked-ask-row">
+                <span className="locked-ask-status">{uniqueDays} of 7 days logged</span>
+                <button type="button" className="locked-ask-btn" onClick={() => onNavigate?.("tracker")}>
+                  Log today
+                </button>
+              </div>
+            </div>
+          </section>
+        </>
       )}
 
       {/* UNLOCKED. Day 7 reveal hero */}
